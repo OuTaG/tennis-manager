@@ -36,6 +36,11 @@ describe("difficulté et score", () => {
     expect(p.money).toBe(startMoney("Buenos Aires", ["fragile"]));
     expect(startMoney("Paris", ["low_budget"])).toBe(startMoney("Paris") / 2);
   });
+
+  it("la surface de prédilection choisie à la création est respectée", () => {
+    const p = createInitialPlayer("Test", "serve_volley", "Paris", "France", null, 3, [], "Terre battue");
+    expect(p.favoriteSurface).toBe("Terre battue");
+  });
 });
 
 describe("circuit secondaire hors Europe", () => {
