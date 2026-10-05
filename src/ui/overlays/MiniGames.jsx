@@ -204,10 +204,10 @@ export function TrainingCards({ mod, costs, affordable, odds, oddsCtx, onPick, o
                       <span style={{ fontWeight: 800, fontSize: 14 }}>{c.name}</span>
                     </div>
                     <div style={{ fontSize: 11.5, fontWeight: 700 }}>
-                      Réussi : gain {fmtMul(c.successMul)} · Raté : {c.failMul ? "gain " + fmtMul(c.failMul) : "rien"}
+                      Réussi : gain {fmtMul(c.successMul)} · Raté : rien
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: "#3c3c34" }}>
-                      Énergie −{costs[c.id]}.{c.happinessDelta ? " Bonheur " + c.happinessDelta + "." : ""} {c.desc}
+                      Énergie −{costs[c.id]}. {c.desc}
                     </div>
                     <div style={{ height: 10, border: "2px solid " + INK, background: "#ffffff", marginTop: 2 }}>
                       <div style={{ width: pct + "%", height: "100%", background: GRASS }} />
@@ -240,8 +240,7 @@ export function TrainingCards({ mod, costs, affordable, odds, oddsCtx, onPick, o
                 <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
                   {chosen.outcome.success
                     ? "Programme bouclé : gain " + fmtMul(chosen.card.successMul) + "."
-                    : chosen.card.failMul ? "Séance incomplète : gain " + fmtMul(chosen.card.failMul) + " seulement." : "Rien à en tirer cette fois."}
-                  {chosen.outcome.injury && <span style={{ color: PURPLE }}> Petite gêne musculaire.</span>}
+                    : "Programme raté : pas de progrès cette fois."}
                 </div>
               </div>
             )}

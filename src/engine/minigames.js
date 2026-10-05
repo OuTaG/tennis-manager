@@ -55,12 +55,12 @@ export function miniGameEffect(win) {
 
 // ─── À L'ENTRAÎNEMENT ──────────────────────────────────────────────────────
 // Trois programmes, comme les programmes d'essais libres : chacun affiche sa
-// probabilité de réussite. Réussi, il rapporte son gain plein ; raté, une
-// partie seulement. Plus le programme est ambitieux, moins il réussit.
+// probabilité de réussite. Réussi, il rapporte son gain ; raté, rien.
+// Plus le programme est risqué, plus il rapporte et plus il fatigue.
 export const TRAINING_CARDS = [
-  { id: "commune", rarity: "Routine", name: "Séance de routine", baseP: 0.85, successMul: 1, failMul: 0.4, energyMul: 1, happinessDelta: 0, desc: "Sûr, gain modeste." },
-  { id: "rare", rarity: "Intensif", name: "Séance intensive", baseP: 0.6, successMul: 2.2, failMul: 0.3, energyMul: 1.6, happinessDelta: -2, desc: "Gros gain, plus de fatigue." },
-  { id: "mystere", rarity: "Exploit", name: "Pari du coach", baseP: 0.3, successMul: 3.6, failMul: 0, energyMul: 1.3, happinessDelta: 0, desc: "Tout ou rien. Un échec peut laisser une gêne." },
+  { id: "commune", rarity: "Routine", name: "Séance de routine", baseP: 0.85, successMul: 1, failMul: 0, energyMul: 1, desc: "Sûr, gain modeste." },
+  { id: "rare", rarity: "Intensif", name: "Séance intensive", baseP: 0.6, successMul: 2.2, failMul: 0, energyMul: 1.4, desc: "Gros gain, plus de fatigue." },
+  { id: "mystere", rarity: "Exploit", name: "Pari du coach", baseP: 0.3, successMul: 3.6, failMul: 0, energyMul: 1.8, desc: "Énorme gain, épuisant." },
 ];
 
 // Probabilité de réussite d'un programme, selon la forme du joueur :
@@ -73,11 +73,10 @@ export function trainingOdds(card, ctx = {}) {
 }
 
 // Tirage d'un programme : le jet (0–1) est comparé à la probabilité.
-// Renvoie { success, roll, p, gainMul, injury }.
+// Renvoie { success, roll, p, gainMul }.
 export function rollTraining(card, ctx) {
   const p = trainingOdds(card, ctx);
   const roll = random();
   const success = roll < p;
-  const injury = !success && card.id === "mystere" && random() < 0.35;
-  return { success, roll, p, gainMul: success ? card.successMul : card.failMul, injury };
+  return { success, roll, p, gainMul: success ? card.successMul : card.failMul };
 }

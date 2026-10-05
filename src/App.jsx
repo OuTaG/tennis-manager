@@ -1144,9 +1144,6 @@ export default function TennisManager() {
     // The physio/staff injuryProtect reduces (but never removes) the risk.
     let aggravated = false;
     let updatedInjury = player.injury;
-    if (outcome && outcome.injury && !player.injury) {
-      updatedInjury = { severity: "minor", label: "Petite gêne musculaire", emoji: "", weeksRemaining: 1, statPenalty: 0.05, canPlay: true };
-    }
     if (player.injury && player.injury.weeksRemaining > 0) {
       const protect = Math.max(0, Math.min(0.5, sumStaffEffect(player.staff, "injuryProtect")));
       const aggravationChance = 0.45 * (1 - protect); // ~45%, lowered by physio
@@ -1174,10 +1171,9 @@ export default function TennisManager() {
       totalSpent: (p.totalSpent || 0) + mod.cost,
       trainCount: (p.trainCount || 0) + 1,
       energy: Math.max(0, p.energy - actualEnergyCost),
-      happiness: clampLife((p.happiness ?? 70) + card.happinessDelta),
       injury: updatedInjury,
     }));
-    if (outcome && !outcome.success) notify(card.name + " ratée" + (outcome.injury ? " : petite gêne musculaire." : "."), "warn");
+    if (outcome && !outcome.success) notify(card.name + " ratée : pas de progrès cette fois.", "warn");
     if (aggravated) {
       notify("Vous avez aggravé votre blessure ! Repos prolongé (" + updatedInjury.label + ").", "warn");
     } else if (player.injury && player.injury.weeksRemaining > 0) {

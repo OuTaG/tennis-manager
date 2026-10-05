@@ -79,6 +79,14 @@ describe("programmes d'entraînement", () => {
     expect(intensif).toBeGreaterThan(exploit);
   });
 
+  it("raté = rien ; plus c'est risqué, plus ça fatigue et plus ça rapporte", () => {
+    for (const c of TRAINING_CARDS) expect(c.failMul).toBe(0);
+    for (let i = 1; i < TRAINING_CARDS.length; i++) {
+      expect(TRAINING_CARDS[i].energyMul).toBeGreaterThan(TRAINING_CARDS[i - 1].energyMul);
+      expect(TRAINING_CARDS[i].successMul).toBeGreaterThan(TRAINING_CARDS[i - 1].successMul);
+    }
+  });
+
   it("la forme et le coach augmentent les chances", () => {
     const c = TRAINING_CARDS[1];
     expect(trainingOdds(c, { energy: 95, happiness: 90, staffTrainGain: 0.1 })).toBeGreaterThan(trainingOdds(c, { energy: 40, happiness: 30 }));
