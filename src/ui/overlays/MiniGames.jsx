@@ -1,6 +1,6 @@
 // Mini-jeux de choix (match et entraînement), en cases de BD.
 import { useEffect, useRef, useState } from "react";
-import { ZONES, TRAINING_CARDS, opponentRead, returnDuel, serveDuel, smashResult } from "../../engine/minigames.js";
+import { ZONES, TRAINING_CARDS, opponentRead, returnDuel, rollTraining, serveDuel, smashResult } from "../../engine/minigames.js";
 import { T } from "../theme.js";
 
 const INK = "#141414";
@@ -13,7 +13,7 @@ function Sfx({ children, color = BALL }) {
   return (
     <div className="tm-display" style={{
       fontSize: 30, color, WebkitTextStroke: "1.6px " + INK, textShadow: "3px 3px 0 " + INK,
-      transform: "rotate(-6deg)", lineHeight: 1,
+      transform: "rotate(-6deg)", lineHeight: 1, whiteSpace: "nowrap", flexShrink: 0,
     }}>{children}</div>
   );
 }
@@ -143,41 +143,116 @@ function SmashGauge({ done, onHit }) {
 }
 
 // ─── À L'ENTRAÎNEMENT ─────────────────────────────────────────────────────
-// Trois fiches posées par le coach. costs[id] = énergie de la fiche ;
-// affordable[id] = assez d'énergie ? onPick(id) lance la séance.
-export function TrainingCards({ mod, costs, affordable, onPick, onClose }) {
+// Trois programmes avec leur probabilité de réussite (façon essais libres).
+// Au choix, le jet est tiré puis animé sur une jauge : à gauche du seuil,
+// réussi ; à droite, raté. onPick(id, outcome) lance la séance.
+const fmtMul = (m) => "×" + String(m).replace(".", ",");
+export function TrainingCards({ mod, costs, affordable, odds, oddsCtx, onPick, onClose }) {
   const colors = { commune: "#ffffff", rare: LILAC, mystere: BALL };
+  const [chosen, setChosen] = useState(null); // { card, outcome }
+  const [needle, setNeedle] = useState(0);
+  const [settled, setSettled] = useState(false);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!chosen) return undefined;
+    // L'aiguille balaie la jauge deux fois puis se pose sur le jet.
+    const DUR = 1500;
+    let start = null;
+    const step = (now) => {
+      if (start === null) start = now;
+      const k = Math.min(1, (now - start) / DUR);
+      const ease = 1 - Math.pow(1 - k, 3);
+      const sweep = Math.abs(Math.sin(ease * Math.PI * 2.5));
+      setNeedle(k < 1 ? sweep * (1 - ease) + chosen.outcome.roll * ease : chosen.outcome.roll);
+      if (k < 1) rafRef.current = requestAnimationFrame(step);
+      else setSettled(true);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [chosen]);
+
+  const pick = (card) => {
+    if (chosen || !affordable[card.id]) return;
+    setChosen({ card, outcome: rollTraining(card, oddsCtx) });
+  };
+
   return (
-    <div className="tm-paper" onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div className="tm-paper" onClick={() => !chosen && onClose()} style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "3px solid " + INK, paddingBottom: 4 }}>
           <span className="tm-display" style={{ fontSize: 22, color: T.fg }}>{mod.name}</span>
-          <span className="tm-eyebrow" style={{ color: T.fg }}>Choisissez une fiche</span>
+          <span className="tm-eyebrow" style={{ color: T.fg }}>Programme du jour</span>
         </div>
-        <Caption>Le coach étale trois fiches. Une seule sera jouée.</Caption>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
-          {TRAINING_CARDS.map(c => {
-            const ok = affordable[c.id];
-            const big = c.gainMul === null ? "?" : "×" + c.gainMul;
-            return (
-              <button key={c.id} onClick={() => ok && onPick(c.id)} disabled={!ok} style={{
-                height: 200, padding: 0, border: "3px solid " + INK, background: colors[c.id], color: INK,
-                boxShadow: "4px 4px 0 " + INK, cursor: ok ? "pointer" : "not-allowed", opacity: ok ? 1 : 0.45,
-                display: "flex", flexDirection: "column", alignItems: "stretch", textAlign: "left", fontFamily: T.body,
-              }}>
-                <div style={{ background: INK, color: c.id === "commune" ? "#ffffff" : BALL, fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "3px 6px", textTransform: "uppercase" }}>{c.rarity}</div>
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 2 }}>
-                  <div className="tm-display" style={{ fontSize: 32, lineHeight: 1 }}>{big}</div>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", textAlign: "center" }}>{c.gainMul === null ? "Surprise" : "Gain " + mod.name}</div>
+        <Caption>{chosen ? chosen.card.name + "… le coach lance le chrono." : "Choisissez un programme. Plus il est ambitieux, moins il réussit."}</Caption>
+
+        {!chosen && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {TRAINING_CARDS.map(c => {
+              const ok = affordable[c.id];
+              const p = odds[c.id] ?? c.baseP;
+              const pct = Math.round(p * 100);
+              return (
+                <button key={c.id} onClick={() => pick(c)} disabled={!ok} style={{
+                  padding: 0, border: "3px solid " + INK, background: colors[c.id], color: INK,
+                  boxShadow: "4px 4px 0 " + INK, cursor: ok ? "pointer" : "not-allowed", opacity: ok ? 1 : 0.45,
+                  display: "grid", gridTemplateColumns: "minmax(0, 1fr) 92px", textAlign: "left", fontFamily: T.body,
+                }}>
+                  <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ background: INK, color: c.id === "commune" ? "#ffffff" : BALL, fontSize: 9.5, fontWeight: 800, letterSpacing: 1, padding: "2px 6px", textTransform: "uppercase" }}>{c.rarity}</span>
+                      <span style={{ fontWeight: 800, fontSize: 14 }}>{c.name}</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700 }}>
+                      Réussi : gain {fmtMul(c.successMul)} · Raté : {c.failMul ? "gain " + fmtMul(c.failMul) : "rien"}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#3c3c34" }}>
+                      Énergie −{costs[c.id]}.{c.happinessDelta ? " Bonheur " + c.happinessDelta + "." : ""} {c.desc}
+                    </div>
+                    <div style={{ height: 10, border: "2px solid " + INK, background: "#ffffff", marginTop: 2 }}>
+                      <div style={{ width: pct + "%", height: "100%", background: GRASS }} />
+                    </div>
+                  </div>
+                  <div style={{ borderLeft: "3px solid " + INK, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#ffffff" }}>
+                    <div className="tm-display" style={{ fontSize: 30, lineHeight: 1 }}>{pct}%</div>
+                    <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6 }}>RÉUSSITE</div>
+                  </div>
+                </button>
+              );
+            })}
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: T.fg3 }}>Les chances montent avec votre énergie, votre bonheur et un bon coach.</div>
+            <button onClick={onClose} style={{ minHeight: 46, border: "2.5px solid " + INK, background: T.bg1, color: T.fg, fontFamily: T.body, fontWeight: 800, textTransform: "uppercase", cursor: "pointer" }}>Annuler</button>
+          </div>
+        )}
+
+        {chosen && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Jauge : zone verte = réussite (jusqu'au seuil), lilas = échec */}
+            <div style={{ position: "relative", height: 64, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, background: LILAC, overflow: "hidden" }}>
+              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: (chosen.outcome.p * 100) + "%", background: GRASS, borderRight: "3px solid " + INK }} />
+              <div style={{ position: "absolute", left: 8, top: 6, color: "#ffffff", fontFamily: T.display, fontSize: 14 }}>RÉUSSITE {Math.round(chosen.outcome.p * 100)}%</div>
+              <div style={{ position: "absolute", right: 8, bottom: 6, color: INK, fontFamily: T.display, fontSize: 14 }}>ÉCHEC</div>
+              <div style={{ position: "absolute", top: -3, bottom: -3, width: 8, marginLeft: -4, left: (needle * 100) + "%", background: INK }} />
+            </div>
+            {settled && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "10px 12px" }}>
+                <Sfx color={chosen.outcome.success ? BALL : LILAC}>{chosen.outcome.success ? "RÉUSSI !" : "RATÉ…"}</Sfx>
+                <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
+                  {chosen.outcome.success
+                    ? "Programme bouclé : gain " + fmtMul(chosen.card.successMul) + "."
+                    : chosen.card.failMul ? "Séance incomplète : gain " + fmtMul(chosen.card.failMul) + " seulement." : "Rien à en tirer cette fois."}
+                  {chosen.outcome.injury && <span style={{ color: PURPLE }}> Petite gêne musculaire.</span>}
                 </div>
-                <div style={{ borderTop: "2.5px solid " + INK, background: "#ffffff", padding: "5px 6px", fontSize: 10.5, fontWeight: 700, lineHeight: 1.25, minHeight: 46 }}>
-                  Énergie −{costs[c.id]}. {c.desc}{c.happinessDelta ? " Bonheur " + c.happinessDelta + "." : ""}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        <button onClick={onClose} style={{ minHeight: 46, border: "2.5px solid " + INK, background: T.bg1, color: T.fg, fontFamily: T.body, fontWeight: 800, textTransform: "uppercase", cursor: "pointer" }}>Annuler</button>
+              </div>
+            )}
+            {settled && (
+              <button onClick={() => onPick(chosen.card.id, chosen.outcome)} style={{
+                minHeight: 52, border: "3px solid " + INK, background: PURPLE, color: "#ffffff", cursor: "pointer",
+                fontFamily: T.display, fontSize: 19, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
+              }}>Continuer ▶</button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

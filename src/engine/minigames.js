@@ -54,18 +54,30 @@ export function miniGameEffect(win) {
 }
 
 // ─── À L'ENTRAÎNEMENT ──────────────────────────────────────────────────────
-// Trois fiches : commune (gain sûr), rare (gros gain, plus de fatigue),
-// mystère (révélée au tirage : déclic, séance normale ou petite gêne).
+// Trois programmes, comme les programmes d'essais libres : chacun affiche sa
+// probabilité de réussite. Réussi, il rapporte son gain plein ; raté, une
+// partie seulement. Plus le programme est ambitieux, moins il réussit.
 export const TRAINING_CARDS = [
-  { id: "commune", rarity: "Commune", gainMul: 1, energyMul: 1, happinessDelta: 0, desc: "Gain garanti." },
-  { id: "rare", rarity: "Rare", gainMul: 2, energyMul: 1.7, happinessDelta: -2, desc: "Gros gain, beaucoup de fatigue." },
-  { id: "mystere", rarity: "Mystère", gainMul: null, energyMul: 1.3, happinessDelta: 0, desc: "Tout peut arriver…" },
+  { id: "commune", rarity: "Routine", name: "Séance de routine", baseP: 0.85, successMul: 1, failMul: 0.4, energyMul: 1, happinessDelta: 0, desc: "Sûr, gain modeste." },
+  { id: "rare", rarity: "Intensif", name: "Séance intensive", baseP: 0.6, successMul: 2.2, failMul: 0.3, energyMul: 1.6, happinessDelta: -2, desc: "Gros gain, plus de fatigue." },
+  { id: "mystere", rarity: "Exploit", name: "Pari du coach", baseP: 0.3, successMul: 3.6, failMul: 0, energyMul: 1.3, happinessDelta: 0, desc: "Tout ou rien. Un échec peut laisser une gêne." },
 ];
 
-// Tire le résultat d'une fiche mystère.
-export function revealMystery() {
-  const r = random();
-  if (r < 0.5) return { gainMul: 2.6, outcome: "declic", text: "Déclic ! Séance exceptionnelle." };
-  if (r < 0.88) return { gainMul: 1, outcome: "normal", text: "Séance correcte, sans surprise." };
-  return { gainMul: 0.3, outcome: "gene", text: "Fausse note : petite gêne musculaire." };
+// Probabilité de réussite d'un programme, selon la forme du joueur :
+// énergie, bonheur et qualité du staff (trainGain).
+// ctx = { energy, happiness, staffTrainGain }
+export function trainingOdds(card, ctx = {}) {
+  const energy = ctx.energy ?? 80, happiness = ctx.happiness ?? 70, staff = ctx.staffTrainGain ?? 0;
+  const p = card.baseP + (energy - 70) * 0.003 + (happiness - 60) * 0.002 + staff * 0.6;
+  return Math.max(0.05, Math.min(0.97, p));
+}
+
+// Tirage d'un programme : le jet (0–1) est comparé à la probabilité.
+// Renvoie { success, roll, p, gainMul, injury }.
+export function rollTraining(card, ctx) {
+  const p = trainingOdds(card, ctx);
+  const roll = random();
+  const success = roll < p;
+  const injury = !success && card.id === "mystere" && random() < 0.35;
+  return { success, roll, p, gainMul: success ? card.successMul : card.failMul, injury };
 }
