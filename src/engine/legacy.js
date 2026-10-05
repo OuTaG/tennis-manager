@@ -1,4 +1,5 @@
 // Bilan de carrière et score de légende.
+import { difficultyLevel, formatMultiplier, scoreMultiplier } from "./difficulty.js";
 
 // ─── HALL OF FAME / TROPHIES ─────────────────────────────────────────────────
 // Career summary + "legacy score" shown on the end-of-career screen. Gives a
@@ -69,9 +70,8 @@ export function getTitlesByTier(player) {
 
 export function computeLegacyScore(player, summary) {
   const s = summary || computeCareerSummary(player);
-  // Difficulty multiplier from the chosen starting city (1 = easy … 5 = hard).
-  const diff = player.startDifficulty || 3;
-  const diffMul = 1 + (diff - 3) * 0.15; // d1:-30% d3:0% d5:+30% (level 3 = neutral)
+  // Multiplicateur de difficulté et d'options (engine/difficulty.js).
+  const diffMul = scoreMultiplier(player);
   const tt = getTitlesByTier(player);
   const titlesPts = Object.entries(tt).reduce((a, [tier, n]) => a + (LEGACY_TITLE_POINTS[tier] || 0) * n, 0);
   const base = {
@@ -95,8 +95,8 @@ export function computeLegacyScore(player, summary) {
 // each kind of trophy contributes.
 export function computeLegacyBreakdown(player, summary) {
   const s = summary || computeCareerSummary(player);
-  const diff = player.startDifficulty || 3;
-  const diffMul = 1 + (diff - 3) * 0.15;
+  const diff = player.difficulty ?? 3;
+  const diffMul = scoreMultiplier(player);
   const tt = getTitlesByTier(player);
   // Order tiers from prestigious → modest so the most valuable rows come first.
   const tierOrder = ["GrandSlam", "Finals", "Masters1000", "ATP500", "ATP250", "Challenger", "ITF"];
@@ -119,7 +119,10 @@ export function computeLegacyBreakdown(player, summary) {
   ].filter(r => r.pts > 0);
   const subtotal = rows.reduce((a, r) => a + r.pts, 0);
   const difficultyBonus = Math.round(subtotal * (diffMul - 1));
-  return { rows, subtotal, diff, diffPct: Math.round((diffMul - 1) * 100), difficultyBonus, total: subtotal + difficultyBonus };
+  return {
+    rows, subtotal, diff, diffPct: Math.round((diffMul - 1) * 100), difficultyBonus, total: subtotal + difficultyBonus,
+    mulLabel: difficultyLevel(diff).name + " " + formatMultiplier(diffMul),
+  };
 }
 
 // Legacy tier label from score.

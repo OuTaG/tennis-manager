@@ -29,10 +29,10 @@ describe("plafond de notoriété", () => {
 });
 
 describe("création et voyages", () => {
-  it("un joueur démarre sans points, 8 000 €, 18 ans", () => {
+  it("un joueur démarre sans points, 9 000 € à Paris, 18 ans", () => {
     const p = createInitialPlayer("Test Joueur", "allcourt", "Paris", "France", null, 3);
     expect(p.atpPointsLog).toEqual([]);
-    expect(p.money).toBe(8000);
+    expect(p.money).toBe(9000);
     expect(p.age).toBe(18);
   });
 

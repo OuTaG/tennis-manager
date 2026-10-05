@@ -17,7 +17,7 @@ import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/hist
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
 import { advanceMatchOneGame, aiMatchProb, clampMomentum, createInitialMatchData } from "./engine/match.js";
 import { randomFullName } from "./engine/names.js";
-import { RETIREMENT_AGE, START_STAT_BONUS, adjustLife, ageTrainingMultiplier, applyWeeklyAgeDecline, clampLife, computeMatchLifeDeltas, createInitialPlayer, difficultyFactors, getEffectiveStats, getPlayerRanking, lifeCaps, rollInjury, totalAtpPoints } from "./engine/player.js";
+import { RETIREMENT_AGE, START_CITIES, START_STAT_BONUS, adjustLife, ageTrainingMultiplier, applyWeeklyAgeDecline, clampLife, computeMatchLifeDeltas, createInitialPlayer, difficultyFactors, getEffectiveStats, getPlayerRanking, lifeCaps, rollInjury, startMoney, totalAtpPoints } from "./engine/player.js";
 import { buildPressConference } from "./engine/press.js";
 import { computeTournamentProgression, styledProgressionMultiplier } from "./engine/progression.js";
 import { expireOldPoints, playerRaceRank, pointsWeekAfter, raceStandings } from "./engine/race.js";
@@ -52,6 +52,7 @@ import { TravelScreen } from "./ui/screens/Travel.jsx";
 import { styles } from "./ui/styles.js";
 import { T, applyTheme } from "./ui/theme.js";
 import { getRngState, newSeed, random, setRngState, setSeed } from "./engine/rng.js";
+import { DIFFICULTY_LEVELS, GAME_OPTIONS, formatMultiplier, hasGameOption, injuryRiskMul, scoreMultiplier } from "./engine/difficulty.js";
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function TennisManager() {
@@ -62,6 +63,8 @@ export default function TennisManager() {
   const [nameInput, setNameInput] = useState("");
   const [styleInput, setStyleInput] = useState("allcourt");
   const [startCityInput, setStartCityInput] = useState("Paris");
+  const [difficultyInput, setDifficultyInput] = useState(3);
+  const [gameOptionsInput, setGameOptionsInput] = useState([]);
   const [nationalityInput, setNationalityInput] = useState(""); // chosen at step 1
   const [createStep, setCreateStep] = useState(-1); // -1 = circuit, 0 = identity (name+avatar), 1 = profile (style+city)
   const [avatarInput, setAvatarInput] = useState({
@@ -1229,7 +1232,7 @@ export default function TennisManager() {
     const restUntil = option.restWeeks ? absNow + option.restWeeks : null;
     if (restUntil) notify("Repos préventif : ni entraînement ni tournoi pendant " + option.restWeeks + " semaines.", "info");
     let newInjury = null;
-    if (option.injuryRisk && random() < option.injuryRisk) {
+    if (option.injuryRisk && random() < option.injuryRisk * injuryRiskMul(player)) {
       newInjury = rollInjury();
       notify(newInjury.label + " ! Indisponible " + newInjury.weeksRemaining + " semaine" + (newInjury.weeksRemaining > 1 ? "s" : "") + ".", "warn");
     }
@@ -2363,6 +2366,7 @@ export default function TennisManager() {
   // ── HIRE / FIRE STAFF ────────────────────────────────────────────────────
   const hireStaff = (s) => {
     if (challengeActive("seul")) { notify("Défi Seul au monde : aucun staff autorisé.", "warn"); return; }
+    if (hasGameOption(player, "no_staff")) { notify("Option Sans staff : aucun staff autorisé.", "warn"); return; }
     if (player.staff.find(st => st.role === s.role)) { notify("Licenciez d'abord la personne actuelle", "warn"); return; }
     if (player.money < s.cost * 4) { notify("Pas assez (1 mois requis)", "warn"); return; }
     setPlayer(p => ({
@@ -2875,16 +2879,10 @@ export default function TennisManager() {
             <div>
               <label style={styles.label}>Ville de départ</label>
               <div style={{ color: T.fg4, fontSize: 11, marginTop: -4, marginBottom: 8 }}>
-                Les étoiles indiquent la difficulté : densité de tournois proches, mais aussi difficulté de jeu (progression plus lente, moral plus fragile, sponsors plus exigeants).
+                Chaque région a son circuit proche, avec ses surfaces. L'argent de départ compense les écarts de coût des voyages.
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                {[
-                  { city: "Paris",        region: "Europe",          difficulty: 1, desc: "Tour ATP dense, voyages courts" },
-                  { city: "Miami",        region: "Amérique du Nord", difficulty: 2, desc: "Bon réseau, mais saison américaine concentrée" },
-                  { city: "Tokyo",        region: "Asie",            difficulty: 3, desc: "Quelques tournois, distances moyennes" },
-                  { city: "Melbourne",    region: "Océanie",         difficulty: 4, desc: "Peu de tournois proches, longs voyages" },
-                  { city: "Buenos Aires", region: "Amérique du Sud", difficulty: 5, desc: "Très isolé, peu de tournois proches" },
-                ].map(({ city, region, difficulty, desc }) => {
+                {START_CITIES.map(({ city, desc, money }) => {
                   const info = CITIES[city];
                   const isActive = startCityInput === city;
                   return (
@@ -2904,14 +2902,62 @@ export default function TennisManager() {
                           <div style={{ fontSize: 10, color: T.fg4, marginTop: 2, fontWeight: 500 }}>{info?.country}</div>
                         </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 10, color: T.amber }}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <span key={i} style={{ color: i < difficulty ? T.amber : T.bg4 }}>★</span>
-                        ))}
-                      </div>
+                      <div style={{ fontSize: 10.5, color: T.fg4, textAlign: "left", lineHeight: 1.3 }}>{desc}</div>
+                      <div className="tm-num" style={{ fontSize: 11, color: T.green, fontWeight: 700 }}>{money.toLocaleString("fr-FR")} € au départ</div>
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            <div>
+              <label style={styles.label}>Difficulté</label>
+              <div style={{ color: T.fg4, fontSize: 11, marginTop: -4, marginBottom: 8 }}>
+                Elle multiplie votre score de carrière, celui des classements. Seul le niveau Légende permet de viser le sommet.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 4 }}>
+                {DIFFICULTY_LEVELS.map(d => {
+                  const isActive = difficultyInput === d.level;
+                  return (
+                    <button key={d.level} onClick={() => setDifficultyInput(d.level)} style={{
+                      ...styles.styleBtn, ...(isActive ? styles.styleBtnActive : {}),
+                      flexDirection: "column", gap: 2, padding: "8px 2px", minHeight: 56,
+                    }}>
+                      <div style={{ fontWeight: 800, fontSize: 11 }}>{d.name}</div>
+                      <div className="tm-num" style={{ fontSize: 13, fontWeight: 800, color: isActive ? T.green : T.amber }}>{formatMultiplier(d.scoreMul)}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ color: T.fg4, fontSize: 12, marginTop: 8, textAlign: "center", minHeight: 30 }}>
+                {DIFFICULTY_LEVELS.find(d => d.level === difficultyInput)?.desc}
+              </div>
+            </div>
+
+            <div>
+              <label style={styles.label}>Options de partie</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {GAME_OPTIONS.map(o => {
+                  const on = gameOptionsInput.includes(o.id);
+                  return (
+                    <label key={o.id} style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", minHeight: 44, boxSizing: "border-box",
+                      background: T.bg1, borderRadius: 10, cursor: "pointer",
+                      border: "1.5px solid " + (on ? T.green : "var(--tm-brd)"),
+                    }}>
+                      <input type="checkbox" checked={on} onChange={() => setGameOptionsInput(list => on ? list.filter(x => x !== o.id) : [...list, o.id])} />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontWeight: 700, fontSize: 13, color: T.fg }}>{o.name}</span>
+                        <span style={{ display: "block", fontSize: 11, color: T.fg4 }}>{o.desc}</span>
+                      </span>
+                      <span className="tm-num" style={{ fontWeight: 800, fontSize: 12, color: T.amber }}>+{Math.round(o.bonus * 100)} %</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 12px", borderRadius: 10, background: T.bg2 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: T.fg3 }}>Multiplicateur de score</span>
+                <span className="tm-num" style={{ fontSize: 22, fontWeight: 800, color: T.green }}>{formatMultiplier(scoreMultiplier(difficultyInput, gameOptionsInput))}</span>
               </div>
             </div>
 
@@ -2932,7 +2978,7 @@ export default function TennisManager() {
             </div>
 
             <div style={{ background: T.bg1, borderRadius: 10, padding: 12, border: "1px solid var(--tm-brd)", fontSize: 12, color: T.fg4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <Icon name="money" size={12} color={T.green} /> 8 000€
+              <Icon name="money" size={12} color={T.green} /> {startMoney(startCityInput, gameOptionsInput).toLocaleString("fr-FR")} €
               <span style={{ color: T.fg5 }}>·</span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Icon name="location" size={12} color={T.green} />
@@ -2950,11 +2996,9 @@ export default function TennisManager() {
               style={{ ...styles.btnPrimary, opacity: nameInput.length < 2 ? 0.4 : 1 }}
               disabled={nameInput.length < 2}
               onClick={() => {
-                const cityDifficulty = { "Paris": 1, "Miami": 2, "Tokyo": 3, "Melbourne": 4, "Buenos Aires": 5 };
-                const startDifficulty = cityDifficulty[startCityInput] || 1;
                 setSeed(newSeed());
                 setCircuit(circuitInput);
-                const newPlayer = createInitialPlayer(nameInput, styleInput, startCityInput, nationalityInput || undefined, avatarInput, startDifficulty);
+                const newPlayer = createInitialPlayer(nameInput, styleInput, startCityInput, nationalityInput || undefined, avatarInput, difficultyInput, gameOptionsInput);
                 newPlayer.circuit = circuitInput;
                 const newDb = generateAtpDatabase();
                 // Starter sponsor: a low-tier offer to introduce the negotiation
@@ -3034,7 +3078,7 @@ export default function TennisManager() {
                 <strong style={{ color: T.fg3, fontFamily: "monospace" }}>{breakdown.subtotal.toLocaleString()}</strong>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12.5 }}>
-                <span style={{ color: T.amber }}>{breakdown.diffPct >= 0 ? "Bonus" : "Malus"} difficulté <span style={{ color: T.fg5, fontSize: 11 }}>(niveau {breakdown.diff}/5 · {breakdown.diffPct >= 0 ? "+" : ""}{breakdown.diffPct}%)</span></span>
+                <span style={{ color: T.amber }}>{breakdown.diffPct >= 0 ? "Bonus" : "Malus"} difficulté <span style={{ color: T.fg5, fontSize: 11 }}>({breakdown.mulLabel})</span></span>
                 <strong style={{ color: T.amber, fontFamily: "monospace" }}>{breakdown.difficultyBonus >= 0 ? "+" : "−"}{Math.abs(breakdown.difficultyBonus).toLocaleString()}</strong>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0 0", marginTop: 4, borderTop: "1px solid var(--tm-bg4)", fontSize: 14 }}>
@@ -4339,7 +4383,7 @@ export default function TennisManager() {
                       </div>
                       {breakdown.difficultyBonus !== 0 && (
                         <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", color: breakdown.difficultyBonus > 0 ? T.green : T.red, fontSize: 12 }}>
-                          <span>Bonus difficulté ({breakdown.diffPct > 0 ? "+" : ""}{breakdown.diffPct}%)</span>
+                          <span>{breakdown.diffPct > 0 ? "Bonus" : "Malus"} difficulté ({breakdown.mulLabel})</span>
                           <strong style={{ fontFamily: T.mono }}>{breakdown.difficultyBonus > 0 ? "+" : ""}{breakdown.difficultyBonus.toLocaleString()}</strong>
                         </div>
                       )}

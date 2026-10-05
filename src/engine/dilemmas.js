@@ -2,6 +2,7 @@
 import { PLAYER_STYLES } from "../data/staff.js";
 import { getPlayerProfile } from "./database.js";
 import { random } from "./rng.js";
+import { injuryRiskMul } from "./difficulty.js";
 
 // ─── DILEMMA SYSTEM ───────────────────────────────────────────────────────────
 // Each dilemma has options whose correctness depends on opponent's profile.
@@ -281,7 +282,7 @@ export function resolveDilemmaOption(option, dilemma, opponent, player, momentum
     result.effects.energyDelta = ef.energy || 0;
 
     // Risk of injury
-    if (ef.riskInjury && random() < ef.riskInjury) {
+    if (ef.riskInjury && random() < ef.riskInjury * injuryRiskMul(player)) {
       result.effects.injury = true;
       result.msg = "Vous vous froissez un muscle ! Pénalité pour le reste du match.";
       result.effects.persistGames = 99;
