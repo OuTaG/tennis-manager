@@ -15,10 +15,9 @@ import { getPlayerRanking, totalAtpPoints } from "./player.js";
 export const SHOP_ITEMS = [
   {
     id: "sub_perso", category: "Abonnement", type: "subscription", icon: "star",
-    name: "Abonnement Premium", price: "2,99 €", period: "/ mois", status: "available",
+    name: "Abonnement Premium", price: "2,99 €", period: "/ mois", status: "soon",
     desc: "Le confort et la personnalisation complète de votre carrière.",
     perks: [
-      { label: "Vitesse de match ×4", ready: true, entitlement: "speed_x4" },
       { label: "Staffs exclusifs", ready: false },
       { label: "Noms et pays des joueurs personnalisables", ready: false },
       { label: "Suppression des publicités", ready: false },

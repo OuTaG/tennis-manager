@@ -26,7 +26,7 @@ import { FINALS_PRIZE, FINALS_PTS, RR_SCHEDULE, buildFinalsDraw, finalizeHumanTo
 import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
 import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
-import { hasEntitlement, hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
+import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, avatarTone, femaleHairStyle } from "./ui/avatar.jsx";
@@ -78,17 +78,8 @@ export default function TennisManager() {
   const [rallyAnim, setRallyAnim] = useState(null); // { points, contextLabel, isTiebreak, commit } during point-by-point animation
   // Match mode: "manual" = one game per click; "auto" = games chain with a
   // short pause, stopping on any event (dilemma, match-fix proposal).
-  // Vitesse du match : on reprend la dernière vitesse utilisée (mémorisée).
-  const initialSpeed = (() => {
-    try {
-      const v = localStorage.getItem("tm-match-speed");
-      if (v === "x4" && !hasEntitlement("speed_x4")) return "x2"; // abonnement expiré
-      return ["x1", "x2", "x4"].includes(v) ? v : "x2";
-    } catch (e) { return "x2"; }
-  })();
-  const [matchMode, setMatchMode] = useState(initialSpeed);
-  const matchModeRef = useRef(initialSpeed);
-  useEffect(() => { matchModeRef.current = matchMode; }, [matchMode]);
+  // Vitesse du match : ×4 pour tous, seule vitesse proposée.
+  const matchModeRef = useRef("x4");
   const autoTimerRef = useRef(null);
   // Match speed multiplier on delays: x1 → ×2 (slower), x2/manual → ×1, x4 → ×0.5.
   const speedFactor = () => matchModeRef.current === "x1" ? 2 : matchModeRef.current === "x4" ? 0.5 : 1;
@@ -4011,11 +4002,6 @@ export default function TennisManager() {
                   }
                 }
               };
-              const speeds = [
-                { id: "x1", label: "×1" },
-                { id: "x2", label: "×2" },
-                { id: "x4", label: "×4" },
-              ];
               return (
                 <div style={{
                   position: "sticky", bottom: 0, marginTop: "auto", zIndex: 5, flexShrink: 0,
@@ -4050,39 +4036,6 @@ export default function TennisManager() {
                       <span style={{ fontSize: 12, fontWeight: 800, color: running ? T.green : T.amber, letterSpacing: 0.3 }}>
                         {running ? (startCountdown > 0 && ms.eventLog.length === 0 ? "Début dans " + startCountdown + " s" : "Match en cours") : "En pause"}
                       </span>
-                      <span style={{ fontSize: 10, color: T.fg5, textTransform: "none", letterSpacing: 0.8, fontWeight: 700 }}>Vitesse</span>
-                    </div>
-                    <div role="radiogroup" aria-label="Vitesse du match" style={{
-                      display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4,
-                      background: T.bg2, border: "1px solid " + T.brd2, borderRadius: 12, padding: 4,
-                    }}>
-                      {speeds.map(sp => {
-                        const active = matchMode === sp.id;
-                        const locked = sp.id === "x4" && !hasEntitlement("speed_x4");
-                        return (
-                          <button
-                            key={sp.id}
-                            role="radio"
-                            aria-checked={active}
-                            onClick={() => {
-                              if (locked) { notify("Vitesse ×4 incluse dans l'abonnement Premium (Bureau › Boutique)", "info"); return; }
-                              setMatchMode(sp.id); matchModeRef.current = sp.id;
-                              try { localStorage.setItem("tm-match-speed", sp.id); } catch (e) {}
-                            }}
-                            style={{
-                              minHeight: 44, borderRadius: 9, border: "none", cursor: "pointer",
-                              background: active ? T.green : "transparent",
-                              color: active ? T.bg0 : T.fg3,
-                              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
-                              fontFamily: T.body, transition: "background 0.15s, color 0.15s",
-                            }}
-                          >
-                            <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 800, lineHeight: 1, opacity: locked ? 0.45 : 1, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                              {sp.label}{locked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>}
-                            </span>
-                          </button>
-                        );
-                      })}
                     </div>
                   </div>
                 </div>
