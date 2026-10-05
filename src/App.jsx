@@ -15,7 +15,7 @@ import { MATCH_FIX_DILEMMA, pickRandomDilemma, resolveDilemmaOption } from "./en
 import { feminizeText } from "./engine/feminize.js";
 import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/history.js";
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
-import { advanceMatchOneGame, aiWinProb, clampMomentum, createInitialMatchData } from "./engine/match.js";
+import { advanceMatchOneGame, aiMatchProb, clampMomentum, createInitialMatchData } from "./engine/match.js";
 import { randomFullName } from "./engine/names.js";
 import { RETIREMENT_AGE, START_STAT_BONUS, adjustLife, ageTrainingMultiplier, applyWeeklyAgeDecline, clampLife, computeMatchLifeDeltas, createInitialPlayer, difficultyFactors, getEffectiveStats, getPlayerRanking, lifeCaps, rollInjury, totalAtpPoints } from "./engine/player.js";
 import { buildPressConference } from "./engine/press.js";
@@ -51,6 +51,7 @@ import { StatsScreen } from "./ui/screens/Stats.jsx";
 import { TravelScreen } from "./ui/screens/Travel.jsx";
 import { styles } from "./ui/styles.js";
 import { T, applyTheme } from "./ui/theme.js";
+import { getRngState, newSeed, random, setRngState, setSeed } from "./engine/rng.js";
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function TennisManager() {
@@ -259,6 +260,7 @@ export default function TennisManager() {
           atpDb: compactAtpDb(atpDb),
           news,
           resume: resumeSnapshot,
+          rng: getRngState(),
           savedAt: new Date().toISOString(),
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -288,7 +290,7 @@ export default function TennisManager() {
       saveTimerRef.current = null;
       try {
         localStorage.setItem(saveKeyFor(slotRef.current), JSON.stringify({
-          player, atpDb: compactAtpDb(atpDb), news, resume: resume || null, savedAt: new Date().toISOString(),
+          player, atpDb: compactAtpDb(atpDb), news, resume: resume || null, rng: getRngState(), savedAt: new Date().toISOString(),
         }));
         writeSlotMeta(slotRef.current, player, atpDb);
       } catch (e) {}
@@ -338,6 +340,8 @@ export default function TennisManager() {
       // Decompress atpDb (Opt A+B)
       data.atpDb = decompactAtpDb(data.atpDb);
       setCircuit(data.player.circuit || "atp");
+      // Reprend le hasard là où la partie l'avait laissé.
+      if (data.rng !== undefined) setRngState(data.rng);
       // Anciennes carrières WTA : avatar féminin.
       if (data.player.circuit === "wta" && data.player.avatar && data.player.avatar.female === undefined) {
         data.player.avatar = { ...data.player.avatar, female: true, hairStyle: femaleHairStyle(true, data.player.avatar.hairStyle) };
@@ -346,7 +350,7 @@ export default function TennisManager() {
       slotRef.current = slotIdx;
       // Anciennes sauvegardes : les pages d'aide sont considérées comme déjà vues.
       if (!Array.isArray(data.player.seenHelp)) data.player.seenHelp = Object.keys(PAGE_HELP);
-      if (!data.player.careerId) data.player.careerId = "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      if (!data.player.careerId) data.player.careerId = "c" + Date.now().toString(36) + random().toString(36).slice(2, 6);
       setPlayer(data.player);
       setAtpDb(data.atpDb);
       setNews(data.news || []);
@@ -429,6 +433,7 @@ export default function TennisManager() {
   // Lance un défi : partie neuve dans l'emplacement des défis, base IA avancée
   // jusqu'à la semaine de départ, puis mise en situation (setup du défi).
   const startChallenge = (def, form) => {
+    setSeed(newSeed());
     setCircuit(form.circuit);
     const female = form.circuit === "wta";
     const avatar = { ...avatarInput, female, hairStyle: female ? "ponytail" : "short" };
@@ -648,7 +653,7 @@ export default function TennisManager() {
         const poolHasEquip = poolBrands.some(b => b.cat === "equipment");
         const poolHasOther = poolBrands.some(b => b.cat === "other");
         const rankBonus = rankingNow <= 30 ? 3 : rankingNow <= 100 ? 2 : rankingNow <= 300 ? 1 : 0;
-        const wanted = Math.min(9, 4 + rankBonus + (Math.random() < 0.5 ? 1 : 0));
+        const wanted = Math.min(9, 4 + rankBonus + (random() < 0.5 ? 1 : 0));
         const count = Math.min(wanted, poolBrands.length);
         for (let i = 0; i < count; i++) {
           const engagedCats = (p.sponsors || []).reduce((acc, s) => { acc[s.cat] = (acc[s.cat] || 0) + 1; return acc; }, {});
@@ -743,7 +748,7 @@ export default function TennisManager() {
               // Probability of WC offer depends on tier — significantly lowered.
               const wcProb = { GrandSlam: 0.004, Masters1000: 0.008, ATP500: 0.015, ATP250: 0.025, Challenger: 0.035, ITF: 0.045 }[t.tier] || 0.02;
               const adjustedProb = wcProb * (1 + perfBonus * 0.5) * popMul;
-              if (Math.random() < adjustedProb) {
+              if (random() < adjustedProb) {
                 p.wildcardOffers = [...(p.wildcardOffers || []), {
                   tournamentId: t.id,
                   tournamentName: t.name,
@@ -768,7 +773,7 @@ export default function TennisManager() {
       for (const inv of p.pendingInvestments) {
         if (absNow < inv.dueAbsWeek) { still.push(inv); continue; }
         const plan = INVESTMENT_PLANS[inv.plan] || INVESTMENT_PLANS.safe;
-        let r = Math.random();
+        let r = random();
         let out = plan[plan.length - 1];
         for (const o of plan) { if (r < o.chance) { out = o; break; } r -= o.chance; }
         const payout = Math.round(inv.amount * out.mul);
@@ -830,7 +835,7 @@ export default function TennisManager() {
         const wins = (p.matchHistory || []).filter(m => m.won && !m.seeded && m.year === oldYear && m.week === player.week).length;
         if (wins > 0) {
           const keys = ["serve", "forehand", "backhand", "stamina", "mental", "net"];
-          const k = keys[Math.floor(Math.random() * keys.length)];
+          const k = keys[Math.floor(random() * keys.length)];
           const g = Math.round(0.12 * wins * 100) / 100;
           p.stats = { ...p.stats, [k]: Math.min(99, p.stats[k] + g) };
           const labels = { serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" };
@@ -934,7 +939,7 @@ export default function TennisManager() {
     const personalPosts = generateWeeklyPersonalPosts(p, news, newWeek, newYear);
     // Retraites du top 100 annoncées dans le fil « Monde ».
     const retirementPosts = retirements.map(r => ({
-      id: "post_ret_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+      id: "post_ret_" + Date.now() + "_" + random().toString(36).slice(2, 7),
       author: pickRandom(SOCIAL_AUTHORS.journalists),
       content: pickRandom([
         "🎾 Fin d'une carrière : " + r.name + " (" + r.age + " ans, " + r.rank + "e mondial) annonce sa retraite.",
@@ -1046,12 +1051,12 @@ export default function TennisManager() {
     // Random life event (~22% chance per week, only if no event already pending,
     // not during the tournament-launch flow above, and not right after another event)
     if (!p.pendingLifeEvent
-        && Math.random() < 0.22
+        && random() < 0.22
         && (p.lastLifeEventWeek === undefined || ((newYear - (p.lastLifeEventYear || newYear)) * 52 + (newWeek - p.lastLifeEventWeek)) >= 2)) {
       const currentSeason = (p.careerSeasons?.length || 0) + 1;
       const eligible = LIFE_EVENTS.filter(e => !e.minSeason || currentSeason >= e.minSeason);
       if (eligible.length > 0) {
-        const ev = eligible[Math.floor(Math.random() * eligible.length)];
+        const ev = eligible[Math.floor(random() * eligible.length)];
         p.pendingLifeEvent = ev.id;
         p.lastLifeEventWeek = newWeek;
         p.lastLifeEventYear = newYear;
@@ -1108,7 +1113,7 @@ export default function TennisManager() {
     const challengeTrainMul = (player.challenge && player.challenge.status === "active" && player.challenge.trainMul) || 1;
     const expectedGain = mod.baseGain * staffBonus * energyMultiplier * diminishMul * ageMul * happinessTrainMul * diffF.trainMul * techBoostMul * challengeTrainMul;
     // Random factor 0.75-1.25 around expected (tighter than before)
-    const variance = 0.75 + Math.random() * 0.5;
+    const variance = 0.75 + random() * 0.5;
     const gain = parseFloat((expectedGain * variance).toFixed(2));
     const newStats = { ...player.stats };
     newStats[mod.stat] = Math.min(99, newStats[mod.stat] + gain);
@@ -1120,10 +1125,10 @@ export default function TennisManager() {
     if (player.injury && player.injury.weeksRemaining > 0) {
       const protect = Math.max(0, Math.min(0.5, sumStaffEffect(player.staff, "injuryProtect")));
       const aggravationChance = 0.45 * (1 - protect); // ~45%, lowered by physio
-      if (Math.random() < aggravationChance) {
+      if (random() < aggravationChance) {
         aggravated = true;
         const inj = player.injury;
-        const addedWeeks = 1 + Math.floor(Math.random() * 4); // +1 to +4 weeks
+        const addedWeeks = 1 + Math.floor(random() * 4); // +1 to +4 weeks
         const worsePenalty = Math.min(0.45, (inj.statPenalty || 0.05) + 0.05);
         // A moderate injury can tip into "cannot play" when badly aggravated.
         const stillCanPlay = inj.canPlay && worsePenalty < 0.30;
@@ -1199,7 +1204,7 @@ export default function TennisManager() {
     // Uncertain options: roll one outcome and merge its effects.
     let e = { ...(option.effects || {}) };
     if (option.outcomes && option.outcomes.length > 0) {
-      let r = Math.random();
+      let r = random();
       let picked = option.outcomes[option.outcomes.length - 1];
       for (const o of option.outcomes) { if (r < o.chance) { picked = o; break; } r -= o.chance; }
       for (const [k, v] of Object.entries(picked.effects || {})) e[k] = (e[k] || 0) + v;
@@ -1209,7 +1214,7 @@ export default function TennisManager() {
     let statGainApplied = null;
     if (option.statGain) {
       const keys = ["serve", "forehand", "backhand", "stamina", "mental", "net"];
-      const k = keys[Math.floor(Math.random() * keys.length)];
+      const k = keys[Math.floor(random() * keys.length)];
       const cur = player.stats[k];
       const g = parseFloat((option.statGain * styledProgressionMultiplier(player.styleId, k, cur) * ageTrainingMultiplier(player.age)).toFixed(2));
       statGainApplied = { k, g };
@@ -1224,7 +1229,7 @@ export default function TennisManager() {
     const restUntil = option.restWeeks ? absNow + option.restWeeks : null;
     if (restUntil) notify("Repos préventif : ni entraînement ni tournoi pendant " + option.restWeeks + " semaines.", "info");
     let newInjury = null;
-    if (option.injuryRisk && Math.random() < option.injuryRisk) {
+    if (option.injuryRisk && random() < option.injuryRisk) {
       newInjury = rollInjury();
       notify(newInjury.label + " ! Indisponible " + newInjury.weeksRemaining + " semaine" + (newInjury.weeksRemaining > 1 ? "s" : "") + ".", "warn");
     }
@@ -1351,11 +1356,11 @@ export default function TennisManager() {
     };
     const scan = (from, to, prob) => {
       const end = Math.min(to, db.length);
-      for (let i = Math.max(0, from); i < end; i++) if (Math.random() < prob) addC(db[i]);
+      for (let i = Math.max(0, from); i < end; i++) if (random() < prob) addC(db[i]);
     };
     const shuffle = (arr) => {
       for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
       return arr;
@@ -1445,9 +1450,8 @@ export default function TennisManager() {
           if (i === 0) { nextRound.push(current[0]); continue; } // player advances
           const x = current[i], y = current[i + 1];
           if (!y) { nextRound.push(x); continue; }
-          const diff = getRating(x.stats) - getRating(y.stats);
-          const pX = aiWinProb(diff);
-          nextRound.push(Math.random() < pX ? x : y);
+          const pX = aiMatchProb(x.stats, y.stats, t.surface, isBestOfFiveMatch(fmt, t, mode, 0));
+          nextRound.push(random() < pX ? x : y);
         }
         current = nextRound;
         if (current.length > 1) opponents.push(current[1]);
@@ -1500,8 +1504,8 @@ export default function TennisManager() {
     const myRating = getRating(p.stats);
     const oppRating = getRating(firstOpp.stats);
     const fixEligibleThisMatch = (myRating - oppRating) >= 8;
-    const scheduledFixGame = (fixEligibleThisMatch && Math.random() < 0.04)
-      ? (2 + Math.floor(Math.random() * 5)) // game 2..6 inclusive
+    const scheduledFixGame = (fixEligibleThisMatch && random() < 0.04)
+      ? (2 + Math.floor(random() * 5)) // game 2..6 inclusive
       : null;
 
     setMatchState({
@@ -1575,7 +1579,7 @@ export default function TennisManager() {
     const isFirstGameOfMatch = m.sets.length === 1 && (m.sets[0].gameLog || []).length === 1 && !result.isTiebreak;
     const firstKey = { hold_easy: "first_hold", hold_tough: "first_hold", break_clean: "first_break", break_grind: "first_break", lose_serve: "first_lose_serve", opp_hold: "first_opp_hold" }[result.gameType];
     const commentKey = isFirstGameOfMatch && firstKey ? firstKey : (result.commentType || result.gameType);
-    const gameEvent = { id: Date.now() + Math.random(), type: result.gameType, text: pickComment(commentKey, vars), points: result.points || null, isTiebreak: !!result.isTiebreak, score: { ...result.score, isPlayerServing: result.isPlayerServing, tiebreak: m.sets[m.sets.length - 1].tiebreak } };
+    const gameEvent = { id: Date.now() + random(), type: result.gameType, text: pickComment(commentKey, vars), points: result.points || null, isTiebreak: !!result.isTiebreak, score: { ...result.score, isPlayerServing: result.isPlayerServing, tiebreak: m.sets[m.sets.length - 1].tiebreak } };
     // A game that closes a set is NOT commented on its own: the set comment
     // below says how the set was closed (hold, break, tie-break) instead.
     if (!result.setComplete) newEvents.push(gameEvent);
@@ -1607,14 +1611,14 @@ export default function TennisManager() {
         : (gt === "tb_lost" ? [tbTxt]
           : (gt === "lose_serve" || gt === "opp_rebreak") ? ["sur un break", "en prenant le service de " + player.name, "en breakant une dernière fois"]
           : ["sur son service", "sur sa mise en jeu", "en tenant son engagement"]);
-      setVars.how = howPools[Math.floor(Math.random() * howPools.length)];
-      newEvents.push({ ...gameEvent, id: Date.now() + Math.random() + 1, type: result.setWonByPlayer ? "set_won" : "set_lost", text: pickComment(setType, setVars) });
+      setVars.how = howPools[Math.floor(random() * howPools.length)];
+      newEvents.push({ ...gameEvent, id: Date.now() + random() + 1, type: result.setWonByPlayer ? "set_won" : "set_lost", text: pickComment(setType, setVars) });
     }
 
-    if (Math.random() < 0.05 && !result.setComplete) {
+    if (random() < 0.05 && !result.setComplete) {
       const eventTypes = ["crowd_cheer", "challenge"];
-      const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-      newEvents.push({ id: Date.now() + Math.random() + 2, type: "event", text: pickComment(type, vars) });
+      const type = eventTypes[Math.floor(random() * eventTypes.length)];
+      newEvents.push({ id: Date.now() + random() + 2, type: "event", text: pickComment(type, vars) });
     }
 
     // Decide if dilemma should appear
@@ -1623,13 +1627,13 @@ export default function TennisManager() {
     // Forme du jour : allusion discrète après quelques jeux si elle est marquée.
     if (!m.formNoted && totalGamesPlayed >= 3 && !m.matchComplete) {
       m.formNoted = true;
-      const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+      const pick = arr => arr[Math.floor(random() * arr.length)];
       const lines = [];
       if ((m.playerForm || 0) >= 4) lines.push(pick([player.name + " semble en jambes aujourd'hui.", "Tout paraît facile pour " + player.name + " en ce début de match.", player.name + " a visiblement de bonnes sensations."]));
       else if ((m.playerForm || 0) <= -4) lines.push(pick([player.name + " a l'air emprunté aujourd'hui.", "Quelque chose cloche dans le jeu de " + player.name + ".", player.name + " peine à trouver ses repères."]));
       if ((m.oppForm || 0) >= 4) lines.push(pick([ms.opponent.name + " semble dans un grand jour.", ms.opponent.name + " frappe la balle remarquablement bien.", "Journée faste pour " + ms.opponent.name + "."]));
       else if ((m.oppForm || 0) <= -4) lines.push(pick([ms.opponent.name + " n'a pas l'air dans son assiette.", ms.opponent.name + " multiplie les signes de nervosité.", ms.opponent.name + " semble à court de sensations."]));
-      lines.forEach((text, i) => newEvents.push({ id: Date.now() + Math.random() + 3 + i, type: "event", text }));
+      lines.forEach((text, i) => newEvents.push({ id: Date.now() + random() + 3 + i, type: "event", text }));
     }
     let pendingDilemma = null;
     let coachRevealedFor = ms.coachRevealedFor || null; // coach's scouting memory for this match
@@ -1643,14 +1647,14 @@ export default function TennisManager() {
       pendingDilemma = MATCH_FIX_DILEMMA;
       fixOffered = true;
     } else {
-      const shouldDilemma = !m.matchComplete && !result.setComplete && totalGamesPlayed >= 3 && Math.random() < 0.18 && !ms.pendingDilemma;
+      const shouldDilemma = !m.matchComplete && !result.setComplete && totalGamesPlayed >= 3 && random() < 0.18 && !ms.pendingDilemma;
       if (shouldDilemma) {
         const candidate = pickRandomDilemma();
         if (!candidate.requiresCoach || player.staff.some(s => s.role === "Coach")) {
           // The coach's scouting hint only shows up about 30% of the time
           // (decided once, when the dilemma appears).
           const alreadyRevealed = ms.coachRevealedFor && ms.coachRevealedFor === ms.opponent?.name;
-          const hint = alreadyRevealed || Math.random() < 0.30;
+          const hint = alreadyRevealed || random() < 0.30;
           pendingDilemma = { ...candidate, coachHint: hint };
           // Once the coach has spotted the weakness, he keeps giving it until the end of the match.
           if (hint && candidate.id === "exploit_weakness" && player.staff.some(s => s.role === "Coach")) {
@@ -1792,18 +1796,18 @@ export default function TennisManager() {
         if (option.matchFix === "accept") {
           // Dirty money scaled to the stage; force the player to lose by tanking
           // momentum hard and applying a heavy persistent debuff for the match.
-          const bribe = 8000 + Math.floor(Math.random() * 12000); // 8k–20k €
+          const bribe = 8000 + Math.floor(random() * 12000); // 8k–20k €
           m.playerMomentum -= 8;
           m.persistMomentumGames = 99;
           m.persistentDebuff = 8;
           m.persistEnergyDrainGames = 0;
           m.matchFixThrown = true;
           // Suspension risk: 35% chance of being caught → 10–12 weeks out.
-          const caught = Math.random() < 0.35;
+          const caught = random() < 0.35;
           setPlayer(p => {
             let np = { ...p, money: p.money + bribe, totalEarnings: (p.totalEarnings || 0) + bribe };
             if (caught) {
-              const weeks = 10 + Math.floor(Math.random() * 3); // 10–12
+              const weeks = 10 + Math.floor(random() * 3); // 10–12
               np.injury = { severity: "suspension", weeksRemaining: weeks, statPenalty: 0, canPlay: false, label: "Suspension (match truqué)" };
               np.image = clampLife((np.image ?? 60) - 30);
               np.popularity = clampLife((np.popularity ?? 20) - 15);
@@ -1815,7 +1819,7 @@ export default function TennisManager() {
             : "Vous touchez " + bribe.toLocaleString() + "€ et levez discrètement le pied. Personne n'a rien vu... cette fois.";
         } else if (option.matchFix === "report") {
           // 30% chance the public doesn't believe the story.
-          const believed = Math.random() < 0.70;
+          const believed = random() < 0.70;
           if (believed) {
             setPlayer(p => ({ ...p, image: clampLife((p.image ?? 60) + 6), popularity: clampLife((p.popularity ?? 20) + 4) }));
             m.playerMomentum += 2;
@@ -1830,7 +1834,7 @@ export default function TennisManager() {
           msg = "Vous refusez et restez concentré sur votre match.";
         }
         m.playerMomentum = clampMomentum(m.playerMomentum);
-        const dEvt = { id: Date.now() + Math.random(), type: "dilemma", title: dilemma.title, choice: option.label, text: msg };
+        const dEvt = { id: Date.now() + random(), type: "dilemma", title: dilemma.title, choice: option.label, text: msg };
         return { ...ms, matchData: m, pendingDilemma: null, lastResolveMsg: msg, eventLog: [dEvt, ...(ms.eventLog || [])].slice(0, 80) };
       });
       resumeAfterDilemma();
@@ -1850,7 +1854,7 @@ export default function TennisManager() {
       if (result.effects.injury) {
         // Staff "injuryProtect" gives a chance to dodge an injury proc (nutritionist, top kiné)
         const protect = Math.max(0, sumStaffEffect(player.staff, "injuryProtect"));
-        if (protect > 0 && Math.random() < protect) {
+        if (protect > 0 && random() < protect) {
           // Dodged — minor in-match debuff still applies but no lasting injury
           m.persistEnergyDrainGames = 20;
           m.persistentDebuff = 2;
@@ -1874,7 +1878,7 @@ export default function TennisManager() {
         matchData: m,
         pendingDilemma: null,
         lastResolveMsg: result.msg,
-        eventLog: [{ id: Date.now() + Math.random(), type: "dilemma", title: dilemma?.title, choice: option.label, text: result.msg }, ...(ms.eventLog || [])].slice(0, 80),
+        eventLog: [{ id: Date.now() + random(), type: "dilemma", title: dilemma?.title, choice: option.label, text: result.msg }, ...(ms.eventLog || [])].slice(0, 80),
       };
     });
     resumeAfterDilemma();
@@ -2110,8 +2114,8 @@ export default function TennisManager() {
 
       const newPlayedIds = [...playedIds, nextOpp.id];
       const recoveredEnergy = Math.min(100, postMatchEnergy + 10);
-      const oppFatigue = nextRoundIdx * (3 + Math.random() * 3);
-      const nextOppEnergy = Math.max(40, 95 - oppFatigue + Math.random() * 5);
+      const oppFatigue = nextRoundIdx * (3 + random() * 3);
+      const nextOppEnergy = Math.max(40, 95 - oppFatigue + random() * 5);
 
       setMatchState(prev => ({
         ...prev,
@@ -2951,6 +2955,7 @@ export default function TennisManager() {
               onClick={() => {
                 const cityDifficulty = { "Paris": 1, "Miami": 2, "Tokyo": 3, "Melbourne": 4, "Buenos Aires": 5 };
                 const startDifficulty = cityDifficulty[startCityInput] || 1;
+                setSeed(newSeed());
                 setCircuit(circuitInput);
                 const newPlayer = createInitialPlayer(nameInput, styleInput, startCityInput, nationalityInput || undefined, avatarInput, startDifficulty);
                 newPlayer.circuit = circuitInput;
@@ -3313,7 +3318,7 @@ export default function TennisManager() {
       const answerQuestion = (option) => {
         // Une conférence de presse de petit tournoi a peu d'écho médiatique.
         const echo = { GrandSlam: 1, Finals: 1, Masters1000: 1, ATP500: 0.75, ATP250: 0.5, Challenger: 0.3, ITF: 0.2 }[tourn?.tier] ?? 0.5;
-        const posScale = (v) => v > 0 ? (Math.random() < v * echo - Math.floor(v * echo) ? Math.ceil(v * echo) : Math.floor(v * echo)) : v;
+        const posScale = (v) => v > 0 ? (random() < v * echo - Math.floor(v * echo) ? Math.ceil(v * echo) : Math.floor(v * echo)) : v;
         setPlayer(p => adjustLife({
           ...p,
           money: p.money + (option.effects?.money || 0),
@@ -3792,8 +3797,7 @@ export default function TennisManager() {
                 }}>PT</span>
               </div>
               {/* Server for the next game = the same rotation the engine
-                  uses to advance: first server alternates each set, then
-                  players alternate every game. */}
+                  uses to advance (m.nextServerIsPlayer). */}
               {(() => null)()}
               {[
                 { name: player.name, flag: player.nationalityFlag || "🎾", isP: true },
@@ -3807,7 +3811,9 @@ export default function TennisManager() {
                 const gamesInSet = (lastS && !betweenSets) ? (lastS.pGames + lastS.oGames) : 0;
                 const nextIsPlayerServing = (livePoint && typeof livePoint.server === "boolean")
                   ? livePoint.server
-                  : ((gamesInSet % 2 === 0) ? firstServerThisSet : !firstServerThisSet);
+                  : typeof m.nextServerIsPlayer === "boolean"
+                    ? m.nextServerIsPlayer
+                    : ((gamesInSet % 2 === 0) ? firstServerThisSet : !firstServerThisSet);
                 const isServing = !m.matchComplete && (row.isP ? nextIsPlayerServing : !nextIsPlayerServing);
                 return (
                 <div key={ri} style={{

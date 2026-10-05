@@ -1,6 +1,7 @@
 // Dilemmes en cours de match et proposition de match arrangé.
 import { PLAYER_STYLES } from "../data/staff.js";
 import { getPlayerProfile } from "./database.js";
+import { random } from "./rng.js";
 
 // ─── DILEMMA SYSTEM ───────────────────────────────────────────────────────────
 // Each dilemma has options whose correctness depends on opponent's profile.
@@ -208,7 +209,7 @@ export function resolveDilemmaOption(option, dilemma, opponent, player, momentum
       opp.name + " s'adapte sans difficulté : l'échange reste équilibré.",
       "Tactique appliquée, mais sans effet notable sur le cours du match.",
     ];
-    result.msg = neutralMsgs[Math.floor(Math.random() * neutralMsgs.length)];
+    result.msg = neutralMsgs[Math.floor(random() * neutralMsgs.length)];
     return result;
   }
 
@@ -234,7 +235,7 @@ export function resolveDilemmaOption(option, dilemma, opponent, player, momentum
     const tech = (s) => ((s?.forehand ?? 50) + (s?.backhand ?? 50) + (s?.net ?? 50)) / 3;
     const edge = tech(player.stats) - tech(opp.stats);
     const successChance = 0.5 + Math.max(-0.20, Math.min(0.20, edge / 60));
-    if (Math.random() < successChance) {
+    if (random() < successChance) {
       result.msg = "Le nouveau coup fonctionne ! " + opp.name + " est pris de court.";
       result.effects.momentumDelta = 2;
       result.effects.energyDelta = -3;
@@ -257,7 +258,7 @@ export function resolveDilemmaOption(option, dilemma, opponent, player, momentum
     const edge = playerMental - oppMental;
     // Probability of success based on mental edge (50% baseline ± up to 30%)
     const successChance = 0.5 + Math.max(-0.30, Math.min(0.30, edge / 50));
-    if (Math.random() < successChance) {
+    if (random() < successChance) {
       result.msg = "Coup de poker payant ! Votre instinct surprend " + opp.name + ".";
       result.effects.momentumDelta = 3;
       result.effects.energyDelta = 1;
@@ -280,7 +281,7 @@ export function resolveDilemmaOption(option, dilemma, opponent, player, momentum
     result.effects.energyDelta = ef.energy || 0;
 
     // Risk of injury
-    if (ef.riskInjury && Math.random() < ef.riskInjury) {
+    if (ef.riskInjury && random() < ef.riskInjury) {
       result.effects.injury = true;
       result.msg = "Vous vous froissez un muscle ! Pénalité pour le reste du match.";
       result.effects.persistGames = 99;
@@ -288,7 +289,7 @@ export function resolveDilemmaOption(option, dilemma, opponent, player, momentum
       return result;
     }
     // Risk of warning
-    if (ef.riskWarning && Math.random() < ef.riskWarning) {
+    if (ef.riskWarning && random() < ef.riskWarning) {
       result.effects.warning = true;
       result.msg = "Avertissement de l'arbitre ! Vous perdez en concentration.";
       result.effects.momentumDelta = -1;
@@ -315,7 +316,7 @@ export function pickResultMsg(option, effect) {
 }
 
 export function pickRandomDilemma() {
-  return DILEMMA_TEMPLATES[Math.floor(Math.random() * DILEMMA_TEMPLATES.length)];
+  return DILEMMA_TEMPLATES[Math.floor(random() * DILEMMA_TEMPLATES.length)];
 }
 
 // Special, rare dilemma: a match-fixing proposal. Only offered against a clearly

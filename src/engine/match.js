@@ -1,4 +1,5 @@
 // Moteur de match : points, jeux, tie-breaks, momentum.
+import { random } from "./rng.js";
 
 // ─── INTERACTIVE MATCH ENGINE ─────────────────────────────────────────────────
 // No more pre-scripted matches. Each game is computed live based on current state.
@@ -24,7 +25,7 @@ export function returnRating(s) {
 }
 export function clampMomentum(v) { return Math.max(-MOMENTUM_CAP, Math.min(MOMENTUM_CAP, v)); }
 export function gaussian() {
-  const u = 1 - Math.random(), v = Math.random();
+  const u = 1 - random(), v = random();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 export function rollDailyForm() {
@@ -37,7 +38,7 @@ export function situationalBonus(energy, momentum, form) {
 // Probabilité que le SERVEUR gagne un point donné.
 // Affinité style/surface : les profils "serveurs" (service > retour) sont
 // avantagés sur surface rapide, les profils "relanceurs" sur terre battue.
-export const SURFACE_STYLE_FACTOR = { "Gazon": 0.6, "Indoor": 0.35, "Dur": 0, "Terre battue": -0.6 };
+export const SURFACE_STYLE_FACTOR = { "Gazon": 0.35, "Indoor": 0.2, "Dur": 0, "Terre battue": -0.35 };
 export function surfaceStyleBonus(stats, surface) {
   const k = SURFACE_STYLE_FACTOR[surface] ?? 0;
   return k * (serveRating(stats) - returnRating(stats)) / 2;
@@ -50,10 +51,23 @@ export function servePointProb(serverStats, receiverStats, surface, serverBonus,
   const logit = Math.log(base / (1 - base)) + diff / MATCH_SLOPE;
   return Math.max(0.2, Math.min(0.9, 1 / (1 + Math.exp(-logit))));
 }
+// Force d'un joueur dans le moteur de match sur une surface donnée : moyenne
+// de ses notes de service et de retour, plus son affinité style/surface.
+// C'est exactement ce que pèse servePointProb point après point, si bien que
+// les matchs simulés entre joueurs IA suivent les mêmes règles que ceux du
+// joueur (spécialistes de la terre, rois du gazon…).
+export function matchStrength(stats, surface) {
+  return (serveRating(stats) + returnRating(stats)) / 2 + surfaceStyleBonus(stats, surface);
+}
 // Probabilité de victoire pour les matchs simulés entre joueurs IA (écart de
-// note moyenne). Calibrée pour coller au moteur ci-dessus.
-export function aiWinProb(diff) {
-  return Math.max(0.01, Math.min(0.99, 1 / (1 + Math.exp(-diff / 4.5))));
+// matchStrength). Calibrée sur le moteur ci-dessus ; en 3 sets gagnants le
+// plus fort s'impose un peu plus souvent.
+export function aiWinProb(diff, bestOfFive = false) {
+  return Math.max(0.01, Math.min(0.99, 1 / (1 + Math.exp(-diff / (bestOfFive ? 4.1 : 4.5)))));
+}
+// Probabilité que A batte B (deux joueurs IA) sur cette surface.
+export function aiMatchProb(statsA, statsB, surface, bestOfFive = false) {
+  return aiWinProb(matchStrength(statsA, surface) - matchStrength(statsB, surface), bestOfFive);
 }
 
 // ─── POINT-BY-POINT SIMULATION ────────────────────────────────────────────
@@ -68,28 +82,45 @@ export const POINT_LABELS = ["0", "15", "30", "40"];
 
 // How a point ended — drives the rally animation's finish.
 // "ace"/"winner" = quick, "rally"/"long_rally" = more exchanges, "error" = fault.
-export function rollPointKind(winnerServing, rng) {
+// Le profil compte : un gros service fait plus d'aces, surtout sur surface
+// rapide ; la terre battue allonge les échanges, le gazon les raccourcit.
+export const SURFACE_ACE_FACTOR = { "Gazon": 1.5, "Indoor": 1.25, "Dur": 1, "Terre battue": 0.6 };
+export const SURFACE_RALLY_FACTOR = { "Gazon": 0.6, "Indoor": 0.8, "Dur": 1, "Terre battue": 1.5 };
+// shape = { serve: note de service du serveur, surface }
+export function rollPointKind(winnerServing, rng, shape = {}) {
+  const longF = SURFACE_RALLY_FACTOR[shape.surface] ?? 1;
   const r = rng();
   if (winnerServing) {
-    if (r < 0.16) return { kind: "ace", rallies: 1 };
-    if (r < 0.42) return { kind: "winner", rallies: 2 + Math.floor(rng() * 3) };
-    if (r < 0.68) return { kind: "error", rallies: 3 + Math.floor(rng() * 4) };
-    if (r < 0.9)  return { kind: "rally", rallies: 4 + Math.floor(rng() * 5) };
+    const aceF = SURFACE_ACE_FACTOR[shape.surface] ?? 1;
+    const ace = Math.max(0.03, Math.min(0.35, 0.13 * aceF * (1 + ((shape.serve ?? 70) - 70) / 40)));
+    const long = 0.10 * longF;
+    const k = (1 - ace - long) / 0.74; // winner / error / rally : 26 / 26 / 22
+    if (r < ace) return { kind: "ace", rallies: 1 };
+    if (r < ace + 0.26 * k) return { kind: "winner", rallies: 2 + Math.floor(rng() * 3) };
+    if (r < ace + 0.52 * k) return { kind: "error", rallies: 3 + Math.floor(rng() * 4) };
+    if (r < 1 - long)  return { kind: "rally", rallies: 4 + Math.floor(rng() * 5) };
     return { kind: "long_rally", rallies: 8 + Math.floor(rng() * 8) };
   }
+  const long = 0.14 * longF;
+  const k = (1 - 0.04 - long) / 0.82; // winner / error / rally : 30 / 28 / 24
   if (r < 0.04) return { kind: "ace", rallies: 1 }; // return-game ace is rare
-  if (r < 0.34) return { kind: "winner", rallies: 3 + Math.floor(rng() * 4) };
-  if (r < 0.62) return { kind: "error", rallies: 3 + Math.floor(rng() * 5) };
-  if (r < 0.86) return { kind: "rally", rallies: 5 + Math.floor(rng() * 6) };
+  if (r < 0.04 + 0.30 * k) return { kind: "winner", rallies: 3 + Math.floor(rng() * 4) };
+  if (r < 0.04 + 0.58 * k) return { kind: "error", rallies: 3 + Math.floor(rng() * 5) };
+  if (r < 1 - long) return { kind: "rally", rallies: 5 + Math.floor(rng() * 6) };
   return { kind: "long_rally", rallies: 9 + Math.floor(rng() * 9) };
+}
+// Profil du point pour rollPointKind, selon qui sert.
+export function pointShape(ctx, playerServes) {
+  if (!ctx) return {};
+  return { serve: (playerServes ? ctx.playerStats : ctx.oppStats)?.serve, surface: ctx.surface };
 }
 
 // Build a sequence of points for ONE game given who eventually wins it.
 // pPointWin = per-point probability the PLAYER wins the point. We keep sampling
 // points until someone "wins" the game; if the resulting winner contradicts the
 // decided outcome, we resample (capped). Fallback forces the intended winner.
-export function buildGamePoints(playerWon, isPlayerServing, pPointWin) {
-  const rng = Math.random;
+export function buildGamePoints(playerWon, isPlayerServing, pPointWin, shape = {}) {
+  const rng = random;
   for (let attempt = 0; attempt < 24; attempt++) {
     const points = [];
     let pp = 0, op = 0;
@@ -98,7 +129,7 @@ export function buildGamePoints(playerWon, isPlayerServing, pPointWin) {
       const playerPt = rng() < pPointWin;
       if (playerPt) pp++; else op++;
       const winner = playerPt ? "p" : "o";
-      const pk = rollPointKind(playerPt === isPlayerServing, rng);
+      const pk = rollPointKind(playerPt === isPlayerServing, rng, shape);
       let label;
       if (pp >= 3 && op >= 3) {
         if (pp === op) label = "ÉGALITÉ";
@@ -121,7 +152,7 @@ export function buildGamePoints(playerWon, isPlayerServing, pPointWin) {
   const pts = [];
   for (let i = 0; i < 4; i++) {
     const winner = playerWon ? "p" : "o";
-    const pk = rollPointKind((winner === "p") === isPlayerServing, Math.random);
+    const pk = rollPointKind((winner === "p") === isPlayerServing, random, shape);
     const lp = playerWon ? POINT_LABELS[Math.min(3, i + 1)] : "0";
     const lo = playerWon ? "0" : POINT_LABELS[Math.min(3, i + 1)];
     pts.push({ winner, kind: pk.kind, rallies: pk.rallies, label: i === 3 ? "JEU" : (lp + "-" + lo), servingPlayer: isPlayerServing });
@@ -132,13 +163,13 @@ export function buildGamePoints(playerWon, isPlayerServing, pPointWin) {
 // Build the point sequence for a tiebreak given final pPts/oPts.
 // Builds the displayed tiebreak points from the ACTUAL simulated sequence of
 // point winners, so the score shown can never reach an end condition early.
-export function buildTiebreakPoints(seq, firstServerIsPlayer) {
-  const rng = Math.random;
+export function buildTiebreakPoints(seq, firstServerIsPlayer, ctx) {
+  const rng = random;
   let pc = 0, oc = 0;
   return seq.map((winner, i) => {
     if (winner === "p") pc++; else oc++;
     const served = i === 0 ? firstServerIsPlayer : (Math.floor((i + 1) / 2) % 2 === 0) === firstServerIsPlayer;
-    const pk = rollPointKind((winner === "p") === served, rng);
+    const pk = rollPointKind((winner === "p") === served, rng, pointShape(ctx, served));
     return { winner, kind: pk.kind, rallies: pk.rallies, label: pc + "-" + oc, servingPlayer: served };
   });
 }
@@ -158,14 +189,15 @@ export function playerPointProb(ctx, playerServes) {
 //         playerMomentum, oppMomentum, playerForm, oppForm }
 export function playOneGame(ctx, isPlayerServing, forceLoss = false) {
   const pPoint = playerPointProb(ctx, isPlayerServing);
+  const shape = pointShape(ctx, isPlayerServing);
   // Le jeu est simulé point par point : le vainqueur découle des points.
-  const rng = Math.random;
+  const rng = random;
   const points = [];
   let pp = 0, op = 0;
   while (true) {
     const playerPt = rng() < pPoint;
     if (playerPt) pp++; else op++;
-    const pk = rollPointKind(playerPt === isPlayerServing, rng);
+    const pk = rollPointKind(playerPt === isPlayerServing, rng, shape);
     let label;
     if (pp >= 3 && op >= 3) label = pp === op ? "ÉGALITÉ" : pp > op ? "AV. JOUEUR" : "AV. ADV.";
     else label = POINT_LABELS[Math.min(3, pp)] + "-" + POINT_LABELS[Math.min(3, op)];
@@ -178,7 +210,7 @@ export function playOneGame(ctx, isPlayerServing, forceLoss = false) {
   const playerWon = pp > op;
   // Match truqué : le joueur ne doit pas gagner ce jeu.
   if (forceLoss && playerWon) {
-    return { playerWon: false, points: buildGamePoints(false, isPlayerServing, 0.3) };
+    return { playerWon: false, points: buildGamePoints(false, isPlayerServing, 0.3, shape) };
   }
   return { playerWon, points };
 }
@@ -191,13 +223,13 @@ export function playOneTiebreak(ctx, target, firstServerIsPlayer = true, forceLo
     const ptIdx = pPts + oPts;
     const playerServes = ((Math.floor((ptIdx + 1) / 2) % 2) === 0) === firstServerIsPlayer;
     const pWin = playerPointProb(ctx, playerServes);
-    let playerTakes = Math.random() < (forceLoss ? 0.3 : pWin);
+    let playerTakes = random() < (forceLoss ? 0.3 : pWin);
     // Thrown match: the player never gets the point that would win the tiebreak.
     if (forceLoss && playerTakes && pPts + 1 >= target && pPts + 1 - oPts >= 2) playerTakes = false;
     if (playerTakes) { pPts++; seq.push("p"); }
     else { oPts++; seq.push("o"); }
-    if (pPts >= target && pPts - oPts >= 2) { const points = buildTiebreakPoints(seq, firstServerIsPlayer); return { pPts, oPts, playerWon: true, points }; }
-    if (oPts >= target && oPts - pPts >= 2) { const points = buildTiebreakPoints(seq, firstServerIsPlayer); return { pPts, oPts, playerWon: false, points }; }
+    if (pPts >= target && pPts - oPts >= 2) { const points = buildTiebreakPoints(seq, firstServerIsPlayer, ctx); return { pPts, oPts, playerWon: true, points }; }
+    if (oPts >= target && oPts - pPts >= 2) { const points = buildTiebreakPoints(seq, firstServerIsPlayer, ctx); return { pPts, oPts, playerWon: false, points }; }
   }
 }
 
@@ -212,11 +244,17 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats) {
     m.sets.push(curSet);
   }
 
-  // Determine who serves: first server of set is alternated; within set, alternates each game
-  const setNum = m.sets.length - 1;
-  const totalGamesInSet = curSet.pGames + curSet.oGames;
-  const firstServerIsPlayer = setNum % 2 === 0 ? m.firstServerIsPlayer : !m.firstServerIsPlayer;
-  const isPlayerServing = totalGamesInSet % 2 === 0 ? firstServerIsPlayer : !firstServerIsPlayer;
+  // Qui sert : le service alterne à chaque jeu, sans repartir à zéro entre
+  // deux sets. Après un tie-break, sert celui qui a relancé le premier point.
+  // (Anciennes sauvegardes sans nextServerIsPlayer : ancienne règle.)
+  let isPlayerServing = m.nextServerIsPlayer;
+  if (typeof isPlayerServing !== "boolean") {
+    const setNum = m.sets.length - 1;
+    const totalGamesInSet = curSet.pGames + curSet.oGames;
+    const firstServerIsPlayer = setNum % 2 === 0 ? m.firstServerIsPlayer : !m.firstServerIsPlayer;
+    isPlayerServing = totalGamesInSet % 2 === 0 ? firstServerIsPlayer : !firstServerIsPlayer;
+  }
+  m.nextServerIsPlayer = !isPlayerServing;
 
   // Apply effective stats (with persistent effects)
   const effPlayerStats = { ...playerStats };
@@ -231,7 +269,8 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats) {
     const lastSet = m.isGrandSlam ? 2 : 1;
     const isDecider = m.pSets === lastSet && m.oSets === lastSet;
     const tbTarget = isDecider && (m.isGrandSlam || m.tb10Decider) ? 10 : 7;
-    // Server of the first TB point follows the normal serve rotation.
+    // Server of the first TB point follows the normal serve rotation ; the
+    // other player serves first in the next set (already set above).
     const tbFirstServer = isPlayerServing;
     const tb = playOneTiebreak(buildMatchCtx(m, effPlayerStats, oppStats), tbTarget, tbFirstServer, !!m.matchFixThrown);
     curSet.tiebreak = tb;
@@ -261,8 +300,8 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats) {
   // Energy drain per game - reduced by player's stamina stat
   // Base 0.4-1.2 energy per game, reduced if high stamina
   const staminaFactor = Math.max(0.4, 1 - (playerStats.stamina - 50) / 80); // stat 50 = 1.0, stat 90 = 0.5
-  m.playerEnergy = Math.max(10, m.playerEnergy - (0.4 + Math.random() * 0.8) * staminaFactor);
-  m.oppEnergy = Math.max(10, m.oppEnergy - (0.4 + Math.random() * 0.8) * Math.max(0.4, 1 - (oppStats.stamina - 50) / 80));
+  m.playerEnergy = Math.max(10, m.playerEnergy - (0.4 + random() * 0.8) * staminaFactor);
+  m.oppEnergy = Math.max(10, m.oppEnergy - (0.4 + random() * 0.8) * Math.max(0.4, 1 - (oppStats.stamina - 50) / 80));
 
   // Apply persistent momentum decay
   if (m.persistMomentumGames > 0) {
@@ -309,11 +348,11 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats) {
     else if (breakDiff === 2) commentType = "opp_rebreak_double";
   }
   if (playerWon) {
-    if (isPlayerServing) gameType = Math.random() < 0.7 ? "hold_easy" : "hold_tough";
+    if (isPlayerServing) gameType = random() < 0.7 ? "hold_easy" : "hold_tough";
     else {
       // Player breaks (on opp's serve) - if opp had broken before, this is a rebreak
       if (oppBreaksInSet > playerBreaksInSet) gameType = "rebreak";
-      else gameType = Math.random() < 0.6 ? "break_clean" : "break_grind";
+      else gameType = random() < 0.6 ? "break_clean" : "break_grind";
     }
   } else {
     if (isPlayerServing) {
@@ -357,6 +396,7 @@ export function buildMatchCtx(m, playerStats, oppStats) {
 }
 
 export function createInitialMatchData(isGrandSlam, playerEnergy, surface) {
+  const firstServer = random() < 0.5;
   return {
     sets: [],
     pSets: 0, oSets: 0,
@@ -368,9 +408,10 @@ export function createInitialMatchData(isGrandSlam, playerEnergy, surface) {
     oppForm: rollDailyForm(),
     formNoted: false,
     gamesSinceMomentumDecay: 0,
-    firstServerIsPlayer: Math.random() < 0.5,
+    firstServerIsPlayer: firstServer,
+    nextServerIsPlayer: firstServer,
     playerEnergy: playerEnergy,
-    oppEnergy: 90 + Math.random() * 10,
+    oppEnergy: 90 + random() * 10,
     playerMomentum: 0,
     oppMomentum: 0,
     persistentDebuff: 0,

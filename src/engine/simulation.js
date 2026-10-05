@@ -3,10 +3,11 @@ import { PRIZE_SPLITS_V2 } from "../data/formats.js";
 import { NAME_PARTS } from "../data/names.js";
 import { ALL_TOURNAMENTS, PLAYER_RACE_RANK, getPointSplits, getTournamentFormat, isWTA, tierLabel } from "./circuit.js";
 import { getRating, makeAtpPlayer } from "./database.js";
-import { aiWinProb } from "./match.js";
+import { aiMatchProb, aiWinProb, matchStrength } from "./match.js";
 import { generateName, namesForCountry, pickNationality } from "./names.js";
 import { RETIREMENT_AGE } from "./player.js";
 import { pointsWeekAfter, raceStandings } from "./race.js";
+import { random } from "./rng.js";
 
 // Taux de participation hebdomadaire au circuit hors calendrier (voir
 // simulateAtpWeek). Valeurs calibrées par simulation sur plusieurs saisons.
@@ -50,14 +51,14 @@ export const RR_SCHEDULE = [[[0, 1], [2, 3]], [[0, 2], [1, 3]], [[0, 3], [1, 2]]
 export function finalsMakeGroups(seeds) {
   const A = [seeds[0]], B = [seeds[1]];
   for (const [x, y] of [[seeds[2], seeds[3]], [seeds[4], seeds[5]], [seeds[6], seeds[7]]]) {
-    if (Math.random() < 0.5) { A.push(x); B.push(y); } else { A.push(y); B.push(x); }
+    if (random() < 0.5) { A.push(x); B.push(y); } else { A.push(y); B.push(x); }
   }
   return { A, B };
 }
 export function finalsAiMatch(a, b) {
-  const pA = aiWinProb(getRating(a.stats) - getRating(b.stats));
-  const loserSets = Math.random() < 0.4 ? 1 : 0;
-  return Math.random() < pA ? { w: a, l: b, ws: 2, ls: loserSets } : { w: b, l: a, ws: 2, ls: loserSets };
+  const pA = aiMatchProb(a.stats, b.stats, "Indoor");
+  const loserSets = random() < 0.4 ? 1 : 0;
+  return random() < pA ? { w: a, l: b, ws: 2, ls: loserSets } : { w: b, l: a, ws: 2, ls: loserSets };
 }
 export function finalsRecord(table, wId, lId, ws, ls) {
   table[wId].w++; table[lId].l++;
@@ -187,6 +188,7 @@ export function finalizeHumanTournamentBracket(atpDb, tourn, fmt, bracketPartici
   if (!bracketParticipants || bracketParticipants.length === 0) return atpDb;
 
   const fmtKey = fmt._key;
+  const bestOfFive = fmt.setsToWin === 3 && !isWTA();
   const pointSplits = getPointSplits(fmtKey, tourn);
   const prizeSplits = PRIZE_SPLITS_V2[fmtKey] || PRIZE_SPLITS_V2.ITF;
 
@@ -290,10 +292,8 @@ export function finalizeHumanTournamentBracket(atpDb, tourn, fmt, bracketPartici
           winner = b; loser = a;
         }
       } else {
-        const rA = getRating(a.stats), rB = getRating(b.stats);
-        const diff = rA - rB;
-        const pA = aiWinProb(diff);
-        if (Math.random() < pA) { winner = a; loser = b; }
+        const pA = aiMatchProb(a.stats, b.stats, tourn.surface, bestOfFive);
+        if (random() < pA) { winner = a; loser = b; }
         else { winner = b; loser = a; }
       }
       nextRound.push(winner);
@@ -376,8 +376,13 @@ export function finalizeHumanTournamentBracket(atpDb, tourn, fmt, bracketPartici
 
 // Potentiel caché d'un joueur IA (multiplie sa progression de jeunesse).
 export function rollPotential() {
-  if (Math.random() < 0.06) return 1.8 + Math.random() * 0.5; // pépite
-  return 0.5 + Math.random() * 1.1;
+  if (random() < 0.06) return 2.0 + random() * 0.8; // pépite
+  return 0.5 + random() * 1.1;
+}
+// Note de départ d'un jeune qui arrive sur le circuit : les pépites
+// débarquent déjà au-dessus du lot, ce qui fait émerger une relève crédible.
+export function rookieRating(pot) {
+  return 43 + pot * 6 + random() * 4;
 }
 // Évolution annuelle moyenne de la note selon l'âge (points de stat / an).
 export function ageCurve(age, pot) {
@@ -386,10 +391,10 @@ export function ageCurve(age, pot) {
   if (age <= 23) return 1.5 * pot;
   if (age <= 25) return 0.7 * pot;
   if (age <= 28) return 0.1;
-  if (age <= 30) return -0.6;
-  if (age <= 32) return -1.4;
-  if (age <= 34) return -2.2;
-  return -3.2;
+  if (age <= 30) return -1.4;
+  if (age <= 32) return -2.4;
+  if (age <= 34) return -3.0;
+  return -4.0;
 }
 
 export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentIds) {
@@ -513,63 +518,63 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
       } else if (tier === "GrandSlam") {
         // Top 80 almost always play (95%), top 100 often
         for (let i = 0; i < Math.min(80, dbCopy.length); i++) {
-          if (Math.random() < 0.95) addParticipant(dbCopy[i]);
+          if (random() < 0.95) addParticipant(dbCopy[i]);
         }
         for (let i = 80; i < Math.min(120, dbCopy.length); i++) {
-          if (Math.random() < 0.70) addParticipant(dbCopy[i]);
+          if (random() < 0.70) addParticipant(dbCopy[i]);
         }
       } else if (tier === "Masters1000") {
         // Top 50 almost always (90%), top 80 often
         for (let i = 0; i < Math.min(50, dbCopy.length); i++) {
-          if (Math.random() < 0.92) addParticipant(dbCopy[i]);
+          if (random() < 0.92) addParticipant(dbCopy[i]);
         }
         for (let i = 50; i < Math.min(90, dbCopy.length); i++) {
-          if (Math.random() < 0.55) addParticipant(dbCopy[i]);
+          if (random() < 0.55) addParticipant(dbCopy[i]);
         }
       } else if (tier === "ATP500") {
         // Top 30 frequently, top 80 often (they spread across multiple ATP500)
         for (let i = 0; i < Math.min(30, dbCopy.length); i++) {
-          if (Math.random() < 0.65) addParticipant(dbCopy[i]);
+          if (random() < 0.65) addParticipant(dbCopy[i]);
         }
         for (let i = 30; i < Math.min(80, dbCopy.length); i++) {
-          if (Math.random() < 0.50) addParticipant(dbCopy[i]);
+          if (random() < 0.50) addParticipant(dbCopy[i]);
         }
       } else if (tier === "ATP250") {
         // Top players play these regularly too (fills their calendar / match count)
         for (let i = 0; i < Math.min(20, dbCopy.length); i++) {
-          if (Math.random() < 0.30) addParticipant(dbCopy[i]);
+          if (random() < 0.30) addParticipant(dbCopy[i]);
         }
         for (let i = 20; i < Math.min(50, dbCopy.length); i++) {
-          if (Math.random() < (isWTA() ? WTA_SIM.p250Mid : 0.45)) addParticipant(dbCopy[i]);
+          if (random() < (isWTA() ? WTA_SIM.p250Mid : 0.45)) addParticipant(dbCopy[i]);
         }
         for (let i = 50; i < Math.min(150, dbCopy.length); i++) {
-          if (Math.random() < (isWTA() ? WTA_SIM.p250Low : 0.45)) addParticipant(dbCopy[i]);
+          if (random() < (isWTA() ? WTA_SIM.p250Low : 0.45)) addParticipant(dbCopy[i]);
         }
       } else if (tier === "Challenger") {
         // Challengers are the main circuit for players ranked ~80-250.
         // High participation rates here so their points compensate the
         // yearly decay of initialPoints and the global level stays stable.
         for (let i = 80; i < Math.min(180, dbCopy.length); i++) {
-          if (Math.random() < (isWTA() ? WTA_SIM.pChHigh : 0.65)) addParticipant(dbCopy[i]);
+          if (random() < (isWTA() ? WTA_SIM.pChHigh : 0.65)) addParticipant(dbCopy[i]);
         }
         for (let i = 180; i < Math.min(280, dbCopy.length); i++) {
-          if (Math.random() < (isWTA() ? WTA_SIM.pChMid : 0.55)) addParticipant(dbCopy[i]);
+          if (random() < (isWTA() ? WTA_SIM.pChMid : 0.55)) addParticipant(dbCopy[i]);
         }
         for (let i = 280; i < Math.min(400, dbCopy.length); i++) {
-          if (Math.random() < 0.30) addParticipant(dbCopy[i]);
+          if (random() < 0.30) addParticipant(dbCopy[i]);
         }
       } else if (tier === "ITF") {
         // ITFs are the entry-level circuit for players ranked ~250+.
         // High participation is critical: this is the only point source for low-ranked
         // players, and without it their points decay to 0 after one season.
         for (let i = 250; i < Math.min(400, dbCopy.length); i++) {
-          if (Math.random() < 0.75) addParticipant(dbCopy[i]);
+          if (random() < 0.75) addParticipant(dbCopy[i]);
         }
         for (let i = 400; i < Math.min(600, dbCopy.length); i++) {
-          if (Math.random() < 0.70) addParticipant(dbCopy[i]);
+          if (random() < 0.70) addParticipant(dbCopy[i]);
         }
         for (let i = 600; i < dbCopy.length; i++) {
-          if (Math.random() < 0.55) addParticipant(dbCopy[i]);
+          if (random() < 0.55) addParticipant(dbCopy[i]);
         }
       }
 
@@ -579,7 +584,7 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
         for (const pl of eligible) commitParticipant(pl);
       } else {
         for (let i = eligible.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
+          const j = Math.floor(random() * (i + 1));
           [eligible[i], eligible[j]] = [eligible[j], eligible[i]];
         }
         for (const pl of eligible) commitParticipant(pl);
@@ -595,7 +600,7 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
 
       let attempts = 0;
       while (participants.length < drawSize && attempts < drawSize * 5 && candidatePool.length > 0) {
-        const i = (Math.random() * candidatePool.length) | 0;
+        const i = (random() * candidatePool.length) | 0;
         commitParticipant(candidatePool[i]);
         attempts++;
       }
@@ -625,7 +630,7 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
         continue;
       }
 
-      const fastResults = fastSimulateBracket(participants, fmt);
+      const fastResults = fastSimulateBracket(participants, fmt, tourn.surface);
       const totalRounds = fastResults.byRound.length;
 
       // Award points (52-week rolling) + season stats
@@ -702,10 +707,10 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
       const pool = [];
       for (let r = ev.from; r < Math.min(ev.to, sorted.length); r++) {
         const pl = sorted[r];
-        if (!weekPlayedIds.has(pl.id) && Math.random() < ev.prob) pool.push(pl);
+        if (!weekPlayedIds.has(pl.id) && random() < ev.prob) pool.push(pl);
       }
       for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
       }
       for (let start = 0; start + 16 <= pool.length; start += 32) {
@@ -757,10 +762,10 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
       const form = played >= 8 ? ((p.seasonWins || 0) / played - 0.5) * 1.2 : 0;
       const yearly = ageCurve(age, p.pot) + form;
       for (const k of Object.keys(p.stats)) {
-        let d = yearly / 13 * (0.5 + Math.random());
-        if (d < 0) d *= k === "stamina" ? 1.4 : k === "mental" ? 0.5 : 1;
+        let d = yearly / 13 * (0.5 + random());
+        if (d < 0) d *= k === "stamina" ? 1.4 : k === "mental" ? 0.7 : 1;
         else d *= Math.max(0.15, Math.min(1, (96 - p.stats[k]) / 25)); // plus dur près du sommet
-        d += (Math.random() - 0.5) * 0.25; // aléa de forme
+        d += (random() - 0.5) * 0.25; // aléa de forme
         p.stats[k] = Math.max(35, Math.min(99, p.stats[k] + d));
       }
     }
@@ -780,7 +785,7 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
       if (age >= 32) {
         const base = { 32: 0.07, 33: 0.12, 34: 0.2, 35: 0.3, 36: 0.42, 37: 0.55, 38: 0.7 }[age] ?? 0.85;
         const rankMul = i < 20 ? 0.45 : i < 100 ? 0.8 : i < 300 ? 1.1 : 1.4;
-        retire = Math.random() < base * rankMul;
+        retire = random() < base * rankMul;
       }
     }
     if (retire || (p.age || 25) >= RETIREMENT_AGE) {
@@ -790,10 +795,11 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
       const nat = (NAME_PARTS[p.nat?.code] || namesForCountry(p.nat?.country))
         ? p.nat
         : pickNationality();
-      const replacement = makeAtpPlayer(generateName(nat), nat, Math.round(5 + Math.random() * 30), 45 + Math.random() * 5);
-      replacement.age = 18 + Math.floor(Math.random() * 3);
-      replacement.weeksAtAge = Math.floor(Math.random() * 52);
-      replacement.pot = rollPotential();
+      const pot = rollPotential();
+      const replacement = makeAtpPlayer(generateName(nat), nat, Math.round(5 + random() * 30), rookieRating(pot));
+      replacement.age = 18 + Math.floor(random() * 3);
+      replacement.weeksAtAge = Math.floor(random() * 52);
+      replacement.pot = pot;
       dbCopy[i] = replacement;
     }
   }
@@ -806,14 +812,16 @@ export function applyDriftOnly(db) { return db; } // not used anymore - simulate
 
 // Fast bracket simulation: O(participants × rounds) instead of O(participants × rounds × pairwise)
 // Uses probability-weighted sampling per round - statistically equivalent to a real bracket.
-export function fastSimulateBracket(participants, fmt) {
+// La force tient compte de la surface (matchStrength), comme le moteur du joueur.
+export function fastSimulateBracket(participants, fmt, surface = "Dur") {
+  const bestOfFive = fmt?.setsToWin === 3 && !isWTA();
   const byRound = [];
   const surprises = [];
 
   // Pre-compute "strength" for each (rating + small random variance per tournament)
   const players = participants.map(p => ({
     ref: p,
-    strength: getRating(p.stats) + (Math.random() * 6 - 3),
+    strength: matchStrength(p.stats, surface) + (random() * 6 - 3),
   }));
 
   // ── Seed the draw so the strongest players are spread across the bracket and
@@ -851,8 +859,8 @@ export function fastSimulateBracket(participants, fmt) {
       if (!a) { winners.push(b); continue; }
       if (!b) { winners.push(a); continue; }
       const diff = a.strength - b.strength;
-      const pA = aiWinProb(diff);
-      const aWins = Math.random() < pA;
+      const pA = aiWinProb(diff, bestOfFive);
+      const aWins = random() < pA;
       winners.push(aWins ? a : b);
       losers.push(aWins ? b : a);
       if (Math.abs(diff) > 12 && surprises.length < 3) {
@@ -887,7 +895,7 @@ export function simulateRoundFast(players, surprisesList, roundIdx) {
   // For more variety in pairings, shuffle here
   const shuffled = [...players];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = (Math.random() * (i + 1)) | 0;
+    const j = (random() * (i + 1)) | 0;
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   const winners = [];
@@ -900,7 +908,7 @@ export function simulateRoundFast(players, surprisesList, roundIdx) {
     // Courbe logistique commune (aiWinProb), calée sur le moteur de match du joueur.
     // diff=5 → ~0.75, diff=10 → ~0.90, diff=15 → ~0.97.
     const pA = aiWinProb(diff);
-    const aWins = Math.random() < pA;
+    const aWins = random() < pA;
     winners.push(aWins ? a : b);
     losers.push(aWins ? b : a);
     if (Math.abs(diff) > 12 && surprisesList.length < 3) {
@@ -918,7 +926,7 @@ export function simulateRoundFast(players, surprisesList, roundIdx) {
 export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists, surprises, fmt) {
   if (!winner) {
     return {
-      id: "article_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      id: "article_" + Date.now() + "_" + random().toString(36).slice(2, 6),
       week: tourn.week,
       title: tourn.name + " annulé cette semaine",
       body: "Le tournoi n'a pas pu être organisé.",
@@ -957,7 +965,7 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
 
   // Random intro - varies the angle
   const introAngles = ["technical", "emotional", "career", "context", "scoring"];
-  const angle = introAngles[Math.floor(Math.random() * introAngles.length)];
+  const angle = introAngles[Math.floor(random() * introAngles.length)];
 
   let body = "";
 
@@ -968,7 +976,7 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
       "Le " + tier + " de " + city + " a tenu toutes ses promesses techniques.",
       "Magnifique tennis pratiqué cette semaine au " + tname + " par " + w + ".",
     ];
-    body = techIntros[Math.floor(Math.random() * techIntros.length)];
+    body = techIntros[Math.floor(random() * techIntros.length)];
   } else if (angle === "emotional") {
     const emoIntros = [
       "Quelle émotion au " + tname + " ! " + w + " a su faire la différence dans les moments-clés.",
@@ -976,7 +984,7 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
       "Un parcours de cœur pour " + w + ", qui repart de " + city + " avec un nouveau trophée.",
       w + " repart avec le sourire après une semaine intense au " + tname + ".",
     ];
-    body = emoIntros[Math.floor(Math.random() * emoIntros.length)];
+    body = emoIntros[Math.floor(random() * emoIntros.length)];
   } else if (angle === "career") {
     const careerIntros = [
       w + " confirme son statut en remportant le " + tname + " cette année.",
@@ -984,7 +992,7 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
       "Étape importante pour " + w + ", qui ajoute le " + tname + " à son palmarès.",
       "Le " + tname + " entre dans la collection de " + w + ".",
     ];
-    body = careerIntros[Math.floor(Math.random() * careerIntros.length)];
+    body = careerIntros[Math.floor(random() * careerIntros.length)];
   } else if (angle === "context") {
     const contextIntros = [
       "Dans une ambiance survoltée à " + city + ", " + w + " a fini par s'imposer.",
@@ -992,7 +1000,7 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
       "Le public de " + city + " a assisté à un beau spectacle, conclu par la victoire de " + w + ".",
       "La " + tier + " de " + city + " a couronné " + w + " au terme d'une finale disputée.",
     ];
-    body = contextIntros[Math.floor(Math.random() * contextIntros.length)];
+    body = contextIntros[Math.floor(random() * contextIntros.length)];
   } else {
     const scoreIntros = [
       w + " s'est défait de " + r + " en finale du " + tname + ".",
@@ -1000,12 +1008,12 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
       "Au terme d'une finale serrée, " + w + " a dominé " + r + ".",
       "Finale tendue mais " + w + " a su faire la différence face à " + r + ".",
     ];
-    body = scoreIntros[Math.floor(Math.random() * scoreIntros.length)];
+    body = scoreIntros[Math.floor(random() * scoreIntros.length)];
   }
 
   // Random additional context (varied)
   const middleParts = [];
-  if (semifinalists.length > 0 && Math.random() < 0.6) {
+  if (semifinalists.length > 0 && random() < 0.6) {
     const sfNames = semifinalists.slice(0, 2).map(s => s.nat.flag + " " + s.name).join(" et ");
     const sfPhrases = [
       " En demi-finale, " + w + " avait écarté la résistance de " + sfNames + ".",
@@ -1013,19 +1021,19 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
       " " + sfNames + " s'arrêtent en demi-finale.",
       " Demi-finalistes éliminés : " + sfNames + ".",
     ];
-    middleParts.push(sfPhrases[Math.floor(Math.random() * sfPhrases.length)]);
+    middleParts.push(sfPhrases[Math.floor(random() * sfPhrases.length)]);
   }
-  if (surprises.length > 0 && Math.random() < 0.5) {
+  if (surprises.length > 0 && random() < 0.5) {
     const surp = surprises[0];
     const surpPhrases = [
       " La grosse surprise du tournoi reste " + surp.winner.nat.flag + " " + surp.winner.name + " qui avait éliminé " + surp.loser.nat.flag + " " + surp.loser.name + " dans les premiers tours.",
       " On retiendra aussi l'exploit de " + surp.winner.nat.flag + " " + surp.winner.name + " contre " + surp.loser.nat.flag + " " + surp.loser.name + ", coup de tonnerre du tournoi.",
       " Mention spéciale à " + surp.winner.nat.flag + " " + surp.winner.name + ", auteur d'une belle remontada face à " + surp.loser.nat.flag + " " + surp.loser.name + ".",
     ];
-    middleParts.push(surpPhrases[Math.floor(Math.random() * surpPhrases.length)]);
+    middleParts.push(surpPhrases[Math.floor(random() * surpPhrases.length)]);
   }
   // Surface-related comment (sometimes)
-  if (Math.random() < 0.3) {
+  if (random() < 0.3) {
     const surfacePhrases = {
       "Terre battue": [" La terre battue de " + city + " a tenu ses promesses cette semaine.", " Une terre battue lourde qui a favorisé les longs échanges."],
       "Dur": [" Le dur rapide de " + city + " a récompensé l'agressivité.", " Conditions rapides idéales pour les puissants serveurs."],
@@ -1033,24 +1041,24 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
       "Indoor": [" Conditions indoor parfaites pour les puissants frappeurs.", " L'ambiance feutrée du tournoi indoor a fait son effet."],
     };
     const pool = surfacePhrases[tourn.surface] || [];
-    if (pool.length > 0) middleParts.push(pool[Math.floor(Math.random() * pool.length)]);
+    if (pool.length > 0) middleParts.push(pool[Math.floor(random() * pool.length)]);
   }
   body += middleParts.join("");
 
   // Closing - prize and points (sometimes omitted)
-  if (Math.random() < 0.6) {
+  if (random() < 0.6) {
     const closings = [
       " " + w + " empoche " + prize + "€ et " + points + " points ATP.",
       " À la clé : " + prize + "€ et " + points + " points pour le vainqueur.",
       " Le sacre rapporte à " + w + " la somme de " + prize + "€ et " + points + " points ATP.",
     ];
-    body += closings[Math.floor(Math.random() * closings.length)];
+    body += closings[Math.floor(random() * closings.length)];
   }
 
-  const title = titleTemplates[Math.floor(Math.random() * titleTemplates.length)];
+  const title = titleTemplates[Math.floor(random() * titleTemplates.length)];
 
   return {
-    id: "article_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+    id: "article_" + Date.now() + "_" + random().toString(36).slice(2, 6),
     week: tourn.week,
     title,
     body,

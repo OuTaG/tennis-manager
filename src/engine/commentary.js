@@ -1,18 +1,19 @@
 // Choix des commentaires et rédaction des débriefs.
 import { COMMENTARY } from "../data/commentary.js";
+import { random } from "./rng.js";
 
 export function pickComment(type, vars = {}) {
   const pool = COMMENTARY[type] || COMMENTARY.hold_easy;
-  let txt = pool[Math.floor(Math.random() * pool.length)];
+  let txt = pool[Math.floor(random() * pool.length)];
   // Serve speed for ace comments: random between 210 and 225 km/h.
-  const allVars = { kmh: 210 + Math.floor(Math.random() * 16), ...vars };
+  const allVars = { kmh: 210 + Math.floor(random() * 16), ...vars };
   Object.entries(allVars).forEach(([k, v]) => { txt = txt.replace("{" + k + "}", v); });
   return txt;
 }
 
 export function pickDebrief(matchData, playerName, oppName) {
   const P = playerName, O = oppName;
-  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const pick = (a) => a[Math.floor(random() * a.length)];
   const won = matchData.pSets > matchData.oSets;
   const W = won ? P : O;           // match winner
   const L = won ? O : P;           // match loser

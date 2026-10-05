@@ -3,6 +3,7 @@ import { NAMES_REAL_TOP50, NAMES_REAL_WTA_TOP50, NATIONALITIES, NAT_BY_CODE } fr
 import { PLAYER_STYLES } from "../data/staff.js";
 import { isWTA } from "./circuit.js";
 import { generateName, pickNationality } from "./names.js";
+import { random } from "./rng.js";
 
 // ─── ATP DATABASE ─────────────────────────────────────────────────────────────
 // Note de niveau initiale selon le rang (index 0 = n°1). Courbe logarithmique
@@ -12,7 +13,7 @@ import { generateName, pickNationality } from "./names.js";
 // Les deux premiers (Sinterm / Alcázar) restent un cran au-dessus du reste.
 export function atpRatingForRank(i) {
   const rank = i + 1;
-  const jitter = amp => (Math.random() * 2 - 1) * amp;
+  const jitter = amp => (random() * 2 - 1) * amp;
   if (rank === 1) return 90 + jitter(0.5);
   if (rank === 2) return 89 + jitter(0.5);
   if (rank < 10) return 86 - (rank - 3) * (3 / 7) + jitter(0.7);            // n°3 86 → n°10 83
@@ -36,23 +37,23 @@ export function generateAtpDatabase() {
     let points;
     if (wta) {
       // Répartition WTA : n°1 loin devant, peloton plus resserré derrière.
-      if (i === 0) points = 10500 + Math.floor(Math.random() * 200);
-      else if (i === 1) points = 8000 + Math.floor(Math.random() * 200);
-      else if (i === 2) points = 6900 + Math.floor(Math.random() * 150);
-      else if (i === 3) points = 6200 + Math.floor(Math.random() * 150);
-      else if (i === 4) points = 5800 + Math.floor(Math.random() * 100);
-      else if (i < 10) points = Math.round(5200 - (i - 5) * 330 + Math.random() * 100);
-      else if (i < 20) points = Math.round(3400 - (i - 10) * 140 + Math.random() * 80);
-      else if (i < 30) points = Math.round(2000 - (i - 20) * 60 + Math.random() * 80);
-      else points = Math.round(1400 - (i - 30) * 25 + Math.random() * 60);
+      if (i === 0) points = 10500 + Math.floor(random() * 200);
+      else if (i === 1) points = 8000 + Math.floor(random() * 200);
+      else if (i === 2) points = 6900 + Math.floor(random() * 150);
+      else if (i === 3) points = 6200 + Math.floor(random() * 150);
+      else if (i === 4) points = 5800 + Math.floor(random() * 100);
+      else if (i < 10) points = Math.round(5200 - (i - 5) * 330 + random() * 100);
+      else if (i < 20) points = Math.round(3400 - (i - 10) * 140 + random() * 80);
+      else if (i < 30) points = Math.round(2000 - (i - 20) * 60 + random() * 80);
+      else points = Math.round(1400 - (i - 30) * 25 + random() * 60);
     }
-    else if (i === 0) points = 11830 + Math.floor(Math.random() * 200);          // ~12000
-    else if (i === 1) points = 8580 + Math.floor(Math.random() * 200);      // ~8700
-    else if (i === 2) points = 5100 + Math.floor(Math.random() * 200);      // ~5200
-    else if (i < 10) points = Math.round(4400 - (i - 3) * 250 + Math.random() * 150);
-    else if (i < 20) points = Math.round(2800 - (i - 10) * 80 + Math.random() * 100);
-    else if (i < 30) points = Math.round(2000 - (i - 20) * 60 + Math.random() * 80);
-    else points = Math.round(1400 - (i - 30) * 25 + Math.random() * 60);
+    else if (i === 0) points = 11830 + Math.floor(random() * 200);          // ~12000
+    else if (i === 1) points = 8580 + Math.floor(random() * 200);      // ~8700
+    else if (i === 2) points = 5100 + Math.floor(random() * 200);      // ~5200
+    else if (i < 10) points = Math.round(4400 - (i - 3) * 250 + random() * 150);
+    else if (i < 20) points = Math.round(2800 - (i - 10) * 80 + random() * 100);
+    else if (i < 30) points = Math.round(2000 - (i - 20) * 60 + random() * 80);
+    else points = Math.round(1400 - (i - 30) * 25 + random() * 60);
     // Note de niveau calée sur le moteur de match (voir atpRatingForRank).
     const ratingBase = atpRatingForRank(i);
     players.push(makeAtpPlayer(realPlayer.name, nat, points, ratingBase, undefined, realPlayer.age + REAL_AGE_OFFSET));
@@ -61,11 +62,11 @@ export function generateAtpDatabase() {
     const nat = pickNationality();
     const name = generateName(nat);
     let points;
-    if (i < 100) points = Math.round(1100 - (i - 50) * 12 + Math.random() * 50);
-    else if (i < 250) points = Math.round(500 - (i - 100) * 1.8 + Math.random() * 30);
-    else if (i < 500) points = Math.round(230 - (i - 250) * 0.55 + Math.random() * 20);
-    else if (i < 800) points = Math.round(95 - (i - 500) * 0.18 + Math.random() * 10);
-    else points = Math.max(5, Math.round(40 - (i - 800) * 0.045 + Math.random() * 6));
+    if (i < 100) points = Math.round(1100 - (i - 50) * 12 + random() * 50);
+    else if (i < 250) points = Math.round(500 - (i - 100) * 1.8 + random() * 30);
+    else if (i < 500) points = Math.round(230 - (i - 250) * 0.55 + random() * 20);
+    else if (i < 800) points = Math.round(95 - (i - 500) * 0.18 + random() * 10);
+    else points = Math.max(5, Math.round(40 - (i - 800) * 0.045 + random() * 6));
     const ratingBase = atpRatingForRank(i);
     players.push(makeAtpPlayer(name, nat, points, ratingBase));
   }
@@ -74,33 +75,33 @@ export function generateAtpDatabase() {
 
 export function makeAtpPlayer(name, nat, points, ratingBase, startYear, ageOverride) {
   const styleKeys = Object.keys(PLAYER_STYLES);
-  const style = styleKeys[Math.floor(Math.random() * styleKeys.length)];
+  const style = styleKeys[Math.floor(random() * styleKeys.length)];
   const styleBase = PLAYER_STYLES[style].base;
   const ratingShift = ratingBase - 50;
   const stats = {
-    serve: Math.max(35, Math.min(99, styleBase.serve + ratingShift + (Math.random() * 6 - 3))),
-    forehand: Math.max(35, Math.min(99, styleBase.forehand + ratingShift + (Math.random() * 6 - 3))),
-    backhand: Math.max(35, Math.min(99, styleBase.backhand + ratingShift + (Math.random() * 6 - 3))),
-    stamina: Math.max(35, Math.min(99, styleBase.stamina + ratingShift + (Math.random() * 6 - 3))),
-    mental: Math.max(35, Math.min(99, styleBase.mental + ratingShift + (Math.random() * 6 - 3))),
-    net: Math.max(35, Math.min(99, styleBase.net + ratingShift + (Math.random() * 6 - 3))),
+    serve: Math.max(35, Math.min(99, styleBase.serve + ratingShift + (random() * 6 - 3))),
+    forehand: Math.max(35, Math.min(99, styleBase.forehand + ratingShift + (random() * 6 - 3))),
+    backhand: Math.max(35, Math.min(99, styleBase.backhand + ratingShift + (random() * 6 - 3))),
+    stamina: Math.max(35, Math.min(99, styleBase.stamina + ratingShift + (random() * 6 - 3))),
+    mental: Math.max(35, Math.min(99, styleBase.mental + ratingShift + (random() * 6 - 3))),
+    net: Math.max(35, Math.min(99, styleBase.net + ratingShift + (random() * 6 - 3))),
   };
   // Age: if explicit override given (real players), use it. Otherwise distribute by rating.
   let age;
   if (ageOverride !== undefined) {
     age = ageOverride;
   } else if (ratingBase >= 80) {
-    age = 23 + Math.floor(Math.random() * 10); // 23-32
+    age = 23 + Math.floor(random() * 10); // 23-32
   } else if (ratingBase >= 70) {
-    age = 21 + Math.floor(Math.random() * 12); // 21-32
+    age = 21 + Math.floor(random() * 12); // 21-32
   } else {
-    age = 18 + Math.floor(Math.random() * 14); // 18-31
+    age = 18 + Math.floor(random() * 14); // 18-31
   }
   return {
-    id: "atp_" + Math.random().toString(36).slice(2, 9),
+    id: "atp_" + random().toString(36).slice(2, 9),
     name, nat, style, points, stats,
     age,
-    weeksAtAge: Math.floor(Math.random() * 52),
+    weeksAtAge: Math.floor(random() * 52),
     seasonWins: 0, seasonLosses: 0,
     seasonEarnings: 0, seasonTitles: 0,
     recentResults: [],
@@ -171,7 +172,7 @@ export function pickOpponentForMatch(atpDb, tournament, roundCtx, playerRanking,
 
   // Try multiple times to find an opponent not already played in this tournament
   for (let attempt = 0; attempt < 30; attempt++) {
-    const idx = Math.floor(Math.random() * Math.max(1, maxIdx - minIdx + 1)) + minIdx;
+    const idx = Math.floor(random() * Math.max(1, maxIdx - minIdx + 1)) + minIdx;
     const candidate = atpDb[idx];
     if (candidate && !excluded.has(candidate.id)) {
       return { player: candidate, rank: idx + 1 };
@@ -194,6 +195,6 @@ export function pickOpponentForMatch(atpDb, tournament, roundCtx, playerRanking,
       return { player: candidate, rank: i + 1 };
     }
   }
-  const idx = Math.floor(Math.random() * Math.max(1, maxIdx - minIdx + 1)) + minIdx;
+  const idx = Math.floor(random() * Math.max(1, maxIdx - minIdx + 1)) + minIdx;
   return { player: atpDb[idx], rank: idx + 1 };
 }

@@ -1,6 +1,7 @@
 // Génération de noms (masculins et féminins) et de nationalités.
 import { COUNTRY_NAME_KEYS, EXTRA_NAME_LISTS, FEMALE_FIRST_NAMES, NAME_PARTS, NATIONALITIES, WTA_EXTRA_NAME_LISTS, WTA_NATIONALITIES } from "../data/names.js";
 import { isWTA } from "./circuit.js";
+import { random } from "./rng.js";
 
 export const _femaleFirstCache = {};
 export function femaleFirstNames(country) {
@@ -61,10 +62,10 @@ export function randomFullName(country, female = isWTA()) {
   let parts = namesForCountry(country);
   if (!parts) {
     const all = [...Object.keys(COUNTRY_NAME_KEYS), ...Object.keys(EXTRA_NAME_LISTS)];
-    country = all[Math.floor(Math.random() * all.length)];
+    country = all[Math.floor(random() * all.length)];
     parts = namesForCountry(country);
   }
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const pick = (arr) => arr[Math.floor(random() * arr.length)];
   if (female) {
     const firsts = femaleFirstNames(country) || parts.first;
     return pick(firsts) + " " + feminizeSurname(country, pick(parts.last));
@@ -75,17 +76,17 @@ export function randomFullName(country, female = isWTA()) {
 export function pickNationality() {
   const list = isWTA() ? WTA_NATIONALITIES : NATIONALITIES;
   const total = list.reduce((a, n) => a + n.weight, 0);
-  let r = Math.random() * total;
+  let r = random() * total;
   for (const n of list) { r -= n.weight; if (r <= 0) return n; }
   return list[0];
 }
 
 export function generateName(nat) {
   // Some real players' countries have no name list: fall back to a random one.
-  const parts = NAME_PARTS[nat?.code] || namesForCountry(nat?.country) || NAME_PARTS[Object.keys(NAME_PARTS)[Math.floor(Math.random() * Object.keys(NAME_PARTS).length)]];
+  const parts = NAME_PARTS[nat?.code] || namesForCountry(nat?.country) || NAME_PARTS[Object.keys(NAME_PARTS)[Math.floor(random() * Object.keys(NAME_PARTS).length)]];
   const firsts = isWTA() ? (femaleFirstNames(nat?.country) || parts.first) : parts.first;
-  const first = firsts[Math.floor(Math.random() * firsts.length)];
-  let last = parts.last[Math.floor(Math.random() * parts.last.length)];
+  const first = firsts[Math.floor(random() * firsts.length)];
+  let last = parts.last[Math.floor(random() * parts.last.length)];
   if (isWTA()) last = feminizeSurname(nat?.country, last);
   return first[0] + ". " + last;
 }

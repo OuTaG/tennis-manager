@@ -3,6 +3,7 @@ import { CITIES } from "../data/geo.js";
 import { PLAYER_STYLES } from "../data/staff.js";
 import { challengeActive } from "./challenges.js";
 import { staffSurfaceModifier, sumStaffEffect } from "./staff.js";
+import { random } from "./rng.js";
 
 // favourite surface is drawn (weighted) from this affinity, giving each career a
 // bit of identity ("je suis un spécialiste terre"). It grants a small in-match
@@ -22,7 +23,7 @@ export function pickFavoriteSurface(styleId) {
   for (const surf of Object.keys(weights)) {
     for (let i = 0; i < weights[surf]; i++) pool.push(surf);
   }
-  return pool[Math.floor(Math.random() * pool.length)] || "Dur";
+  return pool[Math.floor(random() * pool.length)] || "Dur";
 }
 
 // Difficulty factors derived from the chosen start city (1=easy … 5=hard).
@@ -52,14 +53,14 @@ export function createInitialPlayer(name, styleId, startCity, startNationality, 
   const style = PLAYER_STYLES[styleId];
   const stats = {};
   Object.keys(style.base).forEach(k => {
-    stats[k] = Math.max(35, Math.min(74, style.base[k] + START_STAT_BONUS - 4 + Math.random() * 6 + (Math.random() * 4 - 2)));
+    stats[k] = Math.max(35, Math.min(74, style.base[k] + START_STAT_BONUS - 4 + random() * 6 + (random() * 4 - 2)));
   });
   const city = startCity || "Paris";
   const nationality = startNationality || CITIES[city]?.country || "France";
   // Flag of the chosen nationality (the start city is only a starting place).
   const nationalityFlag = (Object.values(CITIES).find(c => c.country === nationality) || CITIES[city])?.flag || "🎾";
   return {
-    careerId: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    careerId: "c" + Date.now().toString(36) + random().toString(36).slice(2, 6),
     name, age: 18, nationality, nationalityFlag, styleId, avatar: avatar || null,
     startDifficulty: startDifficulty || 3, // 1-5, density of nearby tournaments
     favoriteSurface: pickFavoriteSurface(styleId),
@@ -243,14 +244,14 @@ export const INJURY_TYPES = [
 export function rollInjury() {
   // Severity roll (when injury is confirmed by riskInjury check)
   // 60% minor, 30% moderate, 10% severe
-  const r = Math.random();
-  const part = INJURY_TYPES[Math.floor(Math.random() * INJURY_TYPES.length)];
+  const r = random();
+  const part = INJURY_TYPES[Math.floor(random() * INJURY_TYPES.length)];
   if (r < 0.60) {
     return {
       severity: "minor",
       label: "Légère gêne au " + part.part,
       emoji: part.emoji,
-      weeksRemaining: 1 + Math.floor(Math.random() * 3), // 1-3
+      weeksRemaining: 1 + Math.floor(random() * 3), // 1-3
       statPenalty: 0.05,
       canPlay: true,
     };
@@ -260,7 +261,7 @@ export function rollInjury() {
       severity: "moderate",
       label: "Blessure au " + part.part,
       emoji: part.emoji,
-      weeksRemaining: 4 + Math.floor(Math.random() * 5), // 4-8
+      weeksRemaining: 4 + Math.floor(random() * 5), // 4-8
       statPenalty: 0.15,
       canPlay: true,
     };
@@ -269,7 +270,7 @@ export function rollInjury() {
     severity: "severe",
     label: "Blessure sévère au " + part.part,
     emoji: part.emoji,
-    weeksRemaining: 8 + Math.floor(Math.random() * 9), // 8-16
+    weeksRemaining: 8 + Math.floor(random() * 9), // 8-16
     statPenalty: 0.30,
     canPlay: false,
   };

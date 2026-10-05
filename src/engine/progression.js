@@ -1,6 +1,7 @@
 // Progression des statistiques après un tournoi.
 import { PLAYER_STYLES } from "../data/staff.js";
 import { ageTrainingMultiplier } from "./player.js";
+import { random } from "./rng.js";
 
 // ─── POST-TOURNAMENT PROGRESSION ──────────────────────────────────────────────
 // Progression scales inversely with current stat level (harder to improve high stats).
@@ -156,7 +157,7 @@ export function computeTournamentProgression(player, matchesPlayed, isTitle, fmt
   // Distribute across stats with random emphasis, applying diminishing returns per stat
   const statKeys = ["serve", "forehand", "backhand", "stamina", "mental", "net"];
   // Les gains de match profitent davantage aux points forts du style.
-  const distributions = statKeys.map(k => Math.random() * Math.max(0.4, 1 + styleStatOffset(player.styleId, k) * 0.04));
+  const distributions = statKeys.map(k => random() * Math.max(0.4, 1 + styleStatOffset(player.styleId, k) * 0.04));
   const sum = distributions.reduce((a, b) => a + b, 0);
 
   // Age multiplier: gains reduced after 28, but losses unaffected (so older players still progress, just slower)
