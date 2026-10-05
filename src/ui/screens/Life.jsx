@@ -16,7 +16,7 @@ export function LifeScreen({ player, doLifeActivity }) {
     : 0;
 
   const lifeStat = (label, value, color, icon) => (
-    <div style={{ background: T.bg2, borderRadius: 10, padding: 12, border: "1px solid " + T.brd }}>
+    <div style={{ background: T.bg2, borderRadius: 3, padding: 12, border: "1px solid " + T.brd }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Icon name={icon} size={14} color={color} />
@@ -78,7 +78,7 @@ export function LifeScreen({ player, doLifeActivity }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: 10,
+                  width: 36, height: 36, borderRadius: 3,
                   background: T.bg3, border: "1px solid " + T.brd2,
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}>

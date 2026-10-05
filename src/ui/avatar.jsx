@@ -36,7 +36,8 @@ export function femaleHairStyle(fem, hs) {
   return { long: "flowing", short: "ponytail", buzz: "bob", cap: "visor", bald: "bun" }[hs] || "ponytail";
 }
 
-export function Avatar({ config, size = 96, style }) {
+// bare : sans carte de fond (portraits imprimés de la une).
+export function Avatar({ config, size = 96, style, bare = false }) {
   const cfg = config || {};
   const skin   = cfg.skin   || AVATAR_OPTIONS.skin[1];
   const hair   = cfg.hair   || AVATAR_OPTIONS.hair[0];
@@ -65,12 +66,12 @@ export function Avatar({ config, size = 96, style }) {
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} style={{ flexShrink: 0, display: "block", ...(style || {}) }} aria-hidden="true">
       <defs>
-        <clipPath id={clipId}><rect x="0" y="0" width="100" height="100" rx="26" /></clipPath>
+        <clipPath id={clipId}><rect x="0" y="0" width="100" height="100" rx={bare ? 0 : 26} /></clipPath>
       </defs>
       <g clipPath={"url(#" + clipId + ")"}>
         {/* Fond : carte crème + disque teinté par la couleur du maillot */}
-        <rect x="0" y="0" width="100" height="100" style={{ fill: "var(--tm-bg2)" }} />
-        <circle cx="50" cy="52" r="40" fill={shirtTint} opacity="0.55" />
+        {!bare && <rect x="0" y="0" width="100" height="100" style={{ fill: "var(--tm-bg2)" }} />}
+        {!bare && <circle cx="50" cy="52" r="40" fill={shirtTint} opacity="0.55" />}
 
         {/* Avatar féminin : chevelure derrière la tête */}
         {fem && hStyle === "flowing" && (
@@ -206,7 +207,7 @@ export function Avatar({ config, size = 96, style }) {
           ? <path d="M45.6 56.2 Q50 60.4 54.4 56.2 Q50 57.6 45.6 56.2 Z" fill="#b5534a" stroke="#b5534a" strokeWidth="1.2" strokeLinejoin="round" />
           : <path d="M45.2 56.4 Q50 60.2 54.8 56.4" stroke="#8a3f2c" strokeWidth="1.9" fill="none" strokeLinecap="round" />}
       </g>
-      <rect x="0.6" y="0.6" width="98.8" height="98.8" rx="25.5" fill="none" style={{ stroke: "var(--tm-brd2)" }} strokeWidth="1.2" />
+      {!bare && <rect x="0.6" y="0.6" width="98.8" height="98.8" rx="25.5" fill="none" style={{ stroke: "var(--tm-brd2)" }} strokeWidth="1.2" />}
     </svg>
   );
 }

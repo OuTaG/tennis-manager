@@ -74,7 +74,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
             <div style={{ display: "flex", flexWrap: "wrap", rowGap: 14 }}>
               {items.map((it, i) => (
                 <div key={i} style={{ width: "50%", display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 11, background: T.bg2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 3, background: T.bg2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Icon name={it.icon} size={17} color={it.color} />
                   </div>
                   <div style={{ minWidth: 0 }}>
@@ -90,8 +90,8 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Favourite surface */}
       {player.favoriteSurface && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.bg1, border: "1px solid " + T.brd, borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: T.greenSub, border: "1px solid " + T.greenBrd, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "12px 14px", marginBottom: 14 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 3, background: T.greenSub, border: "1px solid " + T.greenBrd, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <SurfaceIcon name={player.favoriteSurface} />
           </div>
           <div style={{ minWidth: 0 }}>
@@ -149,7 +149,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
         <div style={styles.skillsCard}>
           <div className="tm-eyebrow" style={{ marginBottom: 12 }}>Saisons passées</div>
           {(player.careerSeasons || []).slice().reverse().map((s, i) => (
-            <div key={s.year} style={{ background: T.bg2, borderRadius: 8, padding: 12, marginBottom: i < (player.careerSeasons.length - 1) ? 8 : 0, border: "1px solid " + T.brd }}>
+            <div key={s.year} style={{ background: T.bg2, borderRadius: 3, padding: 12, marginBottom: i < (player.careerSeasons.length - 1) ? 8 : 0, border: "1px solid " + T.brd }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <div className="tm-display" style={{ color: T.fg, fontSize: 18, letterSpacing: 0.5 }}>SAISON {s.year}</div>
                 <div className="tm-num" style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>#{s.endOfYearRanking}</div>
@@ -232,7 +232,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
               return (
                 <div key={r.name} style={{
                   marginBottom: 12, padding: 12,
-                  background: T.bg2, borderRadius: 10,
+                  background: T.bg2, borderRadius: 3,
                   border: "1px solid " + T.brd,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
