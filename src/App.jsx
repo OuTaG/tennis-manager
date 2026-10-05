@@ -2591,7 +2591,6 @@ export default function TennisManager() {
         onAbandon={() => deleteSave(CHALLENGE_SLOT)}
         current={challengeMeta}
         owned={hasPurchased("dlc_challenges")}
-        wtaOwned={hasPurchased("dlc_wta")}
         goShop={() => { setMenuShop(true); setScreen("menu"); }}
       />
       {notification && (
@@ -2714,7 +2713,6 @@ export default function TennisManager() {
     // ÉTAPE PRÉALABLE : choix du classement (ATP ou WTA)
     if (createStep === -1) {
       const pick = (id) => {
-        if (id === "wta" && !hasPurchased("dlc_wta")) { setMenuShop(true); setScreen("menu"); return; }
         setCircuit(id === "wta" ? "wta" : "atp");
         setCircuitInput(id);
         setNameInput("");
@@ -2736,19 +2734,18 @@ export default function TennisManager() {
                 { id: "atp", label: "Circuit masculin", sub: "Carrière d'un joueur", accent: "#4d7a3a", sample: { female: false, hairStyle: "short", shirt: "#4d7a3a" } },
                 { id: "wta", label: "Circuit féminin", sub: "Carrière d'une joueuse", accent: "#b23f73", sample: { female: true, hairStyle: "ponytail", shirt: "#b23f73" } },
               ].map(c => {
-                const locked = c.id === "wta" && !hasPurchased("dlc_wta");
                 return (
                   <button key={c.id} data-nofem="" onClick={() => pick(c.id)} style={{
                     display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
                     background: T.bg1, border: "1.5px solid " + c.accent, borderRadius: 14,
-                    padding: 14, cursor: "pointer", fontFamily: T.body, opacity: locked ? 0.75 : 1,
+                    padding: 14, cursor: "pointer", fontFamily: T.body,
                   }}>
                     <Avatar config={{ ...avatarInput, ...c.sample }} size={64} />
                     <span style={{ flex: 1 }}>
                       <span style={{ display: "flex", alignItems: "center", gap: 6, color: c.accent, fontSize: 18, fontWeight: 700, fontFamily: T.display }}>
-                        {c.label}{locked && <Icon name="lock" size={14} color={T.amber} />}
+                        {c.label}
                       </span>
-                      <span style={{ display: "block", color: T.fg4, fontSize: 12, marginTop: 2 }}>{locked ? "À débloquer dans la boutique" : c.sub}</span>
+                      <span style={{ display: "block", color: T.fg4, fontSize: 12, marginTop: 2 }}>{c.sub}</span>
                     </span>
                     <Icon name="chevronRight" size={18} color={T.fg4} />
                   </button>
