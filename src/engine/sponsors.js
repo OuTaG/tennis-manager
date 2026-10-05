@@ -1,5 +1,6 @@
 // Sponsors : objectifs, offres, catégories, wildcards.
 import { difficultyFactors } from "./player.js";
+import { random } from "./rng.js";
 
 // ─── SPONSOR OBJECTIVES ───────────────────────────────────────────────────────
 // Each sponsor contract carries a performance objective evaluated over a season
@@ -139,7 +140,7 @@ export function generateSponsorOffer(ranking, recentTitlePerf, existingBrands, i
   let tier = getSponsorTierForRanking(ranking, recentTitlePerf, image);
   // Agent "sponsorTierBoost": chance that the offer comes from the tier above.
   const TIER_ORDER = ["entry", "low", "mid", "high", "premium"];
-  if (tierBoost > 0 && Math.random() < tierBoost) {
+  if (tierBoost > 0 && random() < tierBoost) {
     const i = TIER_ORDER.indexOf(tier);
     if (i >= 0 && i < TIER_ORDER.length - 1) tier = TIER_ORDER[i + 1];
   }
@@ -169,8 +170,8 @@ export function generateSponsorOffer(ranking, recentTitlePerf, existingBrands, i
     for (let i = 0; i < w; i++) weighted.push(b);
   }
   const picked = weighted.length > 0
-    ? weighted[Math.floor(Math.random() * weighted.length)]
-    : available[Math.floor(Math.random() * available.length)];
+    ? weighted[Math.floor(random() * weighted.length)]
+    : available[Math.floor(random() * available.length)];
 
   // Pay scaling by tier
   const payByTier = {
@@ -190,9 +191,9 @@ export function generateSponsorOffer(ranking, recentTitlePerf, existingBrands, i
     else if (image < 20) imgMul = 0.5;
     else if (image < 35) imgMul = 0.7;
   }
-  const weeklyPay = Math.round((r.weekly[0] + Math.random() * (r.weekly[1] - r.weekly[0])) * imgMul);
-  const titleBonus = Math.round((r.title[0] + Math.random() * (r.title[1] - r.title[0])) * imgMul);
-  const durationWeeks = Math.random() < 0.5 ? 26 : 52; // objective covers the whole contract
+  const weeklyPay = Math.round((r.weekly[0] + random() * (r.weekly[1] - r.weekly[0])) * imgMul);
+  const titleBonus = Math.round((r.title[0] + random() * (r.title[1] - r.title[0])) * imgMul);
+  const durationWeeks = random() < 0.5 ? 26 : 52; // objective covers the whole contract
 
   // Three objective levels (easy/medium/hard) the player can choose during the
   // negotiation. The base reward/penalty scale by the chosen level's multipliers.
@@ -232,8 +233,8 @@ export function generateSponsorOffer(ranking, recentTitlePerf, existingBrands, i
     });
   }
   const durMul = longContract ? 1.8 : 1;
-  const baseReward = Math.round(weeklyPay * (10 + Math.random() * 8) * df.sponsorRewardMul * durMul);   // ~10-18 weeks of pay (×1.8 over 52 weeks)
-  const basePenalty = Math.round(weeklyPay * (5 + Math.random() * 5) * (longContract ? 1.5 : 1));   // ~5-10 weeks of pay
+  const baseReward = Math.round(weeklyPay * (10 + random() * 8) * df.sponsorRewardMul * durMul);   // ~10-18 weeks of pay (×1.8 over 52 weeks)
+  const basePenalty = Math.round(weeklyPay * (5 + random() * 5) * (longContract ? 1.5 : 1));   // ~5-10 weeks of pay
 
   // Bargaining bounds. The better the player's ranking, the more the brand is
   // willing to push its offer up (you're worth more). Margin ranges from ~+20%
@@ -245,14 +246,14 @@ export function generateSponsorOffer(ranking, recentTitlePerf, existingBrands, i
   // ~4 steps to reach the cap, so each "ask" makes visible progress.
   const negStepPay = Math.max(1, Math.round((maxWeeklyPay - weeklyPay) / 4));
   const negStepBonus = Math.max(1, Math.round((maxTitleBonus - titleBonus) / 4));
-  const patience = 2 + (Math.random() < 0.5 ? 1 : 0); // 2-3 over-the-limit pushes tolerated
+  const patience = 2 + (random() < 0.5 ? 1 : 0); // 2-3 over-the-limit pushes tolerated
   // ~15% of offers are flat "à prendre ou à laisser" — no negotiation room at
   // all. The player either signs as-is or walks. Adds variety and forces
   // tougher decisions on otherwise tempting tier deals.
-  const nonNegotiable = Math.random() < 0.15;
+  const nonNegotiable = random() < 0.15;
 
   return {
-    id: "spon_" + Math.random().toString(36).slice(2, 8),
+    id: "spon_" + random().toString(36).slice(2, 8),
     brand: picked.name, cat: picked.cat, tier,
     weeklyPay, titleBonus, durationWeeks, weeksLeft: durationWeeks,
     baseReward, basePenalty,

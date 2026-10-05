@@ -1,5 +1,6 @@
 // Réseaux sociaux : fil Monde et fil Pour vous.
 import { ALL_TOURNAMENTS } from "./circuit.js";
+import { random } from "./rng.js";
 
 // ─── SOCIAL POSTS GENERATOR ────────────────────────────────────────────────────
 // Generates random social-network style posts each week.
@@ -45,13 +46,13 @@ export const SOCIAL_AUTHORS = {
   ],
 };
 
-export function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-export function randomLikes(min, max) { return Math.floor(min + Math.random() * (max - min)); }
+export function pickRandom(arr) { return arr[Math.floor(random() * arr.length)]; }
+export function randomLikes(min, max) { return Math.floor(min + random() * (max - min)); }
 
 // Aux posts about world tennis — generated each week (1-3 per week, mostly fluff)
 export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews) {
   const posts = [];
-  const count = 1 + Math.floor(Math.random() * 3); // 1-3 aux posts
+  const count = 1 + Math.floor(random() * 3); // 1-3 aux posts
 
   const top10 = (atpDb || []).slice(0, 10);
   const top30 = (atpDb || []).slice(0, 30);
@@ -74,7 +75,7 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
   const upcoming = ALL_TOURNAMENTS.filter(t => t.week === nextWeek && ["GrandSlam", "Finals", "Masters1000", "ATP500"].includes(t.tier));
 
   for (let i = 0; i < count; i++) {
-    const r = Math.random();
+    const r = random();
     let post = null;
 
     if (r < 0.18 && top30.length >= 2) {
@@ -277,7 +278,7 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
     if (post) {
       posts.push({
         ...post,
-        id: "post_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+        id: "post_" + Date.now() + "_" + random().toString(36).slice(2, 8),
         week, year,
         replyable: false, // aux posts not replyable (variety)
       });
@@ -288,7 +289,7 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
 
 // Generate a personal post about the human player (after a match)
 export function generatePersonalSocialPost(player, tourn, won, isTitleWin, opponent, score, week, year) {
-  const r = Math.random();
+  const r = random();
   const playerName = player.name;
   let post = null;
 
@@ -337,7 +338,7 @@ export function generatePersonalSocialPost(player, tourn, won, isTitleWin, oppon
         { label: "Merci pour le soutien !", effects: { popularity: 1 } },
       ] : null,
     };
-  } else if (!won && (opponent?.rank || 0) > 200 && Math.random() < 0.4) {
+  } else if (!won && (opponent?.rank || 0) > 200 && random() < 0.4) {
     // Bad loss → critical fan post
     const templates = [
       "Bon, on peut parler de " + playerName + " ? Cette défaite ça pique quand même.",
@@ -362,7 +363,7 @@ export function generatePersonalSocialPost(player, tourn, won, isTitleWin, oppon
   if (!post) return null;
   return {
     ...post,
-    id: "post_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+    id: "post_" + Date.now() + "_" + random().toString(36).slice(2, 8),
     week, year,
     feed: "personal",
   };
@@ -382,7 +383,7 @@ export function generateWeeklyPersonalPosts(player, news, week, year) {
     retweets: randomLikes(2, 120),
     replyable: !!(replies && replies.length),
     replies: replies || null,
-    id: "post_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+    id: "post_" + Date.now() + "_" + random().toString(36).slice(2, 8),
     week, year, feed: "personal",
   });
 
@@ -756,14 +757,14 @@ export function generateWeeklyPersonalPosts(player, news, week, year) {
     recentContents.add(post.content);
     return post;
   };
-  if (Math.random() < 0.55) out.push(pickFresh(casual));
-  if (Math.random() < 0.45) out.push(pickFresh(positive));
-  if (Math.random() < 0.25) out.push(pickFresh(mixed));
-  if (reactions.length > 0 && Math.random() < 0.6) out.push(pickFresh(reactions));
-  if (context.length > 0 && Math.random() < 0.5) out.push(pickFresh(context));
+  if (random() < 0.55) out.push(pickFresh(casual));
+  if (random() < 0.45) out.push(pickFresh(positive));
+  if (random() < 0.25) out.push(pickFresh(mixed));
+  if (reactions.length > 0 && random() < 0.6) out.push(pickFresh(reactions));
+  if (context.length > 0 && random() < 0.5) out.push(pickFresh(context));
 
   // Guarantee at least one personal post most weeks so the feed stays alive.
-  if (out.length === 0 && Math.random() < 0.7) out.push(pickFresh(casual));
+  if (out.length === 0 && random() < 0.7) out.push(pickFresh(casual));
 
   return out;
 }

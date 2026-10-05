@@ -5,6 +5,7 @@ import { getRating } from "./database.js";
 import { getPlayerRanking, totalAtpPoints } from "./player.js";
 import { playerRaceRank, racePointsOf, raceStandings } from "./race.js";
 import { pickRandom } from "./social.js";
+import { random } from "./rng.js";
 
 // ─── DÉFIS SCÉNARISÉS ────────────────────────────────────────────────────────
 // Chaque défi démarre une partie dans une situation imposée (âge, classement,
@@ -767,7 +768,7 @@ export function pickChallengeEvent(p) {
     const key = e.forced(p);
     if (key && !seen.includes(key)) return { ev: e, key };
   }
-  if (Math.random() >= 0.3) return null;
+  if (random() >= 0.3) return null;
   const eligible = pool.filter(e => !e.forced && !(e.once && seen.includes(e.id)) && (!e.when || e.when(p)));
   if (!eligible.length) return null;
   const ev = pickRandom(eligible);

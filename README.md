@@ -56,6 +56,9 @@ Règles :
 - L'interface lit le moteur, le moteur ne connaît pas l'interface.
 - Les états globaux du moteur se modifient par des fonctions :
   `setCircuit()`, `setPlayerRaceRank()`, `setActiveChallenge()`.
+- Le hasard du jeu passe par `random()` (`engine/rng.js`), jamais par
+  `Math.random` : il est reproductible et son état est sauvegardé.
+  `Math.random` reste permis pour le purement visuel (animations).
 
 ## Tests
 
@@ -66,7 +69,8 @@ test donne toujours le même résultat. Ils couvrent :
 - une saison simulée ATP et WTA : vainqueurs de Grand Chelem, Masters à
   8 joueurs, points stables à chaque rang, retraites ;
 - l'évolution des notes (jeunes en progrès, plus de 30 ans en déclin) ;
-- le moteur de match (fin de match, avantage au plus fort) ;
+- le moteur de match (fin de match, avantage au plus fort, rotation du
+  service, styles et surfaces, aces, même graine = même match) ;
 - le plafond de notoriété ;
 - les 8 défis (mise en place, échec, réussite, score) ;
 - l'accord au féminin.

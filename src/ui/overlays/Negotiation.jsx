@@ -5,6 +5,7 @@ import { sponsorSlotWarning } from "../../engine/sponsors.js";
 import { Icon, withFlags } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { random } from "../../engine/rng.js";
 
 export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClose }) {
   const offers = player.sponsorOffers || [];
@@ -388,7 +389,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
     const prob = kind === "pay"
       ? acceptProbFor(nextPay,   offer.openingWeeklyPay,  offer.maxWeeklyPay)
       : acceptProbFor(nextBonus, offer.openingTitleBonus, offer.maxTitleBonus);
-    const accepted = Math.random() < prob;
+    const accepted = random() < prob;
 
     pushLog({ who: "player", text: pick(kind === "pay" ? PLAYER_ASK_PAY : PLAYER_ASK_BONUS) });
 

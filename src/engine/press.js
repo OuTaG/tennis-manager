@@ -1,4 +1,5 @@
 // Conférences de presse.
+import { random } from "./rng.js";
 
 // ─── PRESS CONFERENCE ─────────────────────────────────────────────────────────
 // Generates a list of contextual questions about the WHOLE tournament run.
@@ -30,7 +31,7 @@ export function buildPressConference(player, tourn, won, isTitleWin, opponent, o
   });
 
   // Helper: pick 1 random item from an array
-  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const pick = arr => arr[Math.floor(random() * arr.length)];
 
   const pickedQuestions = [];
 
@@ -310,16 +311,16 @@ export function buildPressConference(player, tourn, won, isTitleWin, opponent, o
       const effects = { happiness: 0, popularity: 0, image: 0 };
       // Humble/respectful keywords → image+
       if (/(chapeau|respect|humble|fierté|merci|admir|félicitations|honnêtement)/i.test(lbl)) {
-        effects.image += 1 + Math.floor(Math.random() * 2);
-        effects.popularity += Math.floor(Math.random() * 2);
+        effects.image += 1 + Math.floor(random() * 2);
+        effects.popularity += Math.floor(random() * 2);
       }
       // Confidence / driven keywords → popularity+, image variable
       if (/(le meilleur|champion|obsession|écraser|domin|gagner|titre|grand chelem)/i.test(lbl)) {
-        effects.popularity += 1 + Math.floor(Math.random() * 2);
+        effects.popularity += 1 + Math.floor(random() * 2);
       }
       // Cocky / dismissive → image-
       if (/(point|pas grand-chose|c'est aussi simple|rien à se|n'imaginais pas|tout simplement)/i.test(lbl)) {
-        effects.image += Math.floor(Math.random() * 2) - 1;
+        effects.image += Math.floor(random() * 2) - 1;
       }
       // Vulnerable / emotional → happiness change
       if (/(touche|dur|difficile|humain|essentiel|sans (eux|elle))/i.test(lbl)) {

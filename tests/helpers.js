@@ -3,9 +3,12 @@ import { vi } from "vitest";
 import { setCircuit } from "../src/engine/circuit.js";
 import { generateAtpDatabase } from "../src/engine/database.js";
 import { simulateAtpWeek } from "../src/engine/simulation.js";
+import { setSeed } from "../src/engine/rng.js";
 
 // Math.random déterministe (mulberry32) : les tests donnent toujours le même résultat.
+// Le moteur tire son hasard dans engine/rng.js : on le graine aussi.
 export function seedRandom(seed = 12345) {
+  setSeed(seed);
   let a = seed >>> 0;
   vi.spyOn(Math, "random").mockImplementation(() => {
     a = (a + 0x6d2b79f5) >>> 0;
