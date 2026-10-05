@@ -54,7 +54,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
           <path d="M3 0 L21 0" stroke="#ffffff" strokeWidth="5" />
         </svg>
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#161616", color: "#ffffff", padding: "7px 10px 8px" }}>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.2, color: "#ffd200", textTransform: "uppercase" }}>{story.kicker}</div>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.2, color: "#d6ef3c", textTransform: "uppercase" }}>{story.kicker}</div>
           <h1 className="tm-display" style={{ margin: 0, fontSize: 23, lineHeight: 1, overflowWrap: "anywhere" }}>{story.title}</h1>
         </div>
       </article>

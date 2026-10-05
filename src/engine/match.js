@@ -1,5 +1,6 @@
 // Moteur de match : points, jeux, tie-breaks, momentum.
 import { random } from "./rng.js";
+import { doubleFaultRate, tacticsBonus, tacticsEnergy, tacticsShape } from "./tactics.js";
 
 // ─── INTERACTIVE MATCH ENGINE ─────────────────────────────────────────────────
 // No more pre-scripted matches. Each game is computed live based on current state.
@@ -88,10 +89,10 @@ export const SURFACE_ACE_FACTOR = { "Gazon": 1.5, "Indoor": 1.25, "Dur": 1, "Ter
 export const SURFACE_RALLY_FACTOR = { "Gazon": 0.6, "Indoor": 0.8, "Dur": 1, "Terre battue": 1.5 };
 // shape = { serve: note de service du serveur, surface }
 export function rollPointKind(winnerServing, rng, shape = {}) {
-  const longF = SURFACE_RALLY_FACTOR[shape.surface] ?? 1;
+  const longF = (SURFACE_RALLY_FACTOR[shape.surface] ?? 1) * (shape.longMul ?? 1);
   const r = rng();
   if (winnerServing) {
-    const aceF = SURFACE_ACE_FACTOR[shape.surface] ?? 1;
+    const aceF = (SURFACE_ACE_FACTOR[shape.surface] ?? 1) * (shape.aceMul ?? 1);
     const ace = Math.max(0.03, Math.min(0.35, 0.13 * aceF * (1 + ((shape.serve ?? 70) - 70) / 40)));
     const long = 0.10 * longF;
     const k = (1 - ace - long) / 0.74; // winner / error / rally : 26 / 26 / 22
@@ -112,7 +113,8 @@ export function rollPointKind(winnerServing, rng, shape = {}) {
 // Profil du point pour rollPointKind, selon qui sert.
 export function pointShape(ctx, playerServes) {
   if (!ctx) return {};
-  return { serve: (playerServes ? ctx.playerStats : ctx.oppStats)?.serve, surface: ctx.surface };
+  const ts = ctx.tactics ? tacticsShape(ctx.tactics) : { aceMul: 1, longMul: 1 };
+  return { serve: (playerServes ? ctx.playerStats : ctx.oppStats)?.serve, surface: ctx.surface, aceMul: playerServes ? ts.aceMul : 1, longMul: ts.longMul };
 }
 
 // Build a sequence of points for ONE game given who eventually wins it.
@@ -177,12 +179,18 @@ export function buildTiebreakPoints(seq, firstServerIsPlayer, ctx) {
 // Compute single game result given current state.
 // Returns { playerWon, points } — `points` is the point-by-point sequence.
 // Probabilité que le JOUEUR gagne le point, selon qui sert.
+// Le plan de jeu du joueur (ctx.tactics, voir engine/tactics.js) s'ajoute à
+// son bonus ; au service, les doubles fautes du réglage « 1re balle » ôtent
+// une part des points.
 export function playerPointProb(ctx, playerServes) {
-  const pB = situationalBonus(ctx.playerEnergy, ctx.playerMomentum, ctx.playerForm);
+  const tb = ctx.tactics ? tacticsBonus(ctx.tactics, ctx.playerStats, ctx.oppStats, ctx.surface, playerServes) : 0;
+  const pB = situationalBonus(ctx.playerEnergy, ctx.playerMomentum, ctx.playerForm) + tb;
   const oB = situationalBonus(ctx.oppEnergy, ctx.oppMomentum, ctx.oppForm);
-  return playerServes
-    ? servePointProb(ctx.playerStats, ctx.oppStats, ctx.surface, pB, oB)
-    : 1 - servePointProb(ctx.oppStats, ctx.playerStats, ctx.surface, oB, pB);
+  if (playerServes) {
+    const df = ctx.tactics ? doubleFaultRate(ctx.tactics, ctx.playerEnergy) : 0;
+    return servePointProb(ctx.playerStats, ctx.oppStats, ctx.surface, pB, oB) * (1 - df);
+  }
+  return 1 - servePointProb(ctx.oppStats, ctx.playerStats, ctx.surface, oB, pB);
 }
 
 // ctx = { playerStats, oppStats, surface, playerEnergy, oppEnergy,
@@ -300,8 +308,9 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats) {
   // Energy drain per game - reduced by player's stamina stat
   // Base 0.4-1.2 energy per game, reduced if high stamina
   const staminaFactor = Math.max(0.4, 1 - (playerStats.stamina - 50) / 80); // stat 50 = 1.0, stat 90 = 0.5
-  m.playerEnergy = Math.max(10, m.playerEnergy - (0.4 + random() * 0.8) * staminaFactor);
-  m.oppEnergy = Math.max(10, m.oppEnergy - (0.4 + random() * 0.8) * Math.max(0.4, 1 - (oppStats.stamina - 50) / 80));
+  const tEnergy = m.tactics ? tacticsEnergy(m.tactics) : { self: 1, opp: 1 };
+  m.playerEnergy = Math.max(10, m.playerEnergy - (0.4 + random() * 0.8) * staminaFactor * tEnergy.self);
+  m.oppEnergy = Math.max(10, m.oppEnergy - (0.4 + random() * 0.8) * Math.max(0.4, 1 - (oppStats.stamina - 50) / 80) * tEnergy.opp);
 
   // Apply persistent momentum decay
   if (m.persistMomentumGames > 0) {
@@ -392,6 +401,7 @@ export function buildMatchCtx(m, playerStats, oppStats) {
     playerEnergy: m.playerEnergy, oppEnergy: m.oppEnergy,
     playerMomentum: m.playerMomentum || 0, oppMomentum: m.oppMomentum || 0,
     playerForm: m.playerForm || 0, oppForm: m.oppForm || 0,
+    tactics: m.tactics || null,
   };
 }
 

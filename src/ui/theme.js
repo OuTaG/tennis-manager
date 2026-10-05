@@ -2,10 +2,12 @@
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 // ─── DESIGN SYSTEM TOKENS ─────────────────────────────────────────────────────
-// Direction « gazette BD » : une BD imprimée sur papier journal. Encre
-// épaisse, trame de points partout, couleurs d'impression (cyan, magenta,
-// jaune), cases cernées de noir avec une ombre décalée, lettrage à la main
-// pour les bulles et les récitatifs.
+// Direction « gazette BD », palette « Wimbledon pop » : une BD imprimée sur
+// papier craie. Encre épaisse, trame de points partout, vert gazon, violet
+// club, jaune balle fluo et lilas ; cases cernées de noir avec une ombre
+// décalée, lettrage à la main pour les bulles et les récitatifs.
+// (Les noms de jetons cyan/magenta/gold sont historiques : cyan = gazon,
+// magenta = violet club, gold = jaune balle.)
 export const T = {
   // Backgrounds (deepest to highest) — resolved via CSS variables so the whole
   // app can switch between dark and light themes by toggling a root class.
@@ -44,7 +46,7 @@ export const T = {
   body:    "'Archivo', system-ui, -apple-system, sans-serif",
   serif:   "'Archivo', system-ui, sans-serif",
   hand:    "'Kalam', 'Comic Neue', cursive",
-  cyan: "var(--tm-cyan)", magenta: "var(--tm-magenta)", dot: "var(--tm-dot)",
+  cyan: "var(--tm-cyan)", magenta: "var(--tm-magenta)", lilac: "var(--tm-lilac)", dot: "var(--tm-dot)",
   mono:    "'IBM Plex Mono', ui-monospace, monospace",
   ink: "var(--tm-ink)", paper: "var(--tm-paper)", gold: "var(--tm-gold)",
   blue: "var(--tm-blue)", blueSub: "var(--tm-blueSub)", blueBrd: "var(--tm-blueBrd)",
@@ -68,47 +70,48 @@ export const T = {
 
 // Palette values per theme. The keys map to the --tm-* CSS variables above.
 export const THEME_PALETTES = {
-  // « Édition du soir » : papier sombre, encre claire, mêmes encres d'impression.
+  // « Session de nuit » : fond nuit, encre craie, mêmes couleurs de club.
   dark: {
-    bg0: "#1a1916", bg1: "#24221e", bg2: "#2d2a25", bg3: "#38342d", bg4: "#47423a",
-    brd: "rgba(242,234,211,0.28)", brd2: "rgba(242,234,211,0.55)", brd3: "rgba(242,234,211,0.85)",
-    fg: "#f2ead3", fg2: "#e2d9c0", fg3: "#c4ba9f", fg4: "#a59b81", fg5: "#867d66",
-    green: "#3cc173", greenHi: "#55d088", greenDk: "#258a4e",
-    greenSub: "rgba(60,193,115,0.16)", greenBrd: "rgba(60,193,115,0.50)",
-    ball: "#ffd200",
-    red: "#ff5c8a", redSub: "rgba(255,92,138,0.16)", redBrd: "rgba(255,92,138,0.50)",
-    amber: "#ffc21a", amberSub: "rgba(255,194,26,0.16)", amberBrd: "rgba(255,194,26,0.50)",
-    blue: "#38b6ee", blueSub: "rgba(56,182,238,0.16)", blueBrd: "rgba(56,182,238,0.50)",
-    clay: "#ff7a3d",
-    onAccent: "#161616",
-    ink: "#f2ead3", paper: "#1a1916", gold: "#ffd200",
-    cyan: "#38b6ee", magenta: "#ff4f86", dot: "rgba(242,234,211,0.09)",
+    bg0: "#121512", bg1: "#1b1f1b", bg2: "#232823", bg3: "#2c322c", bg4: "#3a413a",
+    brd: "rgba(244,242,233,0.28)", brd2: "rgba(244,242,233,0.55)", brd3: "rgba(244,242,233,0.85)",
+    fg: "#f4f2e9", fg2: "#e2dfd2", fg3: "#c3bfae", fg4: "#a39f8e", fg5: "#84806f",
+    green: "#4cc47c", greenHi: "#64d390", greenDk: "#2c8a52",
+    greenSub: "rgba(76,196,124,0.16)", greenBrd: "rgba(76,196,124,0.50)",
+    ball: "#d6ef3c",
+    red: "#ff6b5e", redSub: "rgba(255,107,94,0.16)", redBrd: "rgba(255,107,94,0.50)",
+    amber: "#f0c43a", amberSub: "rgba(240,196,58,0.16)", amberBrd: "rgba(240,196,58,0.50)",
+    blue: "#b79cf0", blueSub: "rgba(183,156,240,0.16)", blueBrd: "rgba(183,156,240,0.50)",
+    clay: "#ff8a52",
+    onAccent: "#121512",
+    ink: "#f4f2e9", paper: "#121512", gold: "#d6ef3c",
+    cyan: "#2a9a5a", magenta: "#8a5fd0", lilac: "#c9b6ea", dot: "rgba(244,242,233,0.09)",
     shadow: "rgba(0,0,0,0.45)",
-    overlay: "rgba(10,10,9,0.74)",
+    overlay: "rgba(8,10,8,0.74)",
   },
-  // « Papier » : papier journal, encre noire, cyan, magenta, jaune.
+  // « Wimbledon pop » : papier craie, encre, vert gazon, violet club,
+  // jaune balle, lilas.
   light: {
-    bg0: "#f2ead3", bg1: "#fffdf6", bg2: "#ebe1c6", bg3: "#e0d5b6", bg4: "#cfc29e",
-    brd: "rgba(22,22,22,0.30)", brd2: "rgba(22,22,22,0.62)", brd3: "#161616",
-    fg: "#161616", fg2: "#262420", fg3: "#3f3b33", fg4: "#5b564b", fg5: "#7a7466",
-    green: "#16804a", greenHi: "#1c9657", greenDk: "#0e5c34",
-    greenSub: "rgba(22,128,74,0.12)", greenBrd: "rgba(22,128,74,0.50)",
-    ball: "#8a6a00",
-    red: "#c8204f", redSub: "rgba(200,32,79,0.10)", redBrd: "rgba(200,32,79,0.45)",
-    amber: "#9c5d00", amberSub: "rgba(156,93,0,0.12)", amberBrd: "rgba(156,93,0,0.45)",
-    blue: "#0a6f9f", blueSub: "rgba(10,111,159,0.10)", blueBrd: "rgba(10,111,159,0.45)",
-    clay: "#d1491c",
+    bg0: "#f4f2e9", bg1: "#ffffff", bg2: "#ebe8da", bg3: "#dedac8", bg4: "#cbc6af",
+    brd: "rgba(20,20,20,0.30)", brd2: "rgba(20,20,20,0.62)", brd3: "#141414",
+    fg: "#141414", fg2: "#24241f", fg3: "#3c3c34", fg4: "#5a5a50", fg5: "#7a7a6e",
+    green: "#1f7a45", greenHi: "#258f51", greenDk: "#135232",
+    greenSub: "rgba(31,122,69,0.12)", greenBrd: "rgba(31,122,69,0.50)",
+    ball: "#6e7d00",
+    red: "#c4302b", redSub: "rgba(196,48,43,0.10)", redBrd: "rgba(196,48,43,0.45)",
+    amber: "#946200", amberSub: "rgba(148,98,0,0.12)", amberBrd: "rgba(148,98,0,0.45)",
+    blue: "#5b2d8e", blueSub: "rgba(91,45,142,0.10)", blueBrd: "rgba(91,45,142,0.45)",
+    clay: "#c4572b",
     onAccent: "#ffffff",
-    ink: "#161616", paper: "#f2ead3", gold: "#ffd200",
-    cyan: "#0f9bd7", magenta: "#e6336f", dot: "rgba(22,22,22,0.13)",
-    shadow: "rgba(22,22,22,0.20)",
-    overlay: "rgba(22,22,22,0.55)",
+    ink: "#141414", paper: "#f4f2e9", gold: "#d6ef3c",
+    cyan: "#1f7a45", magenta: "#5b2d8e", lilac: "#c9b6ea", dot: "rgba(20,20,20,0.11)",
+    shadow: "rgba(20,20,20,0.20)",
+    overlay: "rgba(20,20,20,0.55)",
   },
 };
 
 // Circuit WTA : le vert d'accent devient rose (l'ocre et le reste ne bougent pas).
 export const WTA_ACCENT = {
-  light: { green: "#b0185a", greenHi: "#c42468", greenDk: "#7d0f3f", greenSub: "rgba(176,24,90,0.10)", greenBrd: "rgba(176,24,90,0.45)" },
+  light: { green: "#a3267c", greenHi: "#b8318d", greenDk: "#731a57", greenSub: "rgba(163,38,124,0.10)", greenBrd: "rgba(163,38,124,0.45)" },
   dark:  { green: "#ff7fb0", greenHi: "#ff9cc2", greenDk: "#c2557f", greenSub: "rgba(255,127,176,0.16)", greenBrd: "rgba(255,127,176,0.50)" },
 };
 
@@ -201,9 +204,10 @@ if (typeof document !== "undefined" && !document.getElementById("tm-global-style
     /* Papier journal tramé : sur tout l'écran, bandeaux compris */
     .tm-paper { background-color: ${T.bg0}; background-image: radial-gradient(${T.dot} 1.1px, transparent 1.3px); background-size: 6px 6px; }
     /* Aplats tramés d'impression */
-    .tm-halftone-cyan { background-color: ${T.cyan}; background-image: radial-gradient(rgba(255,255,255,0.28) 1.6px, transparent 1.8px); background-size: 7px 7px; }
-    .tm-halftone-magenta { background-color: ${T.magenta}; background-image: radial-gradient(rgba(255,210,0,0.35) 1.6px, transparent 1.8px); background-size: 7px 7px; }
-    .tm-halftone-yellow { background-color: ${T.gold}; background-image: radial-gradient(rgba(230,51,111,0.22) 1.4px, transparent 1.6px); background-size: 6px 6px; color: #161616; }
+    .tm-halftone-cyan { background-color: ${T.cyan}; background-image: radial-gradient(rgba(214,239,60,0.30) 1.6px, transparent 1.8px); background-size: 7px 7px; }
+    .tm-halftone-magenta { background-color: ${T.magenta}; background-image: radial-gradient(rgba(201,182,234,0.40) 1.6px, transparent 1.8px); background-size: 7px 7px; }
+    .tm-halftone-yellow { background-color: ${T.gold}; background-image: radial-gradient(rgba(31,122,69,0.22) 1.4px, transparent 1.6px); background-size: 6px 6px; color: #141414; }
+    .tm-halftone-lilac { background-color: ${T.lilac}; background-image: radial-gradient(rgba(91,45,142,0.22) 1.4px, transparent 1.6px); background-size: 6px 6px; color: #141414; }
     /* Case de BD : cernée d'encre, ombre décalée */
     .tm-panel { border: 2.5px solid ${T.ink}; box-shadow: 4px 4px 0 ${T.ink}; }
     /* Rubrique : titre en capitales posé sur un trait d'encre */

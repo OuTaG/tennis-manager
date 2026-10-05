@@ -52,6 +52,9 @@ import { TravelScreen } from "./ui/screens/Travel.jsx";
 import { styles } from "./ui/styles.js";
 import { T, applyTheme } from "./ui/theme.js";
 import { getRngState, newSeed, random, setRngState, setSeed } from "./engine/rng.js";
+import { TACTIC_DEFS, coachAdvice, normalizeTactics } from "./engine/tactics.js";
+import { TRAINING_CARDS, ZONES, miniGameEffect, pickMatchMiniGame, revealMystery } from "./engine/minigames.js";
+import { MatchMiniGame, TrainingCards } from "./ui/overlays/MiniGames.jsx";
 import { DIFFICULTY_LEVELS, GAME_OPTIONS, formatMultiplier, hasGameOption, injuryRiskMul, scoreMultiplier } from "./engine/difficulty.js";
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
@@ -71,8 +74,9 @@ export default function TennisManager() {
   const [avatarInput, setAvatarInput] = useState({
     skin: AVATAR_OPTIONS.skin[1],
     hair: AVATAR_OPTIONS.hair[0],
-    hairStyle: "short",
-    eyes: AVATAR_OPTIONS.eyes[0],
+    hairStyle: "court",
+    accessory: "bandeau",
+    accessoryColor: AVATAR_OPTIONS.accessoryColor[0],
     shirt: AVATAR_OPTIONS.shirt[0],
   });
   const [matchState, setMatchState] = useState(null);
@@ -87,6 +91,8 @@ export default function TennisManager() {
   const playGameRef = useRef(null);
   // Pause du match : les jeux ne s'enchaînent plus tant qu'elle est active.
   const [matchPaused, setMatchPaused] = useState(false);
+  const [tacticsOpen, setTacticsOpen] = useState(false);
+  const [cardPick, setCardPick] = useState(null); // module d'entraînement en attente du choix de fiche
   const matchPausedRef = useRef(false);
   // Suite du jeu interrompu par la pause (reprise au point près).
   const pausedResumeRef = useRef(null);
@@ -431,7 +437,7 @@ export default function TennisManager() {
     setSeed(newSeed());
     setCircuit(form.circuit);
     const female = form.circuit === "wta";
-    const avatar = { ...avatarInput, female, hairStyle: female ? "ponytail" : "short" };
+    const avatar = { ...avatarInput, female, hairStyle: female ? "queue" : "court" };
     const p = createInitialPlayer(form.name, def.style, def.city, form.nationality, avatar, 3);
     p.circuit = form.circuit;
     let db = generateAtpDatabase();
@@ -1069,7 +1075,23 @@ export default function TennisManager() {
   };
 
   // ── TRAINING ──────────────────────────────────────────────────────────────
+  // Énergie de base d'une séance : l'endurance réduit le coût, certains
+  // coachs intensifs ajoutent un surcoût.
+  const baseTrainingEnergy = (mod) => Math.round(mod.energyCost * Math.max(0.6, 1 - (player.stats.stamina - 50) / 100)) + staffTrainEnergyExtra(player.staff);
+  // Choix de la fiche d'entraînement (mini-jeu), puis la séance.
   const doTraining = (mod) => {
+    const absNow = (player.year || 0) * 52 + (player.week || 0);
+    if (player.restUntilAbsWeek && absNow < player.restUntilAbsWeek) {
+      const left = player.restUntilAbsWeek - absNow;
+      notify("Repos préventif : pas d'entraînement pendant encore " + left + " semaine" + (left > 1 ? "s" : ""), "warn");
+      return;
+    }
+    if (player.money < mod.cost) { notify("Pas assez d'argent", "warn"); return; }
+    if (player.energy < baseTrainingEnergy(mod) + 3) { notify("Énergie insuffisante", "warn"); return; }
+    setCardPick(mod);
+  };
+  const runTraining = (mod, cardId = "commune") => {
+    const card = TRAINING_CARDS.find(c => c.id === cardId) || TRAINING_CARDS[0];
     {
       const absNow = (player.year || 0) * 52 + (player.week || 0);
       if (player.restUntilAbsWeek && absNow < player.restUntilAbsWeek) {
@@ -1084,8 +1106,11 @@ export default function TennisManager() {
     // Staff malus: coachs intensifs (Carlos Vives, etc.) ajoutent un surcoût d'énergie
     // (trainEnergyCost is stored as a malus, so sumStaffEffect returns it negative.)
     const extraEnergyFromStaff = staffTrainEnergyExtra(player.staff);
-    const actualEnergyCost = Math.round(mod.energyCost * staminaReduction) + extraEnergyFromStaff;
+    const actualEnergyCost = Math.round((Math.round(mod.energyCost * staminaReduction) + extraEnergyFromStaff) * card.energyMul);
     if (player.energy < actualEnergyCost + 3) { notify("Énergie insuffisante", "warn"); return; }
+    // Fiche mystère : révélée maintenant (déclic, séance normale ou petite gêne).
+    const mystery = card.gainMul === null ? revealMystery() : null;
+    const cardGainMul = mystery ? mystery.gainMul : card.gainMul;
 
     // Staff bonus: somme des trainGain de TOUS les staff applicables (coachs en pratique).
     // Net = trainGain bonuses - trainGain malus (sumStaffEffect le gère).
@@ -1109,7 +1134,7 @@ export default function TennisManager() {
     const expectedGain = mod.baseGain * staffBonus * energyMultiplier * diminishMul * ageMul * happinessTrainMul * diffF.trainMul * techBoostMul * challengeTrainMul;
     // Random factor 0.75-1.25 around expected (tighter than before)
     const variance = 0.75 + random() * 0.5;
-    const gain = parseFloat((expectedGain * variance).toFixed(2));
+    const gain = parseFloat((expectedGain * variance * cardGainMul).toFixed(2));
     const newStats = { ...player.stats };
     newStats[mod.stat] = Math.min(99, newStats[mod.stat] + gain);
 
@@ -1117,6 +1142,9 @@ export default function TennisManager() {
     // The physio/staff injuryProtect reduces (but never removes) the risk.
     let aggravated = false;
     let updatedInjury = player.injury;
+    if (mystery && mystery.outcome === "gene" && !player.injury) {
+      updatedInjury = { severity: "minor", label: "Petite gêne musculaire", emoji: "", weeksRemaining: 1, statPenalty: 0.05, canPlay: true };
+    }
     if (player.injury && player.injury.weeksRemaining > 0) {
       const protect = Math.max(0, Math.min(0.5, sumStaffEffect(player.staff, "injuryProtect")));
       const aggravationChance = 0.45 * (1 - protect); // ~45%, lowered by physio
@@ -1144,8 +1172,10 @@ export default function TennisManager() {
       totalSpent: (p.totalSpent || 0) + mod.cost,
       trainCount: (p.trainCount || 0) + 1,
       energy: Math.max(0, p.energy - actualEnergyCost),
+      happiness: clampLife((p.happiness ?? 70) + card.happinessDelta),
       injury: updatedInjury,
     }));
+    if (mystery) notify(mystery.text, mystery.outcome === "gene" ? "warn" : "info");
     if (aggravated) {
       notify("Vous avez aggravé votre blessure ! Repos prolongé (" + updatedInjury.label + ").", "warn");
     } else if (player.injury && player.injury.weeksRemaining > 0) {
@@ -1491,6 +1521,7 @@ export default function TennisManager() {
 
     const matchData = createInitialMatchData(isGS, p.energy, t.surface);
     matchData.tb10Decider = t.tier === "GrandSlam";
+    matchData.tactics = normalizeTactics(p.tactics);
 
     // ── Match-fixing scheduling ────────────────────────────────────────────
     // Roll once per match for a 4% chance to receive a fix offer, only when
@@ -1644,7 +1675,10 @@ export default function TennisManager() {
     } else {
       const shouldDilemma = !m.matchComplete && !result.setComplete && totalGamesPlayed >= 3 && random() < 0.18 && !ms.pendingDilemma;
       if (shouldDilemma) {
-        const candidate = pickRandomDilemma();
+        // Mini-jeu de choix à la place d'un dilemme, un peu moins d'une fois sur deux.
+        const candidate = random() < 0.45
+          ? { id: "minigame", minigame: pickMatchMiniGame(m.nextServerIsPlayer !== false), title: "Mini-jeu", desc: "" }
+          : pickRandomDilemma();
         if (!candidate.requiresCoach || player.staff.some(s => s.role === "Coach")) {
           // The coach's scouting hint only shows up about 30% of the time
           // (decided once, when the dilemma appears).
@@ -1781,6 +1815,23 @@ export default function TennisManager() {
       autoTimerRef.current = null;
       if (!matchPausedRef.current && playGameRef.current) playGameRef.current();
     }, 2600 * speedFactor());
+  };
+  // Fin d'un mini-jeu de match : l'élan bouge, le résultat entre dans le fil.
+  const resolveMiniGame = (kind, win, text, zone) => {
+    setMatchState(ms => {
+      if (!ms) return ms;
+      const m = { ...ms.matchData };
+      m.playerMomentum = clampMomentum((m.playerMomentum || 0) + miniGameEffect(win).momentumDelta);
+      if (zone !== null && zone !== undefined) m.serveZones = [...(m.serveZones || []), zone].slice(-8);
+      const title = kind === "serve_duel" ? "Duel au service" : kind === "return_duel" ? "Duel au retour" : "Smash";
+      return {
+        ...ms,
+        matchData: m,
+        pendingDilemma: null,
+        eventLog: [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text }, ...(ms.eventLog || [])].slice(0, 80),
+      };
+    });
+    resumeAfterDilemma();
   };
   const resolveDilemma = (option, dilemma) => {
     // ── Special handling: match-fixing proposal ──
@@ -2619,7 +2670,7 @@ export default function TennisManager() {
           <div style={{ position: "relative", zIndex: 2, width: "100%", textAlign: "center" }}>
             {/* Balle de tennis dessinée à l'encre */}
             <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true" style={{ display: "block", margin: "4px auto 14px", transform: "rotate(-12deg)" }}>
-              <circle cx="36" cy="36" r="31" fill="#e8f23a" stroke="#161616" strokeWidth="4" />
+              <circle cx="36" cy="36" r="31" fill="#d6ef3c" stroke="#161616" strokeWidth="4" />
               <path d="M12 16 Q30 36 12 58 M60 16 Q42 36 60 58" fill="none" stroke="#161616" strokeWidth="3.5" strokeLinecap="round" />
               <path d="M22 10 Q28 8 32 9" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
             </svg>
@@ -2661,7 +2712,7 @@ export default function TennisManager() {
                     slotRef.current = i;
                     setCreateStep(-1);
                     setCircuitInput("atp");
-                    setAvatarInput(a => a.female ? { ...a, female: false, hairStyle: "short" } : a);
+                    setAvatarInput(a => a.female ? { ...a, female: false, hairStyle: "court" } : a);
                     setScreen("create");
                   }}
                 >
@@ -2708,8 +2759,8 @@ export default function TennisManager() {
         setNameInput("");
         // Avatar féminin pour la WTA, masculin pour l'ATP.
         setAvatarInput(a => id === "wta"
-          ? (a.female ? a : { ...a, female: true, hairStyle: "ponytail" })
-          : (a.female ? { ...a, female: false, hairStyle: "short" } : a));
+          ? (a.female ? a : { ...a, female: true, hairStyle: "queue" })
+          : (a.female ? { ...a, female: false, hairStyle: "court" } : a));
         setCreateStep(0);
       };
       return (
@@ -2721,8 +2772,8 @@ export default function TennisManager() {
                 Choisissez le circuit de votre carrière.
               </div>
               {[
-                { id: "atp", label: "Circuit masculin", sub: "Carrière d'un joueur", accent: "#4d7a3a", sample: { female: false, hairStyle: "short", shirt: "#4d7a3a" } },
-                { id: "wta", label: "Circuit féminin", sub: "Carrière d'une joueuse", accent: "#b23f73", sample: { female: true, hairStyle: "ponytail", shirt: "#b23f73" } },
+                { id: "atp", label: "Circuit masculin", sub: "Carrière d'un joueur", accent: "#1f7a45", sample: { female: false, hairStyle: "court", accessory: "bandeau", shirt: "#1f7a45" } },
+                { id: "wta", label: "Circuit féminin", sub: "Carrière d'une joueuse", accent: "#5b2d8e", sample: { female: true, hairStyle: "queue", accessory: "visiere", shirt: "#5b2d8e" } },
               ].map(c => {
                 return (
                   <button key={c.id} data-nofem="" onClick={() => pick(c.id)} style={{
@@ -3264,6 +3315,7 @@ export default function TennisManager() {
         const nextBo5 = isBestOfFiveMatch(ms.format, ms.tournament, pnm.nextMode, pnm.nextRoundIdx);
         const matchData = createInitialMatchData(nextBo5, pnm.recoveredEnergy, ms.tournament?.surface);
         matchData.tb10Decider = ms.tournament?.tier === "GrandSlam";
+        matchData.tactics = normalizeTactics(ms.matchData?.tactics || player.tactics);
         matchData.oppEnergy = pnm.nextOppEnergy;
         setMatchState(prev => ({
           ...prev,
@@ -3868,7 +3920,7 @@ export default function TennisManager() {
                     {/* Tennis-ball glyph in front of the current server */}
                     <span style={{
                       width: 14, height: 14, borderRadius: 7, flexShrink: 0,
-                      background: isServing ? "#e8f23a" : "transparent",
+                      background: isServing ? "#d6ef3c" : "transparent",
                       border: isServing ? "2px solid " + T.ink : "1px dashed " + T.brd2,
                       boxShadow: "none",
                       position: "relative",
@@ -3947,7 +3999,19 @@ export default function TennisManager() {
             </div>
 
             {/* Dilemma overlay */}
-            {ms.pendingDilemma && (
+            {ms.pendingDilemma && ms.pendingDilemma.minigame && (
+              <div className="tm-paper" style={{ position: "fixed", inset: 0, zIndex: 250, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+                <MatchMiniGame
+                  kind={ms.pendingDilemma.minigame}
+                  oppName={ms.opponent.name}
+                  oppStats={ms.opponent.stats}
+                  myStats={player.stats}
+                  history={m.serveZones || []}
+                  onDone={(win, text, zone) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone)}
+                />
+              </div>
+            )}
+            {ms.pendingDilemma && !ms.pendingDilemma.minigame && (
               <div style={styles.dilemmaOverlay}>
                 <div style={styles.dilemmaCard}>
                   <div className="tm-eyebrow" style={{ color: ms.pendingDilemma.isMatchFix ? T.red : T.ball, marginBottom: 6 }}>{ms.pendingDilemma.isMatchFix ? "Proposition illégale" : "Décision · Choix tactique"}</div>
@@ -4049,6 +4113,75 @@ export default function TennisManager() {
                       </span>
                     </div>
                   </div>
+                  {/* Pause tactique : met le match en pause et ouvre le plan de jeu */}
+                  <button
+                    onClick={() => {
+                      if (running) {
+                        setPausedBoth(true);
+                        if (autoTimerRef.current) { clearTimeout(autoTimerRef.current); autoTimerRef.current = null; }
+                      }
+                      setTacticsOpen(true);
+                    }}
+                    style={{
+                      minHeight: 52, padding: "0 14px", flexShrink: 0, cursor: "pointer",
+                      border: "3px solid " + T.ink, background: T.gold, color: "#141414",
+                      boxShadow: "4px 4px 0 " + T.ink, fontFamily: T.display, fontSize: 15, textTransform: "uppercase",
+                    }}
+                  >Tactique</button>
+                  {tacticsOpen && (() => {
+                    const tac = normalizeTactics(m.tactics);
+                    const advice = coachAdvice(player.stats, ms.opponent.stats, tourn.surface);
+                    const setTac = (key, value) => {
+                      const next = { ...tac, [key]: value };
+                      setMatchState(prev => prev ? ({ ...prev, matchData: { ...prev.matchData, tactics: next } }) : prev);
+                      setPlayer(p => ({ ...p, tactics: next }));
+                    };
+                    return (
+                      <div role="dialog" aria-label="Plan de jeu" className="tm-paper" style={{
+                        position: "fixed", inset: 0, zIndex: 250, overflowY: "auto",
+                        padding: "16px 16px calc(16px + env(safe-area-inset-bottom, 0px))",
+                        display: "flex", flexDirection: "column", gap: 10,
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "3px solid " + T.ink, paddingBottom: 4 }}>
+                          <span className="tm-display" style={{ fontSize: 22 }}>Plan de jeu</span>
+                          <span className="tm-eyebrow" style={{ color: T.fg }}>Contre {ms.opponent.name}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <div className="tm-lettering" style={{ flex: 1, background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, borderRadius: "50% / 40%", padding: "9px 14px", fontSize: 15, textAlign: "center" }}>« {advice.text} »</div>
+                          <div className="tm-eyebrow" style={{ color: T.fg, textAlign: "right", paddingTop: 8 }}>Votre<br />coach</div>
+                        </div>
+                        {TACTIC_DEFS.map(d => (
+                          <div key={d.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, fontWeight: 800 }}>
+                              <span style={{ textTransform: "uppercase", letterSpacing: 0.5 }}>{d.label}</span>
+                              <span style={{ color: T.blue, fontWeight: 700, textAlign: "right" }}>{d.hints[tac[d.key]]}</span>
+                            </div>
+                            <div role="radiogroup" aria-label={d.label} style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", border: "2.5px solid " + T.ink, background: T.bg1 }}>
+                              {d.options.map((label, i) => {
+                                const on = tac[d.key] === i;
+                                const suggested = advice.key === d.key && advice.value === i;
+                                return (
+                                  <button key={i} role="radio" aria-checked={on} onClick={() => setTac(d.key, i)} style={{
+                                    minHeight: 42, border: 0, borderRight: i < 2 ? "2px solid " + T.ink : 0, cursor: "pointer",
+                                    background: on ? T.gold : "transparent", color: on ? "#141414" : T.fg,
+                                    fontFamily: T.body, fontWeight: 800, fontSize: 11.5, position: "relative",
+                                  }}>
+                                    {label}
+                                    {suggested && !on && <span style={{ position: "absolute", top: 2, right: 3, fontSize: 9, color: T.blue }}>★</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                        <div style={{ fontSize: 11.5, color: T.fg3, fontWeight: 600 }}>★ = conseil du coach. Les effets dépendent de votre profil, de celui de l'adversaire et de la surface.</div>
+                        <button
+                          style={{ ...styles.btnPrimary, marginTop: "auto", background: T.green }}
+                          onClick={() => { setTacticsOpen(false); if (!running) togglePause(); }}
+                        >Reprendre le match ▶</button>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}
@@ -4085,6 +4218,15 @@ export default function TennisManager() {
           from={flightAnim.from}
           to={flightAnim.to}
           onDone={() => setFlightAnim(null)}
+        />
+      )}
+      {cardPick && (
+        <TrainingCards
+          mod={cardPick}
+          costs={Object.fromEntries(TRAINING_CARDS.map(c => [c.id, Math.round(baseTrainingEnergy(cardPick) * c.energyMul)]))}
+          affordable={Object.fromEntries(TRAINING_CARDS.map(c => [c.id, player.energy >= Math.round(baseTrainingEnergy(cardPick) * c.energyMul) + 3]))}
+          onPick={(id) => { const mod = cardPick; setCardPick(null); runTraining(mod, id); }}
+          onClose={() => setCardPick(null)}
         />
       )}
       {trainAnim && (

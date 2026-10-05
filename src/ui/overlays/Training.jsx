@@ -150,7 +150,7 @@ function Panel({ visible, className, caption, height, children }) {
       {visible && caption && (
         <div className="tm-lettering" style={{
           position: "absolute", left: 0, top: 0, maxWidth: "88%",
-          background: "#ffd200", color: INK, borderRight: "2.5px solid " + INK, borderBottom: "2.5px solid " + INK,
+          background: "#d6ef3c", color: INK, borderRight: "2.5px solid " + INK, borderBottom: "2.5px solid " + INK,
           padding: "2px 7px", fontSize: 13.5, zIndex: 3,
         }}>{caption}</div>
       )}
@@ -172,7 +172,7 @@ function Bubble({ text, k }) {
 }
 
 // Onomatopée de BD : lettres épaisses, contour d'encre, légère rotation.
-function Sfx({ x, y, text, size = 26, rot = -10, color = "#ffd200" }) {
+function Sfx({ x, y, text, size = 26, rot = -10, color = "#d6ef3c" }) {
   return (
     <text x={x} y={y} transform={"rotate(" + rot + " " + x + " " + y + ")"} textAnchor="middle"
       fontFamily="'Archivo Black', 'Arial Black', sans-serif" fontSize={size}
@@ -193,7 +193,7 @@ function SpeedLines({ x, y, n = 5, len = 22, angle = 0 }) {
 function BallSvg({ x, y, r = 6 }) {
   return (
     <g transform={"translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")"}>
-      <circle r={r} fill="#e8f23a" stroke={INK} strokeWidth="2" />
+      <circle r={r} fill="#d6ef3c" stroke={INK} strokeWidth="2" />
       <path d={"M " + (-r * 0.7) + " " + (-r * 0.6) + " Q 0 0 " + (-r * 0.7) + " " + (r * 0.6)} fill="none" stroke={INK} strokeWidth="1.3" />
     </g>
   );
@@ -259,7 +259,7 @@ function ActionScene({ stat, k, sfx, avatar }) {
         <g transform={"translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")"}>
           <ellipse cx="-14" cy="6" rx="9" ry="5" fill="#ffffff" stroke={INK} strokeWidth="2" opacity="0.8" />
           <path d="M -10 -6 L 10 -6 L 14 2 L -10 2 Z" fill="#ffffff" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
-          <path d="M -10 2 L 14 2" stroke="#e6336f" strokeWidth="3" />
+          <path d="M -10 2 L 14 2" stroke="#5b2d8e" strokeWidth="3" />
         </g>
         {k > 0.15 && <SpeedLines x={x - 14} y={y - 2} n={3} len={16} />}
         {k > 0.25 && <Sfx x={W / 2} y={84} text={sfx} size={24} rot={-6} />}
@@ -326,11 +326,11 @@ function ResultScene({ stat, k, seed }) {
         <g transform="translate(110,96)">
           <rect x="-8" y="-62" width="16" height="10" fill={INK} />
           <circle r="50" fill="#ffffff" stroke={INK} strokeWidth="4" />
-          <line x1="0" y1="0" x2={(Math.cos(rad(sweep)) * 40).toFixed(1)} y2={(Math.sin(rad(sweep)) * 40).toFixed(1)} stroke="#e6336f" strokeWidth="4" strokeLinecap="round" />
+          <line x1="0" y1="0" x2={(Math.cos(rad(sweep)) * 40).toFixed(1)} y2={(Math.sin(rad(sweep)) * 40).toFixed(1)} stroke="#5b2d8e" strokeWidth="4" strokeLinecap="round" />
           <circle r="4" fill={INK} />
         </g>
         <text x="190" y="100" fontFamily="'Archivo Black', sans-serif" fontSize="40" fill={INK}>{"0:" + String(Math.max(30, secs)).padStart(2, "0")}</text>
-        {k > 0.6 && <path d="M 300 52 q 6 10 0 16 q -6 -6 0 -16 Z M 318 70 q 5 8 0 13 q -5 -5 0 -13 Z" fill="#0f9bd7" stroke={INK} strokeWidth="2" />}
+        {k > 0.6 && <path d="M 300 52 q 6 10 0 16 q -6 -6 0 -16 Z M 318 70 q 5 8 0 13 q -5 -5 0 -13 Z" fill="#1f7a45" stroke={INK} strokeWidth="2" />}
       </svg>
     );
   }
@@ -339,10 +339,10 @@ function ResultScene({ stat, k, seed }) {
     const land = Math.min(1, k * 1.4);
     return (
       <svg viewBox={"0 0 " + W + " " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true">
-        <rect x="20" y="40" width="200" height="110" fill="#0f9bd7" stroke={INK} strokeWidth="3" />
+        <rect x="20" y="40" width="200" height="110" fill="#1f7a45" stroke={INK} strokeWidth="3" />
         <path d="M 120 40 L 120 150 M 20 95 L 220 95" stroke="#ffffff" strokeWidth="3" />
         <BallSvg x={30 + land * 76} y={140 - land * 92} r={8} />
-        {k > 0.7 && <Sfx x={292} y={100} text="ACE !" size={34} rot={-8} color="#e6336f" />}
+        {k > 0.7 && <Sfx x={292} y={100} text="ACE !" size={34} rot={-8} color="#5b2d8e" />}
         <text x="240" y="142" fontFamily="'Archivo Black', sans-serif" fontSize="24" fill={INK}>{kmh} km/h</text>
       </svg>
     );
@@ -362,8 +362,8 @@ function ResultScene({ stat, k, seed }) {
     <svg viewBox={"0 0 " + W + " " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true">
       <g transform="translate(110,96)">
         <ellipse rx="60" ry="48" fill="#ffffff" stroke={INK} strokeWidth="3" />
-        <ellipse rx="40" ry="32" fill="#ffd200" stroke={INK} strokeWidth="3" />
-        <ellipse rx="20" ry="16" fill="#e6336f" stroke={INK} strokeWidth="3" />
+        <ellipse rx="40" ry="32" fill="#d6ef3c" stroke={INK} strokeWidth="3" />
+        <ellipse rx="20" ry="16" fill="#5b2d8e" stroke={INK} strokeWidth="3" />
       </g>
       {marks.map((m, i) => (
         <g key={i} transform={"translate(" + m.x.toFixed(1) + "," + m.y.toFixed(1) + ")"}>
