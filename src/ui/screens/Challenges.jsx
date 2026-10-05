@@ -28,7 +28,7 @@ export function MedalBadge({ medal, weeks }) {
   );
 }
 
-export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current, owned, wtaOwned, goShop }) {
+export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current, owned, goShop }) {
   const [selected, setSelectedRaw] = useState(null);
   const [nat, setNat] = useState("France");
   const [name, setName] = useState("");

@@ -24,8 +24,6 @@ export const SHOP_ITEMS = [
       { label: "Suppression des publicités", ready: false },
     ],
   },
-  { id: "dlc_wta", category: "Modes de jeu", type: "dlc", icon: "user", name: "Circuit WTA", price: "2,99 €", status: "available",
-    desc: "Une carrière complète sur le circuit féminin, avec son propre classement." },
   { id: "dlc_challenges", category: "Modes de jeu", type: "dlc", icon: "target", name: "Défis scénarisés", price: "2,99 €", status: "available",
     desc: "Des situations imposées à renverser : blessure, dette, remontée au classement…" },
   {
