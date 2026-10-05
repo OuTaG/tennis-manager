@@ -1,50 +1,28 @@
 // Écran Accueil : la une du journal.
-import { CITIES } from "../../data/geo.js";
 import { PLAYER_STYLES } from "../../data/staff.js";
 import { ALL_TOURNAMENTS, tierLabel } from "../../engine/circuit.js";
 import { difficultyLevel, formatMultiplier, scoreMultiplier } from "../../engine/difficulty.js";
 import { buildFrontPage, pickDispatches } from "../../engine/frontpage.js";
 import { Avatar } from "../avatar.jsx";
-import { FlagFromEmoji, Icon } from "../icons.jsx";
+import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
-const TONE = { clay: T.clay, green: T.green, blue: T.blue, red: T.red };
-
-// Portrait imprimé en deux couleurs : l'avatar en encre sur un aplat,
-// une seconde passe décalée et une trame de points (risographie).
-export function PrintPortrait({ avatar, tone = "clay", width = 128, height = 168 }) {
-  const accent = TONE[tone] || T.clay;
-  const size = Math.round(width * 0.95);
-  return (
-    <div aria-hidden="true" style={{ position: "relative", width, height, flexShrink: 0, overflow: "hidden", background: accent }}>
-      <div style={{ position: "absolute", inset: 0, background: T.paper, opacity: 0.72 }} />
-      <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(" + accent + " 1.3px, transparent 1.5px)", backgroundSize: "5px 5px", opacity: 0.55 }} />
-      {avatar ? (
-        <>
-          <div style={{ position: "absolute", left: (width - size) / 2 + 3, bottom: -2, opacity: 0.55, filter: "grayscale(1) brightness(1.4)", mixBlendMode: "multiply" }}>
-            <Avatar config={avatar} size={size} bare />
-          </div>
-          <div style={{ position: "absolute", left: (width - size) / 2, bottom: 0, filter: "grayscale(1) contrast(1.35)", mixBlendMode: "multiply" }}>
-            <Avatar config={avatar} size={size} bare />
-          </div>
-        </>
-      ) : (
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Icon name="racquet" size={56} color={T.ink} strokeWidth={1.4} />
-        </div>
-      )}
-    </div>
-  );
-}
+// Couleur de la case de la une selon l'actualité.
+const PANEL = { clay: "tm-halftone-magenta", red: "tm-halftone-magenta", green: "tm-halftone-yellow", blue: "tm-halftone-cyan" };
 
 function Rubric({ title, aside, color }) {
   return (
     <div className="tm-rubric">
       <span>{title}</span>
-      {aside && <span className="tm-eyebrow" style={{ color: color || T.fg4 }}>{aside}</span>}
+      {aside && <span className="tm-eyebrow" style={{ color: color || T.fg }}>{aside}</span>}
     </div>
   );
+}
+
+// Étiquette noire et jaune des dépêches.
+function Tag({ children }) {
+  return <span style={{ background: T.ink, color: T.gold, fontSize: 10, fontWeight: 800, padding: "1px 5px", letterSpacing: 0.6, textTransform: "uppercase", marginRight: 6 }}>{children}</span>;
 }
 
 // ─── SUB SCREENS ───────────────────────────────────────────────────────────────
@@ -54,61 +32,58 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
   const injury = player.injury;
   const wildcardOffers = player.wildcardOffers || [];
   const canRetire = (player.age || 0) >= 28;
-  const energyColor = player.energy > 60 ? T.paper : player.energy > 30 ? T.gold : "#ffb3a0";
   const story = buildFrontPage({ player, ranking, enrolled });
   const dispatches = pickDispatches(news, 3);
   const level = difficultyLevel(player.difficulty ?? 3);
   const mul = scoreMultiplier(player);
   const ss = (player.seasonStats && player.seasonStats.year === player.year) ? player.seasonStats : { wins: 0, losses: 0, titles: 0 };
-  const cell = { borderRight: "1px solid rgba(243,238,226,0.35)", paddingLeft: 10 };
-  const big = { fontFamily: T.display, fontWeight: 800, fontSize: 30, lineHeight: 1, fontVariantNumeric: "tabular-nums" };
-  const small = { fontSize: 9.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginTop: 3 };
 
   return (
     <div style={styles.tabContent}>
-      {/* MANCHETTE */}
-      <header style={{ marginBottom: 12 }}>
-        <div className="tm-eyebrow" style={{ display: "flex", justifyContent: "space-between", color: T.fg3 }}>
-          <span>Semaine {player.week} · {player.year}</span>
-          <span><FlagFromEmoji emoji={CITIES[player.location]?.flag} size={9} /> {player.location}</span>
-          <span className="tm-num">{Math.round(player.money).toLocaleString("fr-FR")} €</span>
+      {/* LA UNE : une case de BD */}
+      <article aria-label="La une" className={"tm-fade-up " + (PANEL[story.tone] || "tm-halftone-cyan")} style={{ position: "relative", height: 270, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, overflow: "hidden", marginBottom: 8 }}>
+        <div style={{ position: "absolute", right: -10, bottom: 40 }}>
+          {player.avatar
+            ? <Avatar config={player.avatar} size={210} bare />
+            : <Icon name="racquet" size={120} color={T.ink} strokeWidth={1.4} />}
         </div>
-        <div style={{ borderTop: "3px solid " + T.ink, borderBottom: "1px solid " + T.ink, marginTop: 6, padding: "4px 0 2px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <span style={{ fontFamily: T.display, fontWeight: 900, fontSize: 32, lineHeight: 1, textTransform: "uppercase", letterSpacing: 0.5, color: T.fg }}>Courtside</span>
-          <span className="tm-serif" style={{ fontStyle: "italic", fontSize: 13, color: T.fg3 }}>l'hebdo du circuit</span>
-        </div>
-      </header>
-
-      {/* LA UNE */}
-      <article className="tm-fade-up" style={{ display: "grid", gridTemplateColumns: "128px minmax(0, 1fr)", gap: 12, paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid " + T.ink }}>
-        <PrintPortrait avatar={player.avatar} tone={story.tone} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-          <div className="tm-eyebrow" style={{ color: TONE[story.tone] || T.clay }}>{story.kicker}</div>
-          <h1 style={{ margin: 0, fontFamily: T.display, fontWeight: 900, fontSize: 32, lineHeight: 0.92, textTransform: "uppercase", color: T.fg, overflowWrap: "anywhere" }}>{story.title}</h1>
-          <p className="tm-serif" style={{ margin: 0, fontSize: 14.5, lineHeight: 1.3, color: T.fg2 }}>{story.deck}</p>
+        <div className="tm-lettering" style={{ position: "absolute", left: 10, top: 10, maxWidth: 220, background: T.gold, color: "#161616", border: "2.5px solid " + T.ink, padding: "3px 8px", fontSize: 15 }}>{story.caption}</div>
+        <div className="tm-lettering" style={{ position: "absolute", left: 10, top: 54, width: 168, background: "#ffffff", color: "#161616", border: "2.5px solid " + T.ink, borderRadius: "50% / 46%", padding: "14px 14px", fontSize: 16, textAlign: "center" }}>« {story.quote} »</div>
+        <svg width="40" height="30" viewBox="0 0 40 30" aria-hidden="true" style={{ position: "absolute", left: 146, top: 112 }}>
+          <path d="M2 2 L38 28 L22 2" fill="#ffffff" stroke="#161616" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M3 0 L21 0" stroke="#ffffff" strokeWidth="5" />
+        </svg>
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#161616", color: "#ffffff", padding: "7px 10px 8px" }}>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.2, color: "#ffd200", textTransform: "uppercase" }}>{story.kicker}</div>
+          <h1 className="tm-display" style={{ margin: 0, fontSize: 23, lineHeight: 1, overflowWrap: "anywhere" }}>{story.title}</h1>
         </div>
       </article>
+      <p style={{ margin: "0 2px 14px", fontSize: 13.5, lineHeight: 1.35, color: T.fg, fontWeight: 500 }}>{story.deck}</p>
 
-      {/* TABLEAU D'AFFICHAGE DU JOUEUR */}
-      <section aria-label="Votre joueur" className="tm-fade-up" style={{ background: T.green, color: T.paper, padding: "10px 12px 12px", marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, borderBottom: "1px solid rgba(243,238,226,0.45)", paddingBottom: 6, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: T.display, fontWeight: 800, fontSize: 22, textTransform: "uppercase", letterSpacing: 0.4 }}>{player.name}</span>
-          <span style={{ fontSize: 11, fontWeight: 600 }}>
-            {player.nationality || "France"} · {player.age} ans · {PLAYER_STYLES[player.styleId]?.name} · <span style={{ color: T.gold, fontWeight: 800 }}>{level.name} {formatMultiplier(mul)}</span>
-          </span>
+      {/* LE JOUEUR */}
+      <section aria-label="Votre joueur" className="tm-fade-up" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", background: T.bg1, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, marginBottom: 14 }}>
+        <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "6px 10px", borderBottom: "2.5px solid " + T.ink }}>
+          <span className="tm-display" style={{ fontSize: 17, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</span>
+          <span style={{ background: T.magenta, color: "#ffffff", fontSize: 11, fontWeight: 800, padding: "2px 6px", transform: "rotate(-3deg)", whiteSpace: "nowrap", textTransform: "uppercase" }}>{level.name} {formatMultiplier(mul)}</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", marginTop: 8 }}>
-          <div style={{ borderRight: cell.borderRight }}><div style={big}>{ranking > 1000 ? "—" : ranking}</div><div style={small}>Rang</div></div>
-          <div style={cell}><div style={big}>{totalPts.toLocaleString("fr-FR")}</div><div style={small}>Points</div></div>
-          <div style={cell}><div style={big}>{(ss.wins || 0) + "-" + (ss.losses || 0)}</div><div style={small}>Saison</div></div>
-          <div style={{ paddingLeft: 10 }}><div style={{ ...big, color: energyColor }}>{Math.round(player.energy)}</div><div style={small}>Énergie</div></div>
-        </div>
-        <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: 11, fontWeight: 700, flexWrap: "wrap" }}>
+        {[
+          { label: "Rang", value: ranking > 1000 ? "—" : ranking },
+          { label: "Points", value: totalPts.toLocaleString("fr-FR") },
+          { label: "Saison", value: (ss.wins || 0) + "-" + (ss.losses || 0) },
+          { label: "Énergie", value: Math.round(player.energy), yellow: true },
+        ].map((c, i) => (
+          <div key={c.label} className={c.yellow ? "tm-halftone-yellow" : undefined} style={{ padding: "6px 8px", borderRight: i < 3 ? "2px solid " + T.ink : "none", color: c.yellow ? "#161616" : T.fg }}>
+            <div className="tm-display tm-num" style={{ fontSize: 23, lineHeight: 1 }}>{c.value}</div>
+            <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", marginTop: 2 }}>{c.label}</div>
+          </div>
+        ))}
+        <div style={{ gridColumn: "1 / -1", display: "flex", gap: 12, flexWrap: "wrap", padding: "6px 10px", borderTop: "2px solid " + T.ink, fontSize: 11, fontWeight: 700 }}>
+          <span>{player.nationality || "France"} · {player.age} ans · {PLAYER_STYLES[player.styleId]?.name}</span>
           <span>Côte {rating}</span>
           <span>Bonheur {Math.round(player.happiness ?? 70)}</span>
           <span>Popularité {Math.round(player.popularity ?? 20)}</span>
           <span>Image {Math.round(player.image ?? 60)}</span>
-          {(ss.titles || 0) > 0 && <span style={{ color: T.gold }}>{ss.titles} titre{ss.titles > 1 ? "s" : ""}</span>}
+          {(ss.titles || 0) > 0 && <span style={{ color: T.magenta }}>{ss.titles} titre{ss.titles > 1 ? "s" : ""}</span>}
         </div>
       </section>
 
@@ -116,9 +91,9 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       {injury && (
         <div className="tm-fade-up" style={{
           background: T.bg1,
-          borderRadius: 3, padding: 16, marginBottom: 14,
-          border: "1px solid " + T.brd,
-          borderLeft: "3px solid " + (injury.severity === "severe" ? T.red : injury.severity === "moderate" ? "var(--tm-clay)" : T.amber),
+          padding: 16, marginBottom: 14,
+          border: "2.5px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink,
+          borderLeft: "8px solid " + (injury.severity === "severe" ? T.red : injury.severity === "moderate" ? "var(--tm-clay)" : T.amber),
         }}>
           <div className="tm-eyebrow" style={{ color: injury.severity === "severe" ? T.red : T.amber, marginBottom: 6 }}>
             {injury.severity === "severe" ? "Blessure sévère" : injury.severity === "moderate" ? "Blessure" : "Gêne"}
@@ -134,7 +109,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
             <span style={{ color: T.fg5 }}> · </span>
             Rétablissement dans <strong style={{ color: T.fg2, fontFamily: T.mono }}>{injury.weeksRemaining} sem</strong>.
           </div>
-          <div style={{ marginTop: 10, padding: "8px 10px", background: T.amberSub, border: "1px solid " + T.amber, borderRadius: 3, color: T.amber, fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
+          <div style={{ marginTop: 10, padding: "8px 10px", background: T.amberSub, border: "1px solid " + T.amber, color: T.amber, fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
             <Icon name="warning" size={12} /> Vous pouvez continuer à vous entraîner, mais chaque séance risque fortement d'aggraver la blessure et de rallonger l'indisponibilité.
           </div>
         </div>
@@ -144,14 +119,14 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       {wildcardOffers.length > 0 && (
         <div className="tm-fade-up" style={{
           background: T.bg1,
-          borderRadius: 3, padding: 16, marginBottom: 14,
-          border: "1px solid " + T.brd, borderLeft: "3px solid " + T.ball,
+          padding: 16, marginBottom: 14,
+          border: "2.5px solid " + T.ink, borderLeft: "8px solid " + T.gold, boxShadow: "4px 4px 0 " + T.ink,
         }}>
           <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 10 }}><Icon name="ticket" size={11} /> Wildcards proposées</div>
           {wildcardOffers.map((o, i) => {
             const t = ALL_TOURNAMENTS.find(x => x.id === o.tournamentId);
             return (
-              <div key={i} style={{ background: T.bg2, borderRadius: 3, padding: 12, marginBottom: i < wildcardOffers.length - 1 ? 8 : 0, border: "1px solid " + T.brd }}>
+              <div key={i} style={{ background: T.bg2, padding: 12, marginBottom: i < wildcardOffers.length - 1 ? 8 : 0, border: "2px solid " + T.ink }}>
                 <div style={{ color: T.fg, fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{o.tournamentName}</div>
                 <div className="tm-eyebrow" style={{ marginBottom: 10 }}>
                   {t ? tierLabel(t.tier) : ""} · {t?.city || ""} · S{o.tournamentWeek}
@@ -171,8 +146,8 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         <Rubric title="Cette semaine" aside={enrolled ? tierLabel(enrolled.tier) + " · " + enrolled.surface : "Calendrier libre"} color={T.blue} />
       {enrolled && (
         <div className="tm-fade-up" style={{
-          background: T.greenSub, border: "1px solid " + T.greenBrd,
-          borderRadius: 3, padding: 14, marginBottom: 12,
+          background: T.bg1, border: "2.5px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink,
+          padding: 14, marginBottom: 12,
         }}>
           <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 6 }}>Engagé</div>
           <div
@@ -220,7 +195,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       </section>
 
       {(player.sponsors || []).some(s => s.objective) && (
-        <div style={{ background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: 14, marginBottom: 14 }}>
+        <div style={{ background: T.bg1, border: "2.5px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, padding: 14, marginBottom: 16 }}>
           <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 10 }}>
             <Icon name="target" size={11} /> Objectifs sponsors
           </div>
@@ -273,8 +248,8 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
           <Rubric title="Dépêches" />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {dispatches.map((d, i) => (
-              <div key={i} className="tm-serif" style={{ fontSize: 13.5, lineHeight: 1.3, color: T.fg2, paddingBottom: 6, borderBottom: i < dispatches.length - 1 ? "1px solid " + T.brd : "none" }}>
-                <strong style={{ fontFamily: T.body, fontSize: 10, letterSpacing: 1, textTransform: "uppercase", color: d.rubric === "Retraite" ? T.clay : d.rubric === "Résultats" ? T.green : T.blue }}>{d.rubric}</strong> — {d.text}
+              <div key={i} style={{ fontSize: 13, lineHeight: 1.35, color: T.fg }}>
+                <Tag>{d.rubric}</Tag>{d.text}
               </div>
             ))}
           </div>
