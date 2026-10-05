@@ -115,11 +115,11 @@ export function FlightOverlay({ from, to, onDone }) {
         </div>
 
         {/* Case de BD : la carte du monde */}
-        <div style={{ position: "relative", border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, overflow: "hidden", background: "#0f9bd7" }}>
+        <div style={{ position: "relative", border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, overflow: "hidden", background: "#c9b6ea" }}>
           <svg viewBox={viewBox} style={{ width: "100%", display: "block" }}>
             <defs>
               <pattern id="tm-flight-dots" width={s(2.4)} height={s(2.4)} patternUnits="userSpaceOnUse">
-                <circle cx={s(1.2)} cy={s(1.2)} r={s(0.55)} fill="#ffffff" opacity="0.3" />
+                <circle cx={s(1.2)} cy={s(1.2)} r={s(0.55)} fill="#5b2d8e" opacity="0.28" />
               </pattern>
             </defs>
             {/* Océan tramé */}
@@ -129,12 +129,12 @@ export function FlightOverlay({ from, to, onDone }) {
             {/* Itinéraire complet en pointillés d'encre */}
             <polyline points={fullTrail.join(" ")} fill="none" stroke={INK} strokeWidth={s(0.8)} strokeDasharray={s(2.2) + " " + s(1.8)} />
             {/* Trajet parcouru */}
-            <polyline points={trail.join(" ")} fill="none" stroke="#e6336f" strokeWidth={s(2.2)} strokeLinecap="round" strokeLinejoin="round" />
+            <polyline points={trail.join(" ")} fill="none" stroke="#5b2d8e" strokeWidth={s(2.2)} strokeLinecap="round" strokeLinejoin="round" />
             {/* Départ */}
             <circle cx={p1.x} cy={p1.y} r={s(2.6)} fill="#ffffff" stroke={INK} strokeWidth={s(1)} />
             {/* Arrivée : épingle */}
             <g transform={"translate(" + p2.x + "," + p2.y + ") scale(" + s(1) + ")"}>
-              <path d="M0 0 C-4 -5 -5 -8 -5 -10 A5 5 0 0 1 5 -10 C5 -8 4 -5 0 0 Z" fill="#ffd200" stroke={INK} strokeWidth="1.2" strokeLinejoin="round" />
+              <path d="M0 0 C-4 -5 -5 -8 -5 -10 A5 5 0 0 1 5 -10 C5 -8 4 -5 0 0 Z" fill="#d6ef3c" stroke={INK} strokeWidth="1.2" strokeLinejoin="round" />
               <circle cx="0" cy="-10" r="1.8" fill={INK} />
             </g>
             {/* Avion dessiné à l'encre, traits de vitesse derrière */}
@@ -147,19 +147,19 @@ export function FlightOverlay({ from, to, onDone }) {
                 </g>
               )}
               <path d="M0 -10 C1.4 -10 2 -7.5 2 -4.6 L2 -2.4 L9.5 3 L9.5 5 L2 1.6 L2 5.6 L4.4 7.6 L4.4 9 L0 7.8 L-4.4 9 L-4.4 7.6 L-2 5.6 L-2 1.6 L-9.5 5 L-9.5 3 L-2 -2.4 L-2 -4.6 C-2 -7.5 -1.4 -10 0 -10 Z" fill="#ffffff" stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
-              <ellipse cx="0" cy="-6" rx="0.9" ry="1.8" fill="#0f9bd7" stroke={INK} strokeWidth="0.5" />
+              <ellipse cx="0" cy="-6" rx="0.9" ry="1.8" fill="#1f7a45" stroke={INK} strokeWidth="0.5" />
             </g>
           </svg>
           {/* Récitatif de départ */}
-          <div className="tm-lettering" style={{ position: "absolute", left: 0, top: 0, background: "#ffd200", color: INK, borderRight: "2.5px solid " + INK, borderBottom: "2.5px solid " + INK, padding: "2px 8px", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="tm-lettering" style={{ position: "absolute", left: 0, top: 0, background: "#d6ef3c", color: INK, borderRight: "2.5px solid " + INK, borderBottom: "2.5px solid " + INK, padding: "2px 8px", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
             {a.flag && <FlagFromEmoji emoji={a.flag} size={12} />}Départ de {from}…
           </div>
           {/* Onomatopée */}
           {t > 0.15 && !arrived && (
-            <div className="tm-display" style={{ position: "absolute", right: 10, top: 10, fontSize: 22, color: "#ffd200", WebkitTextStroke: "1.5px " + INK, transform: "rotate(-8deg)" }}>VROOOM !</div>
+            <div className="tm-display" style={{ position: "absolute", right: 10, top: 10, fontSize: 22, color: "#d6ef3c", WebkitTextStroke: "1.5px " + INK, transform: "rotate(-8deg)" }}>VROOOM !</div>
           )}
           {arrived && (
-            <div className="tm-display" style={{ position: "absolute", right: 10, top: 10, fontSize: 18, background: "#e6336f", color: "#ffffff", border: "2.5px solid " + INK, padding: "2px 8px", transform: "rotate(-6deg)" }}>Atterrissage !</div>
+            <div className="tm-display" style={{ position: "absolute", right: 10, top: 10, fontSize: 18, background: "#5b2d8e", color: "#ffffff", border: "2.5px solid " + INK, padding: "2px 8px", transform: "rotate(-6deg)" }}>Atterrissage !</div>
           )}
         </div>
 
@@ -170,7 +170,7 @@ export function FlightOverlay({ from, to, onDone }) {
 
         {/* Progression */}
         <div style={{ height: 14, background: "#ffffff", border: "2.5px solid " + INK }}>
-          <div style={{ height: "100%", width: (t * 100).toFixed(1) + "%", background: "#ffd200", borderRight: t > 0.01 ? "2.5px solid " + INK : "none" }} />
+          <div style={{ height: "100%", width: (t * 100).toFixed(1) + "%", background: "#d6ef3c", borderRight: t > 0.01 ? "2.5px solid " + INK : "none" }} />
         </div>
       </div>
     </div>

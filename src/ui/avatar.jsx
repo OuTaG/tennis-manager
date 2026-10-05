@@ -1,25 +1,74 @@
-// Avatar illustré du joueur / de la joueuse et son éditeur.
+// Avatar de BD du joueur / de la joueuse et son éditeur.
 import { useId } from "react";
 import { isWTA } from "../engine/circuit.js";
 import { T } from "./theme.js";
 
 // ─── AVATAR SYSTEM ─────────────────────────────────────────────────────────────
-// Customizable cartoon avatar. The same `Avatar` component is used everywhere
-// the player is shown (hub header, match screen, etc).
+// Personnage de BD dessiné à l'encre : gros trait, ombres en aplat, yeux et
+// sourcils expressifs, accessoires de tennis (bandeau noué, casquette,
+// visière, bandana). Le même composant sert partout (manchette, une,
+// entraînements…).
+//
+// Configuration : { skin, hair, hairStyle, accessory, accessoryColor, shirt,
+// trim, facial, mood, female }. Les anciennes configurations (coiffures
+// short/buzz/cap…, couleur des yeux) restent lisibles, voir normalizeAvatar.
+const INK = "#141414";
+
 export const AVATAR_OPTIONS = {
-  skin:    ["#f5d4b3", "#e8b990", "#d29672", "#a06b46", "#74482a"],
-  hair:    ["#2e2721", "#5b3a1e", "#8a5a2b", "#c99a4e", "#9a4a2e", "#cfc6b8"],
-  hairStyle: ["short", "long", "buzz", "cap", "bald"], // 5 hairstyles
-  // Coiffures du circuit WTA (avatar féminin : config.female = true)
-  hairStyleF: ["ponytail", "bun", "bob", "flowing", "braid", "visor"],
-  eyes:    ["#3f6f8f", "#4d7a3a", "#5b3a1e", "#2b2620"],
-  shirt:   ["#0f9bd7", "#e6336f", "#ffd200", "#2fa35a", "#ff7a1a", "#7a5cc4", "#161616", "#f7f2e4"],
+  skin:    ["#fbd9bd", "#f2c29b", "#e2a982", "#c98a5e", "#8a5534", "#5e3a22"],
+  hair:    ["#141414", "#2b1d14", "#5a3a22", "#9a5a2a", "#d9a441", "#a8432a", "#d8d4c8"],
+  hairStyle: ["court", "pics", "boucles", "meche", "rase", "chauve", "long", "queue", "chignon", "carre"],
+  accessory: ["aucun", "bandeau", "casquette", "casquette-inversee", "visiere", "bandana"],
+  accessoryColor: ["#d6ef3c", "#5b2d8e", "#1f7a45", "#c9b6ea", "#ffffff", "#c4302b", "#141414"],
+  shirt:   ["#1f7a45", "#5b2d8e", "#d6ef3c", "#c9b6ea", "#ffffff", "#141414", "#c4302b", "#2c6fd1"],
+  facial:  ["aucun", "barbe", "moustache"],
+  mood:    ["determine", "sourire", "concentre"],
+  // Conservé pour les anciennes sauvegardes (plus affiché).
+  eyes:    ["#3f6f8f"],
 };
 
-// Avatar illustré, dans la DA « gazette BD » : trait d'encre, aplats, ombre
-// en trame, case de BD carrée avec une trame aux couleurs du maillot.
-// Mêmes options qu'avant (skin, hair, hairStyle, eyes, shirt), donc les
-// avatars déjà sauvegardés s'affichent sans migration.
+export const AVATAR_LABELS = {
+  court: "Court", pics: "Pics", boucles: "Boucles", meche: "Mèche", rase: "Rasé", chauve: "Chauve",
+  long: "Long", queue: "Queue", chignon: "Chignon", carre: "Carré",
+  aucun: "Aucun", bandeau: "Bandeau", casquette: "Casquette", "casquette-inversee": "À l'envers", visiere: "Visière", bandana: "Bandana",
+  barbe: "Barbe", moustache: "Moustache",
+  determine: "Déterminé", sourire: "Sourire", concentre: "Concentré",
+};
+
+// Anciennes coiffures → nouvelles coiffures (+ accessoire éventuel).
+const LEGACY_STYLE = {
+  short: ["court"], long: ["long"], buzz: ["rase"], cap: ["court", "casquette"], bald: ["chauve"],
+  ponytail: ["queue"], bun: ["chignon"], bob: ["carre"], flowing: ["long"], braid: ["queue"], visor: ["queue", "visiere"],
+};
+
+export function normalizeAvatar(config) {
+  const cfg = { ...(config || {}) };
+  const fem = cfg.female !== undefined ? !!cfg.female : isWTA();
+  const legacy = LEGACY_STYLE[cfg.hairStyle];
+  if (legacy) {
+    cfg.hairStyle = legacy[0];
+    if (legacy[1] && !cfg.accessory) cfg.accessory = legacy[1];
+  }
+  if (!AVATAR_OPTIONS.hairStyle.includes(cfg.hairStyle)) cfg.hairStyle = fem ? "queue" : "court";
+  return {
+    female: fem,
+    skin: cfg.skin || AVATAR_OPTIONS.skin[1],
+    hair: cfg.hair || AVATAR_OPTIONS.hair[1],
+    hairStyle: cfg.hairStyle,
+    accessory: AVATAR_OPTIONS.accessory.includes(cfg.accessory) ? cfg.accessory : "aucun",
+    accessoryColor: cfg.accessoryColor || AVATAR_OPTIONS.accessoryColor[0],
+    shirt: cfg.shirt || AVATAR_OPTIONS.shirt[0],
+    trim: cfg.trim || "#ffffff",
+    facial: !fem && AVATAR_OPTIONS.facial.includes(cfg.facial) ? cfg.facial : "aucun",
+    mood: AVATAR_OPTIONS.mood.includes(cfg.mood) ? cfg.mood : "determine",
+  };
+}
+
+// Compatibilité : coiffure affichée pour un avatar féminin.
+export function femaleHairStyle(fem, hs) {
+  return normalizeAvatar({ female: fem, hairStyle: hs }).hairStyle;
+}
+
 export function avatarTone(hex, amt) {
   // amt > 0 éclaircit, amt < 0 assombrit. Couleur non hexadécimale : inchangée.
   if (typeof hex !== "string" || !/^#[0-9a-f]{6}$/i.test(hex)) return hex;
@@ -28,203 +77,138 @@ export function avatarTone(hex, amt) {
   return "#" + out.map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
 }
 
-// Coiffure affichée : une coiffure masculine sur un avatar féminin (ancienne
-// sauvegarde WTA) est convertie vers son équivalent.
-export function femaleHairStyle(fem, hs) {
-  if (!fem) return hs || "short";
-  if (AVATAR_OPTIONS.hairStyleF.includes(hs)) return hs;
-  return { long: "flowing", short: "ponytail", buzz: "bob", cap: "visor", bald: "bun" }[hs] || "ponytail";
-}
+// Mèches du dessus de la tête, par coiffure.
+const HAIR_FRONT = {
+  court: "M34 52 Q30 19 60 17 Q90 19 86 52 Q81 35 70 33 Q62 41 48 37 Q38 41 34 52 Z",
+  pics: "M34 50 L30 28 L41 33 L43 16 L53 27 L59 10 L65 27 L75 14 L77 31 L89 26 L86 50 Q80 37 60 37 Q40 37 34 50 Z",
+  boucles: "M28 58 Q16 42 28 28 Q30 10 47 12 Q56 2 69 10 Q86 6 92 23 Q105 34 93 54 Q87 40 60 38 Q35 40 28 58 Z",
+  meche: "M34 54 Q28 18 62 16 Q92 20 86 46 Q76 30 56 34 Q50 46 38 44 Q35 48 34 54 Z",
+  long: "M33 54 Q30 19 60 17 Q90 19 87 54 Q82 36 66 32 Q54 42 40 40 Q35 46 33 54 Z",
+  queue: "M34 50 Q31 19 60 17 Q89 19 86 50 Q76 36 62 35 Q48 35 34 50 Z",
+  chignon: "M34 50 Q31 19 60 17 Q89 19 86 50 Q76 36 62 35 Q48 35 34 50 Z",
+  carre: "M33 54 Q30 19 60 17 Q90 19 87 54 Q80 38 60 36 Q40 38 33 54 Z",
+};
+const BROWS = {
+  determine: "M42 50 L55 54 M78 50 L65 54",
+  sourire: "M42 50 Q48 46 55 49 M78 50 Q72 46 65 49",
+  concentre: "M42 52 L55 52 M78 52 L65 52",
+};
+const MOUTH = {
+  determine: { d: "M51 81 Q60 85 69 80", fill: "none" },
+  sourire: { d: "M50 79 Q60 90 70 79 Z", fill: "#ffffff" },
+  concentre: { d: "M52 82 L68 82", fill: "none" },
+};
 
-// bare : sans carte de fond (portraits imprimés de la une).
+// size : côté du carré affiché. bare : sans case de fond (portraits de la une).
 export function Avatar({ config, size = 96, style, bare = false }) {
-  const cfg = config || {};
-  const skin   = cfg.skin   || AVATAR_OPTIONS.skin[1];
-  const hair   = cfg.hair   || AVATAR_OPTIONS.hair[0];
-  const eyes   = cfg.eyes   || AVATAR_OPTIONS.eyes[0];
-  const shirt  = cfg.shirt  || AVATAR_OPTIONS.shirt[0];
-  // Carrière WTA créée avant les avatars féminins : on bascule automatiquement.
-  const fem = cfg.female !== undefined ? !!cfg.female : isWTA();
-  const hStyle = femaleHairStyle(fem, cfg.hairStyle);
-
-  const clipId = "av" + useId().replace(/[^a-zA-Z0-9]/g, "");
-  const dotsId = clipId + "d", shadeId = clipId + "s";
-  // Trait d'encre de BD, un peu plus épais en petit pour rester lisible.
-  const INK = "#161616";
-  const SW = size < 56 ? 2.6 : 1.9;
-  const skinShade = avatarTone(skin, -0.14);
-  const hairLight = avatarTone(hair, 0.18);
-  const shirtDark = avatarTone(shirt, -0.22);
-  const lightShirt = /^#[0-9a-f]{6}$/i.test(shirt) && parseInt(shirt.slice(1, 3), 16) > 220;
-  const trim = lightShirt ? "#b95d38" : "#f4eee3"; // liseré du col, lisible sur tous les maillots
-
-  // Chevelure du haut du crâne, commune à plusieurs coupes.
-  const topHair = "M30.5 43 C29 26 39 18.5 50.5 18.5 C62.5 18.5 72 26.5 69.5 43 C67 36.5 62 33 55.5 32.4 C51 35.6 44 36.4 37.8 35.4 C34.4 37.2 32 39.8 30.5 43 Z";
-  // Avatar féminin : cheveux tirés en arrière avec une raie sur le côté.
-  const topHairF = "M31 43 C29.5 26 39.5 18.5 50.5 18.5 C62 18.5 71 26 69.5 43 C67.5 35.5 63 31.6 56 31 C52.5 31.6 48.5 33.4 45 36 C40.5 35.2 34.5 37.6 31 43 Z";
-  const tieColor = shirt;
+  const a = normalizeAvatar(config);
+  const uid = "av" + useId().replace(/[^a-zA-Z0-9]/g, "");
+  const shade = avatarTone(a.skin, -0.22);
+  const sw = size < 56 ? 4.6 : 3.5; // trait plus épais en petit
+  const st = { stroke: INK, strokeWidth: sw, strokeLinejoin: "round" };
+  const acc = a.accessoryColor;
+  const covered = a.accessory === "casquette" || a.accessory === "casquette-inversee" || a.accessory === "bandana";
+  const hs = a.hairStyle;
+  const mouth = MOUTH[a.mood] || MOUTH.determine;
+  const pL = a.mood === "concentre" ? 50 : 50.5, pR = a.mood === "concentre" ? 70 : 72.5;
 
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} style={{ flexShrink: 0, display: "block", ...(style || {}) }} aria-hidden="true">
+    <svg viewBox="-10 0 140 140" width={size} height={size} style={{ flexShrink: 0, display: "block", ...(style || {}) }} aria-hidden="true">
       <defs>
-        <clipPath id={clipId}><rect x="0" y="0" width="100" height="100" /></clipPath>
-        <pattern id={dotsId} width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.5" fill={shirt} /></pattern>
-        <pattern id={shadeId} width="3.4" height="3.4" patternUnits="userSpaceOnUse"><circle cx="1.7" cy="1.7" r="0.85" fill={INK} opacity="0.55" /></pattern>
+        <pattern id={uid + "d"} width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="3.5" cy="3.5" r="1.7" fill={a.shirt} /></pattern>
       </defs>
-      <g clipPath={"url(#" + clipId + ")"}>
-        {/* Fond : carte crème + disque teinté par la couleur du maillot */}
-        {/* Fond de case : papier et trame aux couleurs du maillot */}
-        {!bare && <rect x="0" y="0" width="100" height="100" style={{ fill: "var(--tm-bg1)" }} />}
-        {!bare && <rect x="0" y="0" width="100" height="100" fill={"url(#" + dotsId + ")"} opacity="0.55" />}
+      {!bare && <rect x="-10" y="0" width="140" height="140" style={{ fill: "var(--tm-bg1)" }} />}
+      {!bare && <rect x="-10" y="0" width="140" height="140" fill={"url(#" + uid + "d)"} opacity="0.5" />}
 
-        {/* Avatar féminin : chevelure derrière la tête */}
-        {fem && hStyle === "flowing" && (
-          <path d="M28.5 44 C26 24 39 16 50.5 16 C63 16 75 24 72 45 C73 58 75 70 78 82 C70 86 63 80 61 66 L39 66 C37 80 30 86 22 82 C25 70 27 58 28.5 44 Z" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-        )}
-        {fem && hStyle === "bob" && (
-          <path d="M28 44 C26 24 39 17 50.5 17 C62 17 75 24 72 44 C72.6 52 72.2 58 70 63 L62 63 L38 63 L30 63 C27.8 58 27.4 52 28 44 Z" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-        )}
-        {fem && (hStyle === "ponytail" || hStyle === "visor") && (
-          <>
-            <path d="M63 27 C75 25 82.5 37 80 55 C79 61 75 64 72.5 60 C75.5 49 73 38 64 33 Z" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M66 29.5 C73 31 77 39 77 48" stroke={hairLight} strokeWidth="1.4" fill="none" strokeLinecap="round" opacity="0.6" />
-          </>
-        )}
-        {fem && hStyle === "braid" && (
-          <g fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round">
-            {[0, 1, 2, 3, 4].map(k => (
-              <ellipse key={k} cx={67.5 + k * 0.9} cy={58 + k * 6.6} rx={4.2 - k * 0.25} ry="3.9" />
-            ))}
-            <circle cx="72" cy="89.5" r="1.8" fill={tieColor} />
-          </g>
-        )}
-        {fem && hStyle === "bun" && (
-          <>
-            <circle cx="50" cy="16.5" r="8" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M45 13.5 C47.5 11 52.5 11 55 13.5" stroke={hairLight} strokeWidth="1.4" fill="none" strokeLinecap="round" opacity="0.6" />
-          </>
-        )}
+      {/* Cheveux derrière la tête */}
+      {hs === "long" && <path d="M30 52 Q24 18 60 16 Q96 18 90 52 L95 104 Q84 112 76 98 L76 62 L44 62 L44 98 Q36 112 25 104 Z" fill={a.hair} {...st} />}
+      {hs === "carre" && !covered && <path d="M31 52 Q27 18 60 16 Q93 18 89 52 L91 84 L72 84 L72 62 L48 62 L48 84 L29 84 Z" fill={a.hair} {...st} />}
+      {hs === "queue" && <path d="M84 40 Q108 42 104 78 Q100 92 92 84 Q98 62 82 50 Z" fill={a.hair} {...st} />}
+      {hs === "chignon" && !covered && <circle cx="60" cy="14" r="11" fill={a.hair} {...st} />}
 
-        {/* Cheveux longs : mèches derrière la tête */}
-        {!fem && hStyle === "long" && (
-          <path d="M28.5 44 C26 24 39 16 50.5 16 C63 16 75 24 72 45 C72.5 54 73.5 62 76 70 C69 73 62 70 60 63 L40 63 C38 70 31 73 24 70 C26.5 62 28 54 28.5 44 Z" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-        )}
+      {/* Buste, bande du polo, cou, col */}
+      <path d="M8 140 Q12 104 60 97 Q108 104 112 140 Z" fill={a.shirt} {...st} />
+      <path d="M16 124 Q60 114 104 124 L106 131 Q60 121 14 131 Z" fill={a.trim} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M49 84 L49 102 Q60 109 71 102 L71 84 Z" fill={a.skin} {...st} />
+      <path d="M49 88 Q60 96 71 88 L71 94 Q60 101 49 94 Z" fill={shade} />
+      {a.female
+        ? <path d="M46 100 Q60 112 74 100" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" />
+        : <path d="M44 99 L60 114 L76 99 L70 97 L60 106 L50 97 Z" fill="#ffffff" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />}
 
-        {fem ? (
-          <>
-            {/* Buste : débardeur de tennis, encolure ronde */}
-            <path d="M16 104 C17 85 30 74.5 50 74.5 C70 74.5 83 85 84 104 Z" fill={shirt} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M25 104 C26.5 92 31 84.5 36.5 80" stroke={shirtDark} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.45" />
-            {/* Cou, plus fin */}
-            <path d="M44.2 60 L55.8 60 L55.8 74 C53.4 77 46.6 77 44.2 74 Z" fill={skinShade} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            {/* Encolure */}
-            <path d="M40.5 74.6 Q50 85 59.5 74.6" stroke={trim} strokeWidth="2.4" fill={skinShade} strokeLinecap="round" />
-          </>
-        ) : (
-          <>
-            {/* Buste et maillot */}
-            <path d="M12 104 C13 83 29 72.5 50 72.5 C71 72.5 87 83 88 104 Z" fill={shirt} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M22 104 C24 90 30 82 36 78" stroke={shirtDark} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5" />
-            {/* Cou */}
-            <path d="M43 60 L57 60 L57 73.5 C54 76.5 46 76.5 43 73.5 Z" fill={skinShade} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            {/* Col polo */}
-            <path d="M41.5 72.4 L50 80.5 L58.5 72.4" stroke={trim} strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M50 80.5 L50 90" stroke={shirtDark} strokeWidth="1.6" strokeLinecap="round" opacity="0.6" />
-            <circle cx="50" cy="85" r="1.1" fill={shirtDark} stroke={INK} strokeWidth={SW} strokeLinejoin="round" opacity="0.7" />
-          </>
-        )}
+      {/* Oreilles et tête, ombre en aplat */}
+      <ellipse cx="33" cy="62" rx="6" ry="9" fill={a.skin} stroke={INK} strokeWidth="3" />
+      <ellipse cx="87" cy="62" rx="6" ry="9" fill={a.skin} stroke={INK} strokeWidth="3" />
+      {a.female && <><circle cx="33" cy="72" r="2.2" fill="#d6ef3c" stroke={INK} strokeWidth="1.2" /><circle cx="87" cy="72" r="2.2" fill="#d6ef3c" stroke={INK} strokeWidth="1.2" /></>}
+      <path d="M35 56 Q33 23 60 21 Q87 23 85 56 Q85 80 72 90 Q60 97 48 90 Q35 80 35 56 Z" fill={a.skin} {...st} />
+      <path d="M77 32 Q87 48 84 68 Q81 83 71 90 Q79 70 77 32 Z" fill={shade} />
 
-        {/* Oreilles et tête */}
-        <circle cx="31" cy="47.5" r="4.4" fill={skinShade} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-        <circle cx="69" cy="47.5" r="4.4" fill={skinShade} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-        <ellipse cx="50" cy="45" rx={fem ? 18.2 : 19} ry={fem ? 21 : 21.5} fill={skin} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-        {/* Ombre en trame sur la joue droite */}
-        <path d="M60 30 C69 36 70.5 50 66 59 C63 63.5 58.5 66 54.5 66.3 C61 60 63.5 46 60 30 Z" fill={"url(#" + shadeId + ")"} />
-        {fem && (
-          <>
-            <circle cx="31.4" cy="52.4" r="1.4" fill="#d9b24a" />
-            <circle cx="68.6" cy="52.4" r="1.4" fill="#d9b24a" />
-          </>
-        )}
+      {/* Barbe, moustache */}
+      {a.facial === "barbe" && <path d="M36 66 Q38 92 60 96 Q82 92 84 66 Q80 80 72 82 Q60 76 48 82 Q40 80 36 66 Z" fill={a.hair} stroke={INK} strokeWidth="3" strokeLinejoin="round" />}
+      {a.facial === "moustache" && <path d="M48 77 Q54 72 60 75 Q66 72 72 77 Q66 79 60 77 Q54 79 48 77 Z" fill={a.hair} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />}
 
-        {/* Coupes (féminines) */}
-        {fem && <path d={topHairF} fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />}
-        {fem && <path d="M56 31 C61 32.4 65.5 35.6 68 40.5" stroke={hairLight} strokeWidth="1.4" fill="none" strokeLinecap="round" opacity="0.6" />}
-        {fem && hStyle === "bob" && (
-          <>
-            <path d="M31.4 41 C30.4 50 31 57 33.4 62.5 L37.4 62.5 C35.2 56 34.6 48.5 35.4 40 Z" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M68.6 41 C69.6 50 69 57 66.6 62.5 L62.6 62.5 C64.8 56 65.4 48.5 64.6 40 Z" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-          </>
-        )}
-        {fem && hStyle === "flowing" && (
-          <>
-            <path d="M31.2 41 C30.2 52 30.6 60 32.6 66 L36.6 66 C34.6 58 34.2 49 35.2 40 Z" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M68.8 41 C69.8 52 69.4 60 67.4 66 L63.4 66 C65.4 58 65.8 49 64.8 40 Z" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-          </>
-        )}
-        {fem && (hStyle === "ponytail" || hStyle === "braid") && (
-          <circle cx="66.2" cy="30.6" r="2.1" fill={tieColor} />
-        )}
-        {fem && hStyle === "visor" && (
-          <>
-            {/* Bandeau sur le haut du front, visière au-dessus des sourcils */}
-            <path d="M31 33.4 C37 27.6 63 27.6 69 33.4 L69.4 36.2 C63.4 31.2 36.6 31.2 30.6 36.2 Z" fill={shirt} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M32.6 34.6 C41 37.6 59 37.6 67.4 34.6 L70.8 36.4 C61 39.2 39 39.2 29.2 36.4 Z" fill={shirtDark} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-          </>
-        )}
+      {/* Visage */}
+      <ellipse cx="49" cy="61" rx="5.5" ry="6.5" fill="#ffffff" stroke={INK} strokeWidth="2.5" />
+      <ellipse cx="71" cy="61" rx="5.5" ry="6.5" fill="#ffffff" stroke={INK} strokeWidth="2.5" />
+      <circle cx={pL} cy="62" r="2.9" fill={INK} />
+      <circle cx={pR} cy="62" r="2.9" fill={INK} />
+      {a.female && <path d="M43 55 L40 52 M77 55 L80 52" stroke={INK} strokeWidth="2" strokeLinecap="round" />}
+      <path d={BROWS[a.mood] || BROWS.determine} fill="none" stroke={INK} strokeWidth={a.female ? 3 : 4} strokeLinecap="round" />
+      <path d="M60 63 L57 73 L62 74" fill="none" stroke={INK} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={mouth.d} fill={mouth.fill} stroke={INK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
-        {/* Coupes */}
-        {!fem && (hStyle === "short" || hStyle === "long") && <path d={topHair} fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />}
-        {!fem && hStyle === "short" && <path d="M37.8 35.4 C40 31.6 44 30 47 30.4" stroke={hairLight} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />}
-        {!fem && hStyle === "buzz" && (
-          <>
-            <path d="M31.2 41 C31 27.5 40 21 50.5 21 C61 21 69.4 27.5 68.8 41 C64.5 35.6 58 33.4 50 33.4 C42 33.4 35.6 35.6 31.2 41 Z" fill={hair} stroke={INK} strokeWidth={SW} strokeLinejoin="round" opacity="0.62" />
-            <path d="M40 27 l1.2 1 M46 24.6 l1.2 1 M53.6 24.6 l1.2 1 M60 27 l1.2 1 M43 30.4 l1.2 1 M57 30.4 l1.2 1" stroke={hair} strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
-          </>
-        )}
-        {!fem && hStyle === "cap" && (
-          <>
-            <path d="M29.6 41.5 C29.6 26 39 19 50 19 C61.5 19 70.4 26 70.4 41.5 Z" fill={shirt} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M50 39.4 L80 40.4 C81.4 43.6 78 45.6 72 45 L50 43.6 Z" fill={shirtDark} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M50 20 L50 41" stroke={shirtDark} strokeWidth="1.3" opacity="0.5" />
-            <circle cx="50" cy="19.6" r="2" fill={shirtDark} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            <path d="M31.6 41.5 C33 44 32.6 47 31.4 49" stroke={hair} strokeWidth="2.6" strokeLinecap="round" fill="none" />
-          </>
-        )}
-        {!fem && hStyle === "bald" && <ellipse cx="42" cy="30" rx="6" ry="3.2" fill="#ffffff" opacity="0.22" />}
+      {/* Coiffure */}
+      {HAIR_FRONT[hs] && !covered && <path d={HAIR_FRONT[hs]} fill={a.hair} {...st} />}
+      {hs === "rase" && !covered && <path d="M36 50 Q34 22 60 21 Q86 22 84 50 Q74 40 60 40 Q46 40 36 50 Z" fill={a.hair} opacity="0.55" stroke={INK} strokeWidth="2.5" />}
+      {hs === "chauve" && !covered && <path d="M46 30 Q52 26 58 27" fill="none" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round" />}
 
-        {/* Visage */}
-        <path d="M39.5 40.6 Q43 38.8 46.4 40.2" stroke={INK} strokeWidth={fem ? 1.6 : 2.4} fill="none" strokeLinecap="round" />
-        <path d="M53.6 40.2 Q57 38.8 60.5 40.6" stroke={INK} strokeWidth={fem ? 1.6 : 2.4} fill="none" strokeLinecap="round" />
-        {fem && (
-          <>
-            <path d="M40.6 44.4 L38.9 43.2" stroke="#2b2620" strokeWidth="1" strokeLinecap="round" />
-            <path d="M59.4 44.4 L61.1 43.2" stroke="#2b2620" strokeWidth="1" strokeLinecap="round" />
-          </>
-        )}
-        <ellipse cx="43" cy="46.5" rx="2.5" ry="2.9" fill={eyes} stroke={INK} strokeWidth="1.1" />
-        <ellipse cx="57" cy="46.5" rx="2.5" ry="2.9" fill={eyes} stroke={INK} strokeWidth="1.1" />
-        <circle cx="43.8" cy="45.5" r="0.85" fill="#ffffff" />
-        <circle cx="57.8" cy="45.5" r="0.85" fill="#ffffff" />
-        <path d="M50 47.5 Q48.2 51.8 50.6 52.4" stroke={INK} strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        {fem
-          ? <path d="M45.6 56.2 Q50 60.4 54.4 56.2 Q50 57.6 45.6 56.2 Z" fill="#b5534a" stroke="#b5534a" strokeWidth="1.2" strokeLinejoin="round" />
-          : <path d="M45.2 56.4 Q50 60.2 54.8 56.4" stroke={INK} strokeWidth="2.1" fill="none" strokeLinecap="round" />}
-      </g>
-      {!bare && <rect x="1.5" y="1.5" width="97" height="97" fill="none" stroke={INK} strokeWidth="3" />}
+      {/* Accessoires */}
+      {a.accessory === "bandeau" && (
+        <>
+          <path d="M34 44 Q60 35 86 44 L86 53 Q60 44 34 53 Z" fill={acc} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+          <path d="M85 46 L99 38 L97 50 L86 51 Z M86 50 L100 56 L92 60 Z" fill={acc} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M56 41 L62 41 L62 47 L56 47 Z" fill="#ffffff" stroke={INK} strokeWidth="1.5" />
+        </>
+      )}
+      {a.accessory === "casquette" && (
+        <>
+          <path d="M33 47 Q32 18 60 17 Q88 18 87 47 Z" fill={acc} {...st} />
+          <path d="M40 46 Q60 40 104 49 Q104 55 96 55 Q66 51 40 52 Z" fill={acc} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+          <path d="M60 18 L60 46" stroke={INK} strokeWidth="2" />
+          <circle cx="60" cy="18" r="3" fill={INK} />
+        </>
+      )}
+      {a.accessory === "casquette-inversee" && (
+        <>
+          <path d="M33 47 Q32 18 60 17 Q88 18 87 47 Z" fill={acc} {...st} />
+          <path d="M33 47 Q60 41 87 47 L87 50 Q60 45 33 50 Z" fill="#ffffff" stroke={INK} strokeWidth="2" />
+          <path d="M8 44 Q20 40 34 44 L34 50 Q20 48 10 51 Z" fill={acc} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+        </>
+      )}
+      {a.accessory === "visiere" && (
+        <>
+          <path d="M34 44 Q60 37 86 44 L86 50 Q60 43 34 50 Z" fill={acc} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+          <path d="M38 48 Q60 42 82 48 Q84 56 74 56 Q60 52 46 56 Q36 56 38 48 Z" fill={acc} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+        </>
+      )}
+      {a.accessory === "bandana" && (
+        <>
+          <path d="M33 50 Q30 18 60 17 Q90 18 87 50 Q60 40 33 50 Z" fill={acc} {...st} />
+          {[[48, 30], [62, 25], [75, 32], [54, 40], [70, 42]].map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r="2.2" fill={acc === "#ffffff" ? INK : "#ffffff"} />
+          ))}
+          <path d="M86 44 L100 50 L94 58 L88 50 Z M88 50 L98 64 L90 66 Z" fill={acc} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
+        </>
+      )}
+
+      {!bare && <rect x="-8.5" y="1.5" width="137" height="137" fill="none" stroke={INK} strokeWidth="3.5" />}
     </svg>
   );
 }
 
 export function AvatarBuilder({ config, onChange }) {
   const cfg = config || {};
-  const update = (key, value) => onChange({ ...cfg, [key]: value });
-  const fem = cfg.female !== undefined ? !!cfg.female : isWTA();
-  const skin = cfg.skin || AVATAR_OPTIONS.skin[1];
-  const hair = cfg.hair || AVATAR_OPTIONS.hair[0];
-  const hairStyle = femaleHairStyle(fem, cfg.hairStyle);
-  const eyes = cfg.eyes || AVATAR_OPTIONS.eyes[0];
-  const shirt = cfg.shirt || AVATAR_OPTIONS.shirt[0];
+  const a = normalizeAvatar(cfg);
+  const update = (key, value) => onChange({ ...cfg, ...a, [key]: value });
 
   const swatchRow = (label, options, currentValue, key) => (
     <div style={{ marginBottom: 12 }}>
@@ -235,6 +219,7 @@ export function AvatarBuilder({ config, onChange }) {
           return (
             <button
               key={opt}
+              aria-label={label + " " + opt}
               onClick={() => update(key, opt)}
               style={{
                 width: 40, height: 40, borderRadius: 0,
@@ -250,52 +235,51 @@ export function AvatarBuilder({ config, onChange }) {
     </div>
   );
 
-  const STYLE_LABELS = {
-    short: "Court", long: "Long", buzz: "Rasé", cap: "Casquette", bald: "Chauve",
-    ponytail: "Queue", bun: "Chignon", bob: "Carré", flowing: "Lâchés", braid: "Tresse", visor: "Visière",
-  };
-  const styleList = fem ? AVATAR_OPTIONS.hairStyleF : AVATAR_OPTIONS.hairStyle;
+  // Grille de vignettes : chaque option dessinée sur l'avatar courant.
+  const pickRow = (label, options, currentValue, key) => (
+    <div style={{ marginBottom: 12 }}>
+      <div className="tm-eyebrow" style={{ color: T.fg, marginBottom: 7 }}>{label}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 5 }}>
+        {options.map(opt => {
+          const on = currentValue === opt;
+          return (
+            <button
+              key={opt}
+              onClick={() => update(key, opt)}
+              style={{
+                background: on ? T.gold : T.bg1,
+                border: "2.5px solid " + T.ink,
+                boxShadow: on ? "3px 3px 0 " + T.ink : "none",
+                borderRadius: 0, padding: "4px 0 3px", color: "#141414",
+                fontSize: 9.5, fontWeight: 800, cursor: "pointer",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+              }}
+            >
+              <Avatar config={{ ...a, [key]: opt }} size={44} bare />
+              <span style={{ lineHeight: 1.1, maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap", color: on ? "#141414" : T.fg }}>{AVATAR_LABELS[opt] || opt}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div>
       {/* Aperçu : grande case de BD */}
-      <div className="tm-halftone-magenta" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "flex-end", height: 200, marginBottom: 16, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, overflow: "hidden" }}>
-        <Avatar config={cfg} size={190} bare />
-        <div className="tm-lettering" style={{ position: "absolute", left: 8, top: 8, background: T.gold, border: "2.5px solid " + T.ink, padding: "2px 8px", fontSize: 15, color: T.ink }}>Le futur n° 1 ?</div>
+      <div className="tm-halftone-lilac" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "flex-end", height: 210, marginBottom: 16, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, overflow: "hidden" }}>
+        <Avatar config={a} size={210} bare />
+        <div className="tm-lettering" style={{ position: "absolute", left: 8, top: 8, background: T.gold, border: "2.5px solid " + T.ink, padding: "2px 8px", fontSize: 15, color: "#141414" }}>Le futur n° 1 ?</div>
       </div>
 
-      {swatchRow("Peau", AVATAR_OPTIONS.skin, skin, "skin")}
-
-      <div style={{ marginBottom: 12 }}>
-        <div className="tm-eyebrow" style={{ color: T.fg, marginBottom: 7 }}>Coiffure</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(" + (fem ? 3 : 5) + ", minmax(0, 1fr))", gap: 4 }}>
-          {styleList.map(opt => {
-            const on = hairStyle === opt;
-            return (
-              <button
-                key={opt}
-                onClick={() => update("hairStyle", opt)}
-                style={{
-                  background: on ? T.gold : T.bg1,
-                  border: "2.5px solid " + T.ink,
-                  boxShadow: on ? "3px 3px 0 " + T.ink : "none",
-                  borderRadius: 0, padding: "6px 0 5px",
-                  color: T.ink,
-                  fontSize: 10.5, fontWeight: 800, cursor: "pointer",
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                }}
-              >
-                <Avatar config={{ ...cfg, hairStyle: opt }} size={40} />
-                <span style={{ lineHeight: 1.1, fontSize: 9, letterSpacing: -0.2, maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap" }}>{STYLE_LABELS[opt]}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {hairStyle !== "bald" && swatchRow("Couleur cheveux", AVATAR_OPTIONS.hair, hair, "hair")}
-      {swatchRow("Yeux", AVATAR_OPTIONS.eyes, eyes, "eyes")}
-      {swatchRow("T-shirt", AVATAR_OPTIONS.shirt, shirt, "shirt")}
+      {swatchRow("Peau", AVATAR_OPTIONS.skin, a.skin, "skin")}
+      {pickRow("Coiffure", AVATAR_OPTIONS.hairStyle, a.hairStyle, "hairStyle")}
+      {a.hairStyle !== "chauve" && swatchRow("Couleur des cheveux", AVATAR_OPTIONS.hair, a.hair, "hair")}
+      {pickRow("Accessoire", AVATAR_OPTIONS.accessory, a.accessory, "accessory")}
+      {a.accessory !== "aucun" && swatchRow("Couleur de l'accessoire", AVATAR_OPTIONS.accessoryColor, a.accessoryColor, "accessoryColor")}
+      {swatchRow("Maillot", AVATAR_OPTIONS.shirt, a.shirt, "shirt")}
+      {!a.female && pickRow("Pilosité", AVATAR_OPTIONS.facial, a.facial, "facial")}
+      {pickRow("Expression", AVATAR_OPTIONS.mood, a.mood, "mood")}
     </div>
   );
 }
