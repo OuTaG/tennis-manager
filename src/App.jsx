@@ -26,7 +26,7 @@ import { FINALS_PRIZE, FINALS_PTS, RR_SCHEDULE, buildFinalsDraw, finalizeHumanTo
 import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
 import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
-import { hasEntitlement, hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
+import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, avatarTone, femaleHairStyle } from "./ui/avatar.jsx";
@@ -78,17 +78,8 @@ export default function TennisManager() {
   const [rallyAnim, setRallyAnim] = useState(null); // { points, contextLabel, isTiebreak, commit } during point-by-point animation
   // Match mode: "manual" = one game per click; "auto" = games chain with a
   // short pause, stopping on any event (dilemma, match-fix proposal).
-  // Vitesse du match : on reprend la dernière vitesse utilisée (mémorisée).
-  const initialSpeed = (() => {
-    try {
-      const v = localStorage.getItem("tm-match-speed");
-      if (v === "x4" && !hasEntitlement("speed_x4")) return "x2"; // abonnement expiré
-      return ["x1", "x2", "x4"].includes(v) ? v : "x2";
-    } catch (e) { return "x2"; }
-  })();
-  const [matchMode, setMatchMode] = useState(initialSpeed);
-  const matchModeRef = useRef(initialSpeed);
-  useEffect(() => { matchModeRef.current = matchMode; }, [matchMode]);
+  // Vitesse du match : ×4 pour tous, seule vitesse proposée.
+  const matchModeRef = useRef("x4");
   const autoTimerRef = useRef(null);
   // Match speed multiplier on delays: x1 → ×2 (slower), x2/manual → ×1, x4 → ×0.5.
   const speedFactor = () => matchModeRef.current === "x1" ? 2 : matchModeRef.current === "x4" ? 0.5 : 1;
@@ -2556,13 +2547,13 @@ export default function TennisManager() {
       padding: 16, zIndex: 500,
     }} onClick={() => setConfirmDelete(null)}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: T.bg1, borderRadius: 18, padding: 22,
+        background: T.bg1, borderRadius: 3, padding: 22,
         border: "1px solid " + T.redBrd,
         maxWidth: 340, width: "100%",
         boxShadow: "0 10px 30px var(--tm-shadow)",
       }}>
         <div style={{
-          width: 44, height: 44, borderRadius: 14, marginBottom: 12,
+          width: 44, height: 44, borderRadius: 3, marginBottom: 12,
           background: T.redSub, display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <Icon name="trash" size={20} color={T.red} />
@@ -2645,7 +2636,7 @@ export default function TennisManager() {
               const locked = i > 0 && !multiOwned;
               if (meta) {
                 return (
-                  <div key={i} style={{ background: T.bg2, border: "1px solid " + T.brd2, borderRadius: 12, padding: 12, marginBottom: 10, textAlign: "left" }}>
+                  <div key={i} style={{ background: T.bg2, border: "1px solid " + T.brd2, borderRadius: 3, padding: 12, marginBottom: 10, textAlign: "left" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                       <div className="tm-num" style={{ color: T.fg5, fontSize: 11, width: 14 }}>{i + 1}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -2741,7 +2732,7 @@ export default function TennisManager() {
                 return (
                   <button key={c.id} data-nofem="" onClick={() => pick(c.id)} style={{
                     display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
-                    background: T.bg1, border: "1.5px solid " + c.accent, borderRadius: 14,
+                    background: T.bg1, border: "1.5px solid " + c.accent, borderRadius: 3,
                     padding: 14, cursor: "pointer", fontFamily: T.body,
                   }}>
                     <Avatar config={{ ...avatarInput, ...c.sample }} size={64} />
@@ -2770,7 +2761,7 @@ export default function TennisManager() {
             <div style={{ ...styles.menuCard, gap: 14, alignItems: "stretch", maxWidth: 380 }}>
               <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 1/2 · Identité</h2>
               <div style={{
-                background: T.bg1, borderRadius: 10, padding: "10px 12px",
+                background: T.bg1, borderRadius: 3, padding: "10px 12px",
                 border: "1px solid var(--tm-brd)",
                 fontSize: 11.5, color: T.fg4, lineHeight: 1.5,
               }}>
@@ -2786,7 +2777,7 @@ export default function TennisManager() {
                     title="Nom au hasard"
                     onClick={() => setNameInput(randomFullName(nationalityInput, circuitInput === "wta"))}
                     style={{
-                      flexShrink: 0, width: 46, borderRadius: 10, cursor: "pointer",
+                      flexShrink: 0, width: 46, borderRadius: 3, cursor: "pointer",
                       background: T.bg2, border: "1px solid " + T.greenBrd,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}
@@ -2823,7 +2814,7 @@ export default function TennisManager() {
               <div>
                 <label style={styles.label}>Avatar</label>
                 <div style={{
-                  background: T.bg1, borderRadius: 12, padding: 14,
+                  background: T.bg1, borderRadius: 3, padding: 14,
                   border: "1px solid var(--tm-brd)",
                 }}>
                   <AvatarBuilder config={avatarInput} onChange={setAvatarInput} />
@@ -2851,7 +2842,7 @@ export default function TennisManager() {
           <div style={{ ...styles.menuCard, gap: 16, alignItems: "stretch", maxWidth: 380 }}>
             <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 2/2 · Profil</h2>
             <div style={{
-              background: T.bg1, borderRadius: 10, padding: "10px 12px",
+              background: T.bg1, borderRadius: 3, padding: "10px 12px",
               border: "1px solid var(--tm-brd)",
               fontSize: 11.5, color: T.fg4, lineHeight: 1.5,
               display: "flex", alignItems: "center", gap: 10,
@@ -2942,7 +2933,7 @@ export default function TennisManager() {
                   return (
                     <label key={o.id} style={{
                       display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", minHeight: 44, boxSizing: "border-box",
-                      background: T.bg1, borderRadius: 10, cursor: "pointer",
+                      background: T.bg1, borderRadius: 3, cursor: "pointer",
                       border: "1.5px solid " + (on ? T.green : "var(--tm-brd)"),
                     }}>
                       <input type="checkbox" checked={on} onChange={() => setGameOptionsInput(list => on ? list.filter(x => x !== o.id) : [...list, o.id])} />
@@ -2955,7 +2946,7 @@ export default function TennisManager() {
                   );
                 })}
               </div>
-              <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 12px", borderRadius: 10, background: T.bg2 }}>
+              <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 12px", borderRadius: 3, background: T.bg2 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: T.fg3 }}>Multiplicateur de score</span>
                 <span className="tm-num" style={{ fontSize: 22, fontWeight: 800, color: T.green }}>{formatMultiplier(scoreMultiplier(difficultyInput, gameOptionsInput))}</span>
               </div>
@@ -2977,7 +2968,7 @@ export default function TennisManager() {
               })}
             </div>
 
-            <div style={{ background: T.bg1, borderRadius: 10, padding: 12, border: "1px solid var(--tm-brd)", fontSize: 12, color: T.fg4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 12, border: "1px solid var(--tm-brd)", fontSize: 12, color: T.fg4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <Icon name="money" size={12} color={T.green} /> {startMoney(startCityInput, gameOptionsInput).toLocaleString("fr-FR")} €
               <span style={{ color: T.fg5 }}>·</span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -3058,14 +3049,14 @@ export default function TennisManager() {
             </div>
 
             {/* Legacy score */}
-            <div style={{ background: T.bg1, borderRadius: 16, padding: "20px 16px", marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center", boxShadow: "0 0 30px " + tier.color + "22" }}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: "20px 16px", marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center", boxShadow: "0 0 30px " + tier.color + "22" }}>
               <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 6 }}>Score de légende</div>
               <div style={{ color: tier.color, fontWeight: 900, fontSize: 46, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{legacy.toLocaleString()}</div>
-              <div style={{ display: "inline-block", marginTop: 10, padding: "4px 14px", borderRadius: 20, background: tier.color + "22", border: "1px solid " + tier.color + "66", color: tier.color, fontWeight: 800, fontSize: 13, letterSpacing: 0.2 }}>{tier.label}</div>
+              <div style={{ display: "inline-block", marginTop: 10, padding: "4px 14px", borderRadius: 3, background: tier.color + "22", border: "1px solid " + tier.color + "66", color: tier.color, fontWeight: 800, fontSize: 13, letterSpacing: 0.2 }}>{tier.label}</div>
             </div>
 
             {/* Score breakdown */}
-            <div style={{ background: T.bg1, borderRadius: 14, padding: 16, marginBottom: 12, border: "1px solid var(--tm-brd)" }}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 12, border: "1px solid var(--tm-brd)" }}>
               <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 10 }}>Détail du score</div>
               {breakdown.rows.map((r, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "4px 0", fontSize: 12.5, borderBottom: "1px solid var(--tm-bg1)" }}>
@@ -3087,7 +3078,7 @@ export default function TennisManager() {
               </div>
             </div>
 
-            <div style={{ background: T.bg1, borderRadius: 14, padding: 16, marginBottom: 12, border: "1px solid var(--tm-brd)", textAlign: "center" }}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 12, border: "1px solid var(--tm-brd)", textAlign: "center" }}>
               <div style={{ color: T.fg, fontSize: 13, lineHeight: 1.5, fontStyle: "italic" }}>
                 {isRetirement
                   ? `Après une longue carrière sur le circuit, ${player.name} décide de prendre une retraite bien méritée. Place à la nouvelle génération !`
@@ -3096,7 +3087,7 @@ export default function TennisManager() {
             </div>
 
             {/* Career records */}
-            <div style={{ background: T.bg1, borderRadius: 14, padding: 16, marginBottom: 12, border: "1px solid var(--tm-brd)" }}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 12, border: "1px solid var(--tm-brd)" }}>
               <div style={{ color: T.amber, fontWeight: 800, fontSize: 13, marginBottom: 12, textAlign: "center" }}><Icon name="chart" size={11} /> Bilan de carrière</div>
               {[
                 { l: "Âge final", v: player.age + " ans", c: T.fg },
@@ -3153,7 +3144,7 @@ export default function TennisManager() {
             </div>
 
             {/* Appearance / theme */}
-            <div style={{ background: T.bg1, borderRadius: 12, padding: 14, border: "1px solid " + T.brd }}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid " + T.brd }}>
               <div style={{ color: T.fg, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Apparence</div>
               <div style={{ color: T.fg4, fontSize: 11, marginBottom: 12, lineHeight: 1.5 }}>
                 Activez ou désactivez le mode sombre. Le réglage est mémorisé.
@@ -3162,20 +3153,20 @@ export default function TennisManager() {
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  background: T.bg2, border: "1px solid " + T.brd2, borderRadius: 10,
+                  background: T.bg2, border: "1px solid " + T.brd2, borderRadius: 3,
                   padding: "12px 14px", cursor: "pointer", fontFamily: T.body,
                 }}
               >
                 <span style={{ color: T.fg, fontSize: 13, fontWeight: 700 }}>Mode sombre</span>
                 <span style={{
-                  position: "relative", width: 44, height: 24, borderRadius: 12, flexShrink: 0,
+                  position: "relative", width: 44, height: 24, borderRadius: 3, flexShrink: 0,
                   background: theme === "dark" ? T.green : T.bg4,
                   border: "1px solid " + (theme === "dark" ? T.green : T.brd2),
                   transition: "background 0.2s, border-color 0.2s",
                 }}>
                   <span style={{
                     position: "absolute", top: 2, left: theme === "dark" ? 22 : 2,
-                    width: 18, height: 18, borderRadius: 9,
+                    width: 18, height: 18, borderRadius: 3,
                     background: "#fff",
                     transition: "left 0.2s",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
@@ -3185,7 +3176,7 @@ export default function TennisManager() {
             </div>
 
             {/* Pages d'aide */}
-            <div style={{ background: T.bg1, borderRadius: 12, padding: 14, border: "1px solid " + T.brd }}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid " + T.brd }}>
               <div style={{ color: T.fg, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Pages d'aide</div>
               <div style={{ color: T.fg4, fontSize: 11, marginBottom: 10, lineHeight: 1.5 }}>
                 L'aide de chaque page s'ouvre à votre première visite, puis reste disponible via le bouton « i » en haut à droite. Vous pouvez la faire réapparaître automatiquement sur toutes les pages.
@@ -3222,7 +3213,7 @@ export default function TennisManager() {
             </div>
 
             {/* Danger zone */}
-            <div style={{ background: T.bg1, borderRadius: 12, padding: 14, border: "1px solid " + T.brd, marginTop: 8 }}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid " + T.brd, marginTop: 8 }}>
               <div style={{ color: T.red, fontWeight: 700, fontSize: 11, letterSpacing: 0.2, textTransform: "none", marginBottom: 8 }}>Zone sensible</div>
               <button
                 style={{ ...styles.btnSecondary, width: "100%", borderColor: T.red, color: T.red }}
@@ -3302,7 +3293,7 @@ export default function TennisManager() {
               </div>
 
               {fr.debrief && (
-                <div style={{ background: T.bg1, borderRadius: 12, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
+                <div style={{ background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
                   <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: "none", letterSpacing: 0.5, fontStyle: "normal" }}><Icon name="mic" size={11} /> Débrief des commentateurs</div>
                   "{fr.debrief}"
                 </div>
@@ -3326,7 +3317,7 @@ export default function TennisManager() {
                   </div>
                 );
                 return (
-                  <div style={{ background: T.bg1, borderRadius: 12, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", textAlign: "left", display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <div style={{ background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", textAlign: "left", display: "flex", gap: 16, flexWrap: "wrap" }}>
                     {table(ms.rr.gLabel, g)}
                     {table(ms.rr.hLabel, h)}
                   </div>
@@ -3334,7 +3325,7 @@ export default function TennisManager() {
               })()}
 
               {pnm.nextOpp && (
-                <div style={{ background: T.bg0, borderRadius: 12, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", textAlign: "left" }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", textAlign: "left" }}>
                   <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, marginBottom: 8, textTransform: "none", letterSpacing: 0.5 }}>Prochain match</div>
                   <div style={{ color: T.fg, fontSize: 14, fontWeight: 700 }}>{nextRoundLabel}</div>
                   <div style={{ color: T.fg3, fontSize: 13, marginTop: 4 }}>
@@ -3426,7 +3417,7 @@ export default function TennisManager() {
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
               <div style={{
-                width: 32, height: 32, borderRadius: 16, flexShrink: 0,
+                width: 32, height: 32, borderRadius: 3, flexShrink: 0,
                 background: T.bg3, border: "1px solid " + T.brd2,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 14, marginTop: 4,
@@ -3532,7 +3523,7 @@ export default function TennisManager() {
               {fr.isTitleWin ? (
                 <div style={{
                   background: "linear-gradient(180deg, var(--tm-amberSub) 0%, rgba(15,23,42,0) 60%)",
-                  borderRadius: 20, padding: "24px 8px 8px", marginBottom: 8,
+                  borderRadius: 3, padding: "24px 8px 8px", marginBottom: 8,
                 }}>
                   <div style={{ animation: "pulse 2s infinite", filter: "none" }}><Icon name="trophy" size={72} color={T.amber} /></div>
                   <div style={{ color: T.amber, fontSize: 11, fontWeight: 900, letterSpacing: 0.2, marginTop: 4 }}>Champion</div>
@@ -3560,7 +3551,7 @@ export default function TennisManager() {
 
               {/* Tournament history (only for big titles with lore) */}
               {fr.isTitleWin && lore && (
-                <div style={{ background: T.bg1, borderRadius: 14, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
+                <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
                   <div style={{ color: T.amber, fontSize: 12, fontWeight: 900, letterSpacing: 0.2, marginBottom: 8, textTransform: "none" }}>Histoire du tournoi</div>
                   <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6, marginBottom: 12 }}>{lore.history}</div>
                   <div style={{ color: T.amber, fontSize: 11, fontWeight: 700, marginBottom: 6 }}><Icon name="trophy" size={11} /> Légendes du tournoi</div>
@@ -3569,7 +3560,7 @@ export default function TennisManager() {
                       • {legend}
                     </div>
                   ))}
-                  <div style={{ marginTop: 12, padding: 10, background: T.bg0, borderRadius: 8, border: "1px solid var(--tm-amber)" }}>
+                  <div style={{ marginTop: 12, padding: 10, background: T.bg0, borderRadius: 3, border: "1px solid var(--tm-amber)" }}>
                     <div style={{ color: T.amber, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>Vainqueur {player.year}</div>
                     <div style={{ color: T.fg, fontSize: 14, fontWeight: 800 }}><FlagFromEmoji emoji={player.nationalityFlag} size={12} /> {player.name}</div>
                     <div style={{ color: T.fg4, fontSize: 11, marginTop: 2 }}>Score final : {fr.finalScore}</div>
@@ -3579,7 +3570,7 @@ export default function TennisManager() {
 
               {/* Generic title celebration if no lore */}
               {fr.isTitleWin && !lore && (
-                <div style={{ background: T.bg1, borderRadius: 14, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
+                <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
                   <div style={{ color: T.amber, fontSize: 12, fontWeight: 900, letterSpacing: 0.2, marginBottom: 8 }}>Palmarès</div>
                   <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
                     Votre nom rejoint désormais la liste des vainqueurs de {tourn.name}. Une belle ligne ajoutée à votre carrière.
@@ -3588,14 +3579,14 @@ export default function TennisManager() {
               )}
 
               {fr.debrief && (
-                <div style={{ background: T.bg1, borderRadius: 12, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
+                <div style={{ background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
                   <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: "none", letterSpacing: 0.5, fontStyle: "normal" }}><Icon name="mic" size={11} /> Débrief des commentateurs</div>
                   "{fr.debrief}"
                 </div>
               )}
 
               {hasProg && (
-                <div style={{ background: T.bg1, borderRadius: 14, padding: 16, marginBottom: 16, border: "1px solid " + (Object.values(prog).some(v => v < 0) ? T.amber : T.green) }}>
+                <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 16, border: "1px solid " + (Object.values(prog).some(v => v < 0) ? T.amber : T.green) }}>
                   <div style={{ color: Object.values(prog).some(v => v < 0) ? T.amber : T.green, fontSize: 14, fontWeight: 800, marginBottom: 12 }}>
                     <Icon name="trending" size={11} /> Bilan du tournoi
                   </div>
@@ -3664,7 +3655,7 @@ export default function TennisManager() {
             }} className="tm-court">
               <div style={styles.vsPlayer}>
                 <div style={{
-                  width: 52, height: 52, borderRadius: 12,
+                  width: 52, height: 52, borderRadius: 3,
                   background: T.greenSub, border: "1px solid " + T.greenBrd,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 28, marginBottom: 6,
@@ -3677,7 +3668,7 @@ export default function TennisManager() {
               <div style={styles.vsVs}>vs</div>
               <div style={styles.vsPlayer}>
                 <div style={{
-                  width: 52, height: 52, borderRadius: 12,
+                  width: 52, height: 52, borderRadius: 3,
                   background: T.bg3, border: "1px solid " + T.brd2,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 28, marginBottom: 6,
@@ -3692,7 +3683,7 @@ export default function TennisManager() {
             {/* Opponent scouting card */}
             <div style={{ ...styles.section, paddingBottom: 8 }}>
               <div style={styles.sectionTitle}><Icon name="search" size={11} /> Scouting adverse</div>
-              <div style={{ background: T.bg1, borderRadius: 12, padding: 14, border: "1px solid var(--tm-brd)" }}>
+              <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid var(--tm-brd)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems: "center" }}>
                   <span style={{ color: T.fg4, fontSize: 12 }}>Style de jeu</span>
                   <span style={{ color: T.fg, fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -3808,7 +3799,7 @@ export default function TennisManager() {
             <div style={{
               margin: "16px 16px 14px",
               background: T.bg1,
-              borderRadius: 12,
+              borderRadius: 3,
               border: "1px solid " + T.brd,
               overflow: "hidden",
               boxShadow: "0 10px 30px var(--tm-shadow)",
@@ -3952,7 +3943,7 @@ export default function TennisManager() {
                   <div style={{ color: T.fg, fontWeight: 700, fontSize: 17, letterSpacing: 0.2 }}>{ms.pendingDilemma.title}</div>
                   <div style={{ color: T.fg3, fontSize: 13, margin: "8px 0 18px", lineHeight: 1.5 }}>{ms.pendingDilemma.desc.replace("{o}", ms.opponent.name)}</div>
                   {ms.pendingDilemma.isMatchFix && (
-                    <div style={{ margin: "-8px 0 16px", padding: "8px 10px", borderRadius: 8, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", color: T.red, fontSize: 11.5, lineHeight: 1.4 }}>
+                    <div style={{ margin: "-8px 0 16px", padding: "8px 10px", borderRadius: 3, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", color: T.red, fontSize: 11.5, lineHeight: 1.4 }}>
                       Truquer un match est passible d'une suspension de 10 à 12 semaines et ruine votre réputation si vous êtes démasqué.
                     </div>
                   )}
@@ -3960,7 +3951,7 @@ export default function TennisManager() {
                     const hasCoach = (player.staff || []).some(s => s.role === "Coach");
                     const prof = getPlayerProfile(ms.opponent.stats);
                     return (
-                      <div style={{ margin: "-8px 0 16px", padding: "8px 10px", borderRadius: 8, background: (hasCoach && ms.pendingDilemma.coachHint) ? T.greenSub : T.bg2, border: "1px solid " + ((hasCoach && ms.pendingDilemma.coachHint) ? T.greenBrd : T.brd), color: (hasCoach && ms.pendingDilemma.coachHint) ? T.green : T.fg4, fontSize: 11.5, lineHeight: 1.4 }}>
+                      <div style={{ margin: "-8px 0 16px", padding: "8px 10px", borderRadius: 3, background: (hasCoach && ms.pendingDilemma.coachHint) ? T.greenSub : T.bg2, border: "1px solid " + ((hasCoach && ms.pendingDilemma.coachHint) ? T.greenBrd : T.brd), color: (hasCoach && ms.pendingDilemma.coachHint) ? T.green : T.fg4, fontSize: 11.5, lineHeight: 1.4 }}>
                         {hasCoach && ms.pendingDilemma.coachHint
                           ? "Rapport du coach : point faible de " + ms.opponent.name + " → " + prof.weakness.label.toLowerCase() + " (" + Math.round(prof.weakness.value) + ")."
                           : hasCoach
@@ -3976,7 +3967,7 @@ export default function TennisManager() {
                       onClick={() => resolveDilemma(opt, ms.pendingDilemma)}
                     >
                       <div style={{
-                        width: 34, height: 34, borderRadius: 8,
+                        width: 34, height: 34, borderRadius: 3,
                         background: T.bg3, border: "1px solid " + T.brd2,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         flexShrink: 0,
@@ -4011,11 +4002,6 @@ export default function TennisManager() {
                   }
                 }
               };
-              const speeds = [
-                { id: "x1", label: "×1" },
-                { id: "x2", label: "×2" },
-                { id: "x4", label: "×4" },
-              ];
               return (
                 <div style={{
                   position: "sticky", bottom: 0, marginTop: "auto", zIndex: 5, flexShrink: 0,
@@ -4050,39 +4036,6 @@ export default function TennisManager() {
                       <span style={{ fontSize: 12, fontWeight: 800, color: running ? T.green : T.amber, letterSpacing: 0.3 }}>
                         {running ? (startCountdown > 0 && ms.eventLog.length === 0 ? "Début dans " + startCountdown + " s" : "Match en cours") : "En pause"}
                       </span>
-                      <span style={{ fontSize: 10, color: T.fg5, textTransform: "none", letterSpacing: 0.8, fontWeight: 700 }}>Vitesse</span>
-                    </div>
-                    <div role="radiogroup" aria-label="Vitesse du match" style={{
-                      display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4,
-                      background: T.bg2, border: "1px solid " + T.brd2, borderRadius: 12, padding: 4,
-                    }}>
-                      {speeds.map(sp => {
-                        const active = matchMode === sp.id;
-                        const locked = sp.id === "x4" && !hasEntitlement("speed_x4");
-                        return (
-                          <button
-                            key={sp.id}
-                            role="radio"
-                            aria-checked={active}
-                            onClick={() => {
-                              if (locked) { notify("Vitesse ×4 incluse dans l'abonnement Premium (Bureau › Boutique)", "info"); return; }
-                              setMatchMode(sp.id); matchModeRef.current = sp.id;
-                              try { localStorage.setItem("tm-match-speed", sp.id); } catch (e) {}
-                            }}
-                            style={{
-                              minHeight: 44, borderRadius: 9, border: "none", cursor: "pointer",
-                              background: active ? T.green : "transparent",
-                              color: active ? T.bg0 : T.fg3,
-                              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
-                              fontFamily: T.body, transition: "background 0.15s, color 0.15s",
-                            }}
-                          >
-                            <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 800, lineHeight: 1, opacity: locked ? 0.45 : 1, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                              {sp.label}{locked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>}
-                            </span>
-                          </button>
-                        );
-                      })}
                     </div>
                   </div>
                 </div>
@@ -4149,7 +4102,7 @@ export default function TennisManager() {
         <div style={styles.topBar}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 11, overflow: "hidden",
+              width: 40, height: 40, borderRadius: 3, overflow: "hidden",
               background: player.avatar ? "transparent" : T.bg2, border: player.avatar ? "none" : "1px solid " + T.brd2, flexShrink: 0,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
@@ -4172,7 +4125,7 @@ export default function TennisManager() {
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             <button onClick={() => setHelpTab(activeTab)} style={{
               background: T.bg1, border: "1px solid " + T.brd2,
-              borderRadius: 12, width: 38, height: 38,
+              borderRadius: 3, width: 38, height: 38,
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer", flexShrink: 0, position: "relative", color: T.fg3,
             }} title="Aide de cette page">
@@ -4185,7 +4138,7 @@ export default function TennisManager() {
               }}
               style={{
               background: T.bg1, border: "1px solid " + T.brd2,
-              borderRadius: 12, width: 38, height: 38,
+              borderRadius: 3, width: 38, height: 38,
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer", flexShrink: 0, position: "relative", color: T.fg3,
             }}
@@ -4196,14 +4149,14 @@ export default function TennisManager() {
                 <span style={{
                   position: "absolute", top: -5, right: -5,
                   background: T.clay, color: T.onAccent,
-                  fontSize: 10, fontWeight: 700, borderRadius: 9, padding: "1px 5px",
+                  fontSize: 10, fontWeight: 700, borderRadius: 3, padding: "1px 5px",
                   fontFamily: T.mono, minWidth: 16, textAlign: "center",
                 }}>{player.unseenTrophies}</span>
               )}
             </button>
             <button onClick={() => setScreen("settings")} style={{
               background: T.bg1, border: "1px solid " + T.brd2,
-              borderRadius: 12, width: 38, height: 38,
+              borderRadius: 3, width: 38, height: 38,
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer", flexShrink: 0, position: "relative", color: T.fg3,
             }} title="Réglages">
@@ -4211,20 +4164,21 @@ export default function TennisManager() {
             </button>
           </div>
         </div>
-        {/* Bandeau ressources : argent + énergie, lisible d'un coup d'œil */}
-        <div style={{ display: "flex", gap: 8, padding: "10px 16px 0" }}>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: T.bg1, border: "1px solid " + T.brd, borderRadius: 12, padding: "8px 12px" }}>
+        {/* Bandeau ressources : argent + énergie, lisible d'un coup d'œil
+            (l'accueil les affiche déjà dans sa manchette). */}
+        {activeTab !== "hub" && <div style={{ display: "flex", gap: 8, padding: "10px 16px 0" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "8px 12px" }}>
             <Icon name="money" size={16} color={player.money >= 0 ? T.green : T.red} />
             <span className="tm-num" style={{ color: T.fg, fontWeight: 600, fontSize: 14 }}>{player.money.toLocaleString()} €</span>
           </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: T.bg1, border: "1px solid " + T.brd, borderRadius: 12, padding: "8px 12px" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "8px 12px" }}>
             <Icon name="energy" size={16} color={player.energy > 60 ? T.green : player.energy > 30 ? T.amber : T.red} />
             <div style={{ flex: 1, height: 6, background: T.bg3, borderRadius: 3, overflow: "hidden" }}>
               <div style={{ width: player.energy + "%", height: "100%", borderRadius: 3, background: player.energy > 60 ? T.green : player.energy > 30 ? T.amber : T.red }} />
             </div>
             <span className="tm-num" style={{ color: T.fg2, fontSize: 12, fontWeight: 600 }}>{player.energy}</span>
           </div>
-        </div>
+        </div>}
         {activeGroup.screens.length > 1 && (
           <div style={styles.subTabs}>
             {activeGroup.screens.map(sc => {
@@ -4245,7 +4199,7 @@ export default function TennisManager() {
               display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
             }}>
               <div onClick={e => e.stopPropagation()} style={{
-                background: T.bg1, border: "1px solid " + T.greenBrd, borderRadius: 16,
+                background: T.bg1, border: "1px solid " + T.greenBrd, borderRadius: 3,
                 padding: 20, maxWidth: 440, width: "100%", maxHeight: "80vh", overflowY: "auto",
               }}>
                 <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 6 }}>Aide</div>
@@ -4261,7 +4215,7 @@ export default function TennisManager() {
             </div>
           )}
           {activeTab === "hub" && player.challenge && <ChallengePanel player={player} atpDb={atpDb} repayDebt={repayDebt} />}
-          {activeTab === "hub" && <HubScreen player={player} advanceWeek={advanceWeek} rating={rating} ranking={ranking} totalPts={totalPts} cancelEnrollment={cancelEnrollment} isAdvancingWeek={isAdvancingWeek} acceptWildcard={acceptWildcard} declineWildcard={declineWildcard} retire={retire} setTournamentDetail={setTournamentDetail} />}
+          {activeTab === "hub" && <HubScreen player={player} news={news} advanceWeek={advanceWeek} rating={rating} ranking={ranking} totalPts={totalPts} cancelEnrollment={cancelEnrollment} isAdvancingWeek={isAdvancingWeek} acceptWildcard={acceptWildcard} declineWildcard={declineWildcard} retire={retire} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "calendar" && <CalendarScreen player={player} ranking={ranking} calFilters={calFilters} setCalFilters={setCalFilters} enrollTournament={enrollTournament} cancelEnrollment={cancelEnrollment} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "travel" && <TravelScreen player={player} travelTo={travelTo} />}
           {activeTab === "prep" && <PrepScreen player={player} doTraining={doTraining} hireStaff={hireStaff} fireStaff={fireStaff} />}
@@ -4308,14 +4262,14 @@ export default function TennisManager() {
         const rankDelta = prev ? prev.endOfYearRanking - r.endOfYearRanking : null;
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 250, padding: 16 }}>
-            <div style={{ background: T.bg1, borderRadius: 16, padding: 22, border: "1px solid " + T.amber, maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 22, border: "1px solid " + T.amber, maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
               <div style={{ textAlign: "center", marginBottom: 16 }}>
                 <div><Icon name="flag" size={44} color={T.green} /></div>
                 <div style={{ color: T.amber, fontWeight: 900, fontSize: 22 }}>Bilan saison {r.year}</div>
                 <div style={{ color: T.fg4, fontSize: 12 }}>Bienvenue dans la saison {r.year + 1} !</div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                <div style={{ background: T.bg0, borderRadius: 10, padding: 12, textAlign: "center", border: "1px solid " + T.brd }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 12, textAlign: "center", border: "1px solid " + T.brd }}>
                   <div style={{ color: T.fg4, fontSize: 11 }}>Classement final</div>
                   <div style={{ color: T.amber, fontWeight: 800, fontSize: 20 }}>#{r.endOfYearRanking}</div>
                   {rankDelta !== null && (
@@ -4324,12 +4278,12 @@ export default function TennisManager() {
                     </div>
                   )}
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 10, padding: 12, textAlign: "center", border: "1px solid " + T.brd }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 12, textAlign: "center", border: "1px solid " + T.brd }}>
                   <div style={{ color: T.fg4, fontSize: 11 }}>Points ATP</div>
                   <div style={{ color: T.green, fontWeight: 800, fontSize: 20 }}>{r.endOfYearPoints}</div>
                 </div>
               </div>
-              <div style={{ background: T.bg0, borderRadius: 10, padding: 12, marginBottom: 12, border: "1px solid " + T.brd }}>
+              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12, border: "1px solid " + T.brd }}>
                 <div style={{ display: "flex", justifyContent: "space-between", color: T.fg3, fontSize: 13, padding: "4px 0", borderBottom: "1px solid " + T.brd }}>
                   <span>Victoires</span><strong style={{ color: T.green }}>{r.wins}</strong>
                 </div>
@@ -4354,10 +4308,10 @@ export default function TennisManager() {
                 const breakdown = computeLegacyBreakdown(player);
                 return (
                   <>
-                    <div style={{ background: T.bg0, borderRadius: 10, padding: 14, marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center" }}>
+                    <div style={{ background: T.bg0, borderRadius: 3, padding: 14, marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center" }}>
                       <div style={{ color: T.fg4, fontSize: 10, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 4 }}>Score de légende</div>
                       <div style={{ color: tier.color, fontWeight: 900, fontSize: 30, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{r.legacyScore.toLocaleString()}</div>
-                      <div style={{ display: "inline-block", marginTop: 6, padding: "2px 10px", borderRadius: 16, background: tier.color + "22", border: "1px solid " + tier.color + "55", color: tier.color, fontWeight: 700, fontSize: 11, letterSpacing: 0.5 }}>{tier.label}</div>
+                      <div style={{ display: "inline-block", marginTop: 6, padding: "2px 10px", borderRadius: 3, background: tier.color + "22", border: "1px solid " + tier.color + "55", color: tier.color, fontWeight: 700, fontSize: 11, letterSpacing: 0.5 }}>{tier.label}</div>
                       {delta !== null && (
                         <div style={{ color: delta > 0 ? T.green : delta < 0 ? T.red : T.fg4, fontSize: 12, fontWeight: 700, marginTop: 8 }}>
                           {delta > 0 ? "↑ +" + delta.toLocaleString() : delta < 0 ? "↓ " + delta.toLocaleString() : "→ 0"} cette saison
@@ -4366,7 +4320,7 @@ export default function TennisManager() {
                     </div>
                     {/* Legacy score breakdown — same rows as the end-of-career
                         reveal, so the player can track how each component grows. */}
-                    <div style={{ background: T.bg0, borderRadius: 10, padding: 12, marginBottom: 12, border: "1px solid " + T.brd }}>
+                    <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12, border: "1px solid " + T.brd }}>
                       <div style={{ color: T.fg4, fontSize: 10, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 8 }}>Détail du score</div>
                       {breakdown.rows.map((row, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 0", borderBottom: i < breakdown.rows.length - 1 ? "1px dashed " + T.brd : "none" }}>
@@ -4404,11 +4358,11 @@ export default function TennisManager() {
         if (!def) return null;
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 14, padding: 20, border: "1px solid " + T.brd2, borderTop: "3px solid " + T.clay, maxWidth: 400, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 3, padding: 20, border: "1px solid " + T.brd2, borderTop: "3px solid " + T.clay, maxWidth: 400, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
               <div className="tm-eyebrow" style={{ color: T.clay, marginBottom: 6 }}>Défi</div>
               <div style={{ color: T.fg, fontSize: 22, fontWeight: 700, fontFamily: T.display, marginBottom: 10 }}>{def.name}</div>
               <div style={{ color: T.fg2, fontSize: 13.5, lineHeight: 1.6, marginBottom: 14 }}>{def.context}</div>
-              <div style={{ background: T.bg2, border: "1px solid " + T.brd, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg2, border: "1px solid " + T.brd, borderRadius: 3, padding: 12, marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.fg, fontWeight: 700 }}><Icon name="target" size={16} color={T.green} /> {def.objectiveLabel}</div>
                 <div style={{ color: T.fg4, fontSize: 12, marginTop: 4, marginLeft: 24 }}>{def.deadlineLabel}</div>
               </div>
@@ -4429,7 +4383,7 @@ export default function TennisManager() {
         const seen = { ...player, challenge: { ...player.challenge, resultSeen: true } };
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 14, padding: 22, border: "1px solid " + T.brd2, borderTop: "3px solid " + (ok ? T.green : T.red), maxWidth: 380, width: "100%", textAlign: "center" }}>
+            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 3, padding: 22, border: "1px solid " + T.brd2, borderTop: "3px solid " + (ok ? T.green : T.red), maxWidth: 380, width: "100%", textAlign: "center" }}>
               <Icon name={ok ? "trophy" : "fail"} size={40} color={ok ? (MEDAL_INFO[res.medal] || {}).color || T.ball : T.red} />
               <div className="tm-eyebrow" style={{ marginTop: 10 }}>{def ? def.name : "Défi"}</div>
               <div style={{ color: T.fg, fontSize: 24, fontWeight: 700, fontFamily: T.display, margin: "4px 0 8px" }}>{ok ? "Défi réussi !" : "Défi échoué"}</div>
@@ -4440,7 +4394,7 @@ export default function TennisManager() {
               ) : (
                 <div style={{ color: T.fg3, fontSize: 13.5, lineHeight: 1.5, marginBottom: 12 }}>{res.reason}</div>
               )}
-              <div style={{ background: T.bg2, border: "1px solid " + T.brd, borderRadius: 10, padding: "8px 12px", marginBottom: 14, textAlign: "left" }}>
+              <div style={{ background: T.bg2, border: "1px solid " + T.brd, borderRadius: 3, padding: "8px 12px", marginBottom: 14, textAlign: "left" }}>
                 {(res.rows || []).map((r, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderBottom: "1px solid " + T.brd }}>
                     <span style={{ minWidth: 0 }}>
@@ -4476,7 +4430,7 @@ export default function TennisManager() {
             padding: 16,
           }}>
             <div className="tm-fade-up" style={{
-              background: T.bg1, borderRadius: 14, padding: 20,
+              background: T.bg1, borderRadius: 3, padding: 20,
               border: "1px solid " + T.brd2, borderTop: "3px solid " + T.ball,
               maxWidth: 380, width: "100%",
               boxShadow: "0 10px 30px var(--tm-shadow)",
@@ -4507,7 +4461,7 @@ export default function TennisManager() {
                   <button key={i} onClick={() => resolveLifeEvent(opt)} style={{
                     width: "100%", padding: "12px 14px",
                     background: T.bg2, border: "1px solid " + T.brd2,
-                    borderRadius: 10, color: T.fg, textAlign: "left",
+                    borderRadius: 3, color: T.fg, textAlign: "left",
                     cursor: "pointer", marginBottom: 8, fontFamily: T.body,
                     fontSize: 13,
                   }}>
@@ -4608,7 +4562,7 @@ export default function TennisManager() {
               {claimableCount > 0 && (
                 <div style={{
                   margin: "12px 16px 0",
-                  padding: 12, borderRadius: 10,
+                  padding: 12, borderRadius: 3,
                   background: "linear-gradient(135deg, var(--tm-greenSub), var(--tm-amberSub))",
                   border: "1px solid " + T.green,
                   display: "flex", alignItems: "center", gap: 10,
@@ -4624,7 +4578,7 @@ export default function TennisManager() {
                   </div>
                   <button onClick={claimAll} style={{
                     background: T.green, color: T.bg0, border: "none",
-                    borderRadius: 8, padding: "8px 14px",
+                    borderRadius: 3, padding: "8px 14px",
                     fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: "none",
                     cursor: "pointer",
                   }}>Tout réclamer</button>
@@ -4654,7 +4608,7 @@ export default function TennisManager() {
                         return (
                           <div key={t.id} style={{
                             background: isUnlocked ? T.bg1 : T.bg2,
-                            borderRadius: 10, padding: 12, marginBottom: 8,
+                            borderRadius: 3, padding: 12, marginBottom: 8,
                             border: "1px solid " + (isUnlocked ? "var(--tm-amberSub)" : T.brd),
                             borderLeft: "3px solid " + (isUnlocked ? rarity.color : T.brd2),
                             opacity: isUnlocked ? 1 : 0.65,
@@ -4663,7 +4617,7 @@ export default function TennisManager() {
                             boxShadow: isUnlocked ? "0 2px 12px " + rarity.glow : "none",
                           }}>
                             <div style={{
-                              width: 40, height: 40, borderRadius: 10,
+                              width: 40, height: 40, borderRadius: 3,
                               background: isUnlocked ? "var(--tm-amberSub)" : T.bg3,
                               border: "1px solid " + (isUnlocked ? rarity.color : T.brd2),
                               display: "flex", alignItems: "center", justifyContent: "center",
@@ -4752,7 +4706,7 @@ export default function TennisManager() {
             padding: 16, zIndex: 300,
           }} onClick={() => setConfirmCancelSponsor(null)}>
             <div onClick={e => e.stopPropagation()} style={{
-              background: T.bg1, borderRadius: 14, padding: 22,
+              background: T.bg1, borderRadius: 3, padding: 22,
               border: "1px solid " + T.red, borderTop: "3px solid " + T.red,
               maxWidth: 340, width: "100%",
               boxShadow: "0 10px 30px var(--tm-shadow)",
@@ -4791,7 +4745,7 @@ export default function TennisManager() {
             padding: 16, zIndex: 300,
           }} onClick={() => setSponsorReplaceModal(null)}>
             <div onClick={e => e.stopPropagation()} style={{
-              background: T.bg1, borderRadius: 14, padding: 22,
+              background: T.bg1, borderRadius: 3, padding: 22,
               border: "1px solid " + T.ball, borderTop: "3px solid " + T.ball,
               maxWidth: 400, width: "100%",
               boxShadow: "0 10px 30px var(--tm-shadow)",
@@ -4815,14 +4769,14 @@ export default function TennisManager() {
                     style={{
                       width: "100%", textAlign: "left",
                       background: T.bg2, border: "1px solid " + T.brd2,
-                      borderRadius: 10, padding: 12, marginBottom: 8,
+                      borderRadius: 3, padding: 12, marginBottom: 8,
                       cursor: canAfford ? "pointer" : "not-allowed",
                       opacity: canAfford ? 1 : 0.5,
                       display: "flex", alignItems: "center", gap: 10,
                     }}
                   >
                     <div style={{
-                      width: 28, height: 28, borderRadius: 14,
+                      width: 28, height: 28, borderRadius: 3,
                       background: T.red,
                       color: T.fg, fontWeight: 800, fontSize: 14,
                       display: "flex", alignItems: "center", justifyContent: "center",
@@ -4867,7 +4821,7 @@ export default function TennisManager() {
         const playerIsSeed = entry.status === "direct" && fmt.byeSeeds > 0 && ranking <= fmt.byeSeeds;
         return (
           <div style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400, padding: 16 }} onClick={() => setTournamentDetail(null)}>
-            <div style={{ background: T.bg1, borderRadius: 16, padding: 20, border: "1px solid " + tierColor(t.tier), maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 20, border: "1px solid " + tierColor(t.tier), maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ color: tierColor(t.tier), fontSize: 11, fontWeight: 800, letterSpacing: 0.2, textTransform: "none" }}>{tierLabel(t.tier)}</div>
@@ -4878,25 +4832,25 @@ export default function TennisManager() {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                <div style={{ background: T.bg0, borderRadius: 8, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Surface</div>
                   <div style={{ color: T.fg, fontWeight: 700 }}><SurfaceIcon name={t.surface} /> {t.surface}</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 8, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Semaine</div>
                   <div style={{ color: T.fg, fontWeight: 700 }}>S{t.week}</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 8, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Prize money total</div>
                   <div style={{ color: T.green, fontWeight: 700 }}>{t.prize.toLocaleString()}€</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 8, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Points (vainqueur)</div>
                   <div style={{ color: T.amber, fontWeight: 700 }}>{t.points} pts</div>
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 6 }}><Icon name="clipboard" size={11} /> Format</div>
                 <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
                   Tableau principal : <strong>{fmt.drawSize} joueurs</strong><br />
@@ -4911,7 +4865,7 @@ export default function TennisManager() {
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 6 }}><Icon name="target" size={11} /> Critères d'accès</div>
                 <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
                   Entrée directe : <strong>top {fmt.directCut}</strong> ATP<br />
@@ -4919,7 +4873,7 @@ export default function TennisManager() {
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 6 }}><Icon name="user" size={12} /> Votre situation</div>
                 <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.7 }}>
                   Votre classement : <strong>#{ranking}</strong><br />
@@ -4951,7 +4905,7 @@ export default function TennisManager() {
         const statLabels = { serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" };
         return (
           <div style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16 }} onClick={() => setAtpPlayerDetail(null)}>
-            <div style={{ background: T.bg1, borderRadius: 16, padding: 20, border: "1px solid var(--tm-green)", maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: T.bg1, borderRadius: 3, padding: 20, border: "1px solid var(--tm-green)", maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ color: T.green, fontSize: 11, fontWeight: 800, letterSpacing: 0.2, textTransform: "none" }}>Classement #{adjustedRank}</div>
@@ -4962,25 +4916,25 @@ export default function TennisManager() {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                <div style={{ background: T.bg0, borderRadius: 8, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Points ATP</div>
                   <div style={{ color: T.amber, fontWeight: 700, fontSize: 16 }}>{p.points.toLocaleString()}</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 8, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Âge</div>
                   <div style={{ color: T.fg, fontWeight: 700, fontSize: 16 }}>{p.age || "—"} ans</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 8, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Côte globale</div>
                   <div style={{ color: T.fg, fontWeight: 700, fontSize: 16 }}>{getRating(p.stats)}</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 8, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Win rate (saison)</div>
                   <div style={{ color: T.green, fontWeight: 700, fontSize: 16 }}>{winRate}%</div>
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 8 }}><Icon name="chart" size={11} /> Saison en cours</div>
                 <div style={{ display: "flex", justifyContent: "space-between", color: T.fg4, fontSize: 12, padding: "3px 0" }}>
                   <span>Victoires</span><strong style={{ color: T.green }}>{p.seasonWins}</strong>
@@ -4996,7 +4950,7 @@ export default function TennisManager() {
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 8 }}><Icon name="target" size={11} /> Profil</div>
                 <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
                   Point fort : <strong style={{ color: T.green }}>{profile.strength.label} ({Math.round(profile.strength.value)})</strong><br />
@@ -5004,7 +4958,7 @@ export default function TennisManager() {
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 8 }}><Icon name="trending" size={11} /> Compétences</div>
                 {Object.entries(p.stats).map(([k, v]) => (
                   <div key={k} style={{ marginBottom: 6 }}>
@@ -5019,7 +4973,7 @@ export default function TennisManager() {
                 ))}
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 8 }}>Derniers résultats</div>
                 {p.recentResults && p.recentResults.length > 0 ? (
                   p.recentResults.slice(0, 6).map((r, i) => (

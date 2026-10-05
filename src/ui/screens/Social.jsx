@@ -49,13 +49,13 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
                      : T.fg4;
     return (
       <div key={p.id} className="tm-fade-up" style={{
-        background: T.bg1, borderRadius: 12, padding: 14, marginBottom: 8,
+        background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 8,
         border: "1px solid " + T.brd,
       }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
           <div style={{
-            width: 38, height: 38, borderRadius: 19, flexShrink: 0,
+            width: 38, height: 38, borderRadius: 3, flexShrink: 0,
             background: T.bg3, border: "1px solid " + T.brd2,
             display: "flex", alignItems: "center", justifyContent: "center",
             color: typeColor, fontWeight: 800, fontSize: 14,
@@ -130,7 +130,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
                   onClick={() => handleReply(p.id, opt)}
                   style={{
                     background: T.bg2, border: "1px solid " + T.brd2,
-                    borderRadius: 10, padding: "8px 12px",
+                    borderRadius: 3, padding: "8px 12px",
                     color: T.fg, fontSize: 12, fontFamily: T.body,
                     textAlign: "left", cursor: "pointer",
                   }}
@@ -144,7 +144,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
         {p.repliedWith && (
           <div style={{
             marginTop: 12, marginLeft: 48, paddingTop: 10, borderTop: "1px solid " + T.brd,
-            background: T.bg2, borderRadius: 8, padding: "8px 12px",
+            background: T.bg2, borderRadius: 3, padding: "8px 12px",
             color: T.fg3, fontSize: 12, fontStyle: "italic",
           }}>
             Votre réponse : « {p.repliedWith} »
@@ -161,7 +161,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
       {/* Feed switcher */}
       <div style={{
         display: "flex", gap: 0, marginBottom: 14,
-        borderRadius: 10, overflow: "hidden",
+        borderRadius: 3, overflow: "hidden",
         border: "1px solid " + T.brd2,
       }}>
         <button
@@ -190,7 +190,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
 
       {filtered.length === 0 ? (
         <div style={{
-          background: T.bg1, borderRadius: 12, padding: 32, textAlign: "center",
+          background: T.bg1, borderRadius: 3, padding: 32, textAlign: "center",
           color: T.fg5, fontSize: 12, border: "1px dashed " + T.brd2,
         }}>
           {activeFeed === "personal"

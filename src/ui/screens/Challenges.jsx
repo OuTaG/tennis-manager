@@ -63,7 +63,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
             <div style={{ color: T.fg, fontSize: 22, fontWeight: 700, fontFamily: T.display, marginBottom: 4 }}>{def.name}</div>
             <div style={{ color: T.fg3, fontSize: 13, marginBottom: 14 }}>{def.tagline}</div>
             <div style={{ color: T.fg2, fontSize: 13.5, lineHeight: 1.6, marginBottom: 14 }}>{def.context}</div>
-            <div style={{ background: T.bg2, border: "1px solid " + T.brd, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+            <div style={{ background: T.bg2, border: "1px solid " + T.brd, borderRadius: 3, padding: 12, marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.fg, fontWeight: 700, fontSize: 14 }}>
                 <Icon name="target" size={16} color={T.green} /> {def.objectiveLabel}
               </div>
@@ -89,7 +89,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               <input style={{ ...styles.input, flex: 1, minWidth: 0 }} value={name} onChange={e => setName(e.target.value)} />
               <button type="button" title="Nom au hasard" onClick={() => setName(randomFullName(nat, circuit === "wta"))}
-                style={{ flexShrink: 0, width: 46, borderRadius: 10, cursor: "pointer", background: T.bg2, border: "1px solid " + T.greenBrd, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                style={{ flexShrink: 0, width: 46, borderRadius: 3, cursor: "pointer", background: T.bg2, border: "1px solid " + T.greenBrd, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Icon name="dice" size={20} color={T.green} />
               </button>
             </div>

@@ -52,7 +52,7 @@ export function TrainingScreen({ player, doTraining }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                   <div style={{
-                    width: 36, height: 36, borderRadius: 10,
+                    width: 36, height: 36, borderRadius: 3,
                     background: T.bg3, border: "1px solid " + T.brd2,
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
@@ -146,7 +146,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
       <div style={styles.sectionTitle}>Staff</div>
 
       <div style={{
-        background: T.bg1, borderRadius: 10, padding: 14, marginBottom: 16,
+        background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 16,
         border: "1px solid " + T.brd, display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <div>
@@ -167,7 +167,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
             <div className="tm-eyebrow" style={{ marginBottom: 10 }}>{role}</div>
             {hired ? (
               <div style={{
-                background: T.greenSub, borderRadius: 10, padding: 14,
+                background: T.greenSub, borderRadius: 3, padding: 14,
                 border: "1px solid " + T.greenBrd, borderLeft: "3px solid " + T.green,
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
@@ -196,7 +196,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
                 const canAfford = player.money >= s.cost * 4;
                 return (
                   <div key={s.id} style={{
-                    background: T.bg1, borderRadius: 10, padding: 14, marginBottom: 6,
+                    background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 6,
                     border: "1px solid " + T.brd,
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>

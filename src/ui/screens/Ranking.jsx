@@ -211,7 +211,7 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
           return (
             <div key={"me-" + row.rank} className="tm-fade-up" style={{
               background: T.greenSub,
-              borderRadius: 10, padding: "12px 14px", marginBottom: 4,
+              borderRadius: 3, padding: "12px 14px", marginBottom: 4,
               border: "1px solid " + T.greenBrd,
               borderLeft: "3px solid " + T.green,
               display: "flex", alignItems: "center",

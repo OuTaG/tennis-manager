@@ -101,7 +101,7 @@ export function TravelScreen({ player, travelTo }) {
       <div style={styles.sectionTitle}>Voyager</div>
 
       <div style={{
-        background: T.bg1, borderRadius: 12, padding: 16, marginBottom: 14,
+        background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 14,
         border: "1px solid " + T.brd, borderLeft: "3px solid " + T.green,
       }}>
         <div className="tm-eyebrow" style={{ marginBottom: 4 }}>Position actuelle</div>
@@ -145,7 +145,7 @@ export function TravelScreen({ player, travelTo }) {
             const canAfford = player.money >= c.cost;
             return (
               <div key={c.name} style={{
-                background: T.bg1, borderRadius: 8, padding: "12px 14px",
+                background: T.bg1, borderRadius: 3, padding: "12px 14px",
                 marginBottom: 6, border: "1px solid " + T.brd,
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 opacity: isHere ? 0.5 : 1,
