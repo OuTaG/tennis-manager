@@ -2633,7 +2633,7 @@ export default function TennisManager() {
             }}>
               <Icon name="racquet" size={40} color={T.green} strokeWidth={1.6} />
             </div>
-            <h1 style={styles.menuTitle}>Tennis Manager</h1>
+            <h1 style={styles.menuTitle}>Courtside</h1>
             <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "20px 0 18px" }}>
               <div style={{ flex: 1, height: 1, background: T.brd2 }} />
               <Icon name="ball" size={14} color={T.ball} />

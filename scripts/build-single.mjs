@@ -5,7 +5,7 @@ import { build } from "esbuild";
 import { readFileSync } from "node:fs";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url)));
-const out = process.argv[2] || "dist/TM_Mobile_single.jsx";
+const out = process.argv[2] || "dist/Courtside_single.jsx";
 
 await build({
   entryPoints: ["src/App.jsx"],
@@ -16,7 +16,7 @@ await build({
   outfile: out,
   charset: "utf8",
   legalComments: "none",
-  banner: { js: "// Tennis Manager v" + pkg.version + " — fichier unique généré depuis src/ (npm run build:single). Ne pas modifier à la main." },
+  banner: { js: "// Courtside v" + pkg.version + " — fichier unique généré depuis src/ (npm run build:single). Ne pas modifier à la main." },
   logLevel: "info",
 });
 

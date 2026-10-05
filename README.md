@@ -1,4 +1,4 @@
-# Tennis Manager
+# Courtside
 
 Jeu de gestion de carrière de tennis (mobile), en React.
 
@@ -13,7 +13,7 @@ npm run build          # version web de production (dossier dist/)
 npm run build:single   # un seul fichier .jsx pour l'aperçu dans Claude
 ```
 
-`npm run build:single` produit `dist/TM_Mobile_single.jsx` : tout le jeu en un
+`npm run build:single` produit `dist/Courtside_single.jsx` : tout le jeu en un
 fichier, comme avant le découpage. Il est **généré** : on modifie toujours
 `src/`, jamais ce fichier.
 
