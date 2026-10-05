@@ -29,7 +29,7 @@ import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
 import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
-import { AVATAR_OPTIONS, Avatar, AvatarBuilder, avatarTone, femaleHairStyle } from "./ui/avatar.jsx";
+import { AVATAR_OPTIONS, Avatar, AvatarBuilder, femaleHairStyle } from "./ui/avatar.jsx";
 import { rankingName } from "./ui/format.js";
 import { FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
@@ -2616,27 +2616,21 @@ export default function TennisManager() {
       <div style={styles.menuBg} className="tm-grain">
         <div style={styles.menuCard}>
           <div style={{ position: "relative", zIndex: 2, width: "100%", textAlign: "center" }}>
-            <div style={{
-              width: 76, height: 76, margin: "4px auto 16px", borderRadius: 24,
-              background: T.greenSub, border: "1px solid " + T.greenBrd,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transform: "rotate(-6deg)",
-            }}>
-              <Icon name="racquet" size={40} color={T.green} strokeWidth={1.6} />
-            </div>
+            {/* Balle de tennis dessinée à l'encre */}
+            <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true" style={{ display: "block", margin: "4px auto 14px", transform: "rotate(-12deg)" }}>
+              <circle cx="36" cy="36" r="31" fill="#e8f23a" stroke="#161616" strokeWidth="4" />
+              <path d="M12 16 Q30 36 12 58 M60 16 Q42 36 60 58" fill="none" stroke="#161616" strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M22 10 Q28 8 32 9" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+            </svg>
             <h1 style={styles.menuTitle}>Courtside</h1>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "20px 0 18px" }}>
-              <div style={{ flex: 1, height: 1, background: T.brd2 }} />
-              <Icon name="ball" size={14} color={T.ball} />
-              <div style={{ flex: 1, height: 1, background: T.brd2 }} />
-            </div>
+            <div className="tm-lettering" style={{ display: "inline-block", margin: "16px 0 14px", background: T.gold, color: "#161616", border: "2.5px solid " + T.ink, padding: "2px 10px", fontSize: 16 }}>La gazette de votre carrière</div>
             <p style={styles.menuTagline}>Entraînez-vous, voyagez, signez vos sponsors et grimpez au classement, semaine après semaine.</p>
             {[0, 1, 2].map(i => {
               const meta = slotMetas[i];
               const locked = i > 0 && !multiOwned;
               if (meta) {
                 return (
-                  <div key={i} style={{ background: T.bg2, border: "1px solid " + T.brd2, borderRadius: 3, padding: 12, marginBottom: 10, textAlign: "left" }}>
+                  <div key={i} style={{ background: T.bg1, border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: 12, marginBottom: 12, textAlign: "left" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                       <div className="tm-num" style={{ color: T.fg5, fontSize: 11, width: 14 }}>{i + 1}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -2678,7 +2672,7 @@ export default function TennisManager() {
             })}
             <button style={{
               ...styles.btnPrimary, marginTop: 6, marginBottom: 3,
-              background: T.clay, boxShadow: "0 3px 0 " + avatarTone("#b95d38", -0.3),
+              background: T.cyan,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }} onClick={() => setScreen("challenges")}>
               <Icon name="target" size={16} color={T.onAccent} /> Défis
@@ -2691,7 +2685,7 @@ export default function TennisManager() {
             <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setMenuShop(true)}>
               <Icon name="bag" size={16} color={T.amber} /> Boutique
             </button>
-            <p style={{ color: T.fg5, fontSize: 12, marginTop: 22, fontFamily: T.mono }}>v3.0</p>
+            <p style={{ color: T.fg4, fontSize: 12, marginTop: 22, fontWeight: 700 }}>v3.0</p>
           </div>
         </div>
       </div>
@@ -3777,13 +3771,13 @@ export default function TennisManager() {
           <div style={{ ...styles.screen, height: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))", minHeight: 0, overflowY: "auto" }}>
             <div style={{
               ...styles.header,
-              background: T.bg1,
+              background: "transparent", borderBottom: "3px solid " + T.ink,
               alignItems: "stretch",
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="tm-eyebrow" style={{ color: tierColor(tourn.tier), marginBottom: 2 }}>LIVE · {tierLabel(tourn.tier)}</div>
-                <div style={{ color: T.fg, fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tourn.name}</div>
-                <div style={{ color: T.fg3, fontSize: 11, marginTop: 2 }}>{roundName}</div>
+                <div style={{ display: "inline-block", background: T.magenta, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", marginBottom: 4, textTransform: "uppercase" }}>En direct · {tierLabel(tourn.tier)}</div>
+                <div className="tm-display" style={{ color: T.fg, fontSize: 18, lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tourn.name}</div>
+                <div style={{ color: T.fg, fontSize: 11.5, fontWeight: 700, marginTop: 2 }}>{roundName}</div>
               </div>
               <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
                 <div style={{ ...styles.momentumChip, color: m.playerMomentum > 0 ? T.green : m.playerMomentum < 0 ? T.red : T.fg3 }} title="Momentum : élan psychologique.">
@@ -3799,19 +3793,17 @@ export default function TennisManager() {
             <div style={{
               margin: "16px 16px 14px",
               background: T.bg1,
-              borderRadius: 3,
-              border: "1px solid " + T.brd,
+              border: "3px solid " + T.ink,
               overflow: "hidden",
-              boxShadow: "0 10px 30px var(--tm-shadow)",
+              boxShadow: "5px 5px 0 " + T.ink,
             }}>
               <div style={{
-                background: T.bg2,
-                padding: "8px 16px",
+                background: T.ink, color: T.paper,
+                padding: "6px 16px",
                 display: "flex",
                 alignItems: "center",
-                borderBottom: "1px solid " + T.brd,
               }}>
-                <span style={{ flex: 1, color: T.fg5, fontSize: 9, fontWeight: 700, letterSpacing: 0.2, textTransform: "none" }}>Joueur</span>
+                <span style={{ flex: 1, color: T.paper, fontSize: 9.5, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase" }}>Joueur</span>
                 {setsPlayed.map((_, i) => (
                   <span key={i} style={{
                     width: 42, textAlign: "center",
@@ -3850,15 +3842,15 @@ export default function TennisManager() {
                 return (
                 <div key={ri} style={{
                   display: "flex", alignItems: "center", padding: "14px 16px",
-                  borderTop: ri === 1 ? "1px solid " + T.brd : "none",
-                  background: row.isP ? T.greenSub : "transparent",
+                  borderTop: ri === 1 ? "2px solid " + T.ink : "none",
+                  background: row.isP ? "transparent" : "transparent",
                 }}>
                   <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                     {/* Tennis-ball glyph in front of the current server */}
                     <span style={{
                       width: 14, height: 14, borderRadius: 7, flexShrink: 0,
-                      background: isServing ? T.ball : "transparent",
-                      border: isServing ? "1px solid " + T.ball : "1px dashed " + T.brd2,
+                      background: isServing ? "#e8f23a" : "transparent",
+                      border: isServing ? "2px solid " + T.ink : "1px dashed " + T.brd2,
                       boxShadow: "none",
                       position: "relative",
                       transition: "all 0.25s",
@@ -3884,10 +3876,10 @@ export default function TennisManager() {
                     return (
                       <span key={i} style={{
                         width: 42, textAlign: "center",
-                        fontSize: 26, fontWeight: 800,
-                        fontFamily: T.mono, fontVariantNumeric: "tabular-nums",
-                        letterSpacing: -1, lineHeight: 1,
-                        color: !s.completed ? T.amber : (won ? T.fg : T.fg4),
+                        fontSize: 26, fontWeight: 400,
+                        fontFamily: T.display, fontVariantNumeric: "tabular-nums",
+                        letterSpacing: -0.5, lineHeight: 1,
+                        color: !s.completed ? T.magenta : (won ? T.fg : T.fg4),
                       }}>{display}{tbSup}</span>
                     );
                   })}
@@ -3895,10 +3887,10 @@ export default function TennisManager() {
                   <span style={{
                     width: 48, textAlign: "center",
                     fontSize: livePoint ? (((row.isP ? livePoint.p : livePoint.o) || "").length > 2 ? 16 : 22) : 18,
-                    fontWeight: 800, fontFamily: T.mono, fontVariantNumeric: "tabular-nums",
-                    letterSpacing: -0.5, lineHeight: 1,
-                    color: livePoint ? T.ball : T.fg5,
-                    borderLeft: "1px solid " + T.brd, marginLeft: 4, paddingLeft: 4,
+                    fontWeight: 400, fontFamily: T.display, fontVariantNumeric: "tabular-nums",
+                    letterSpacing: -0.3, lineHeight: 1,
+                    color: livePoint ? T.blue : T.fg5,
+                    borderLeft: "2px solid " + T.ink, marginLeft: 4, paddingLeft: 4,
                     textShadow: "none",
                     transition: "color 0.2s, font-size 0.15s",
                   }}>{livePoint ? (row.isP ? livePoint.p : livePoint.o) : "—"}</span>
@@ -4016,12 +4008,12 @@ export default function TennisManager() {
                     onClick={togglePause}
                     aria-label={running ? "Mettre en pause" : "Reprendre le match"}
                     style={{
-                      width: 58, height: 58, borderRadius: 29, flexShrink: 0,
-                      border: "none", cursor: "pointer",
-                      background: running ? T.bg3 : T.green,
-                      color: running ? T.fg : T.bg0,
+                      width: 58, height: 58, borderRadius: 0, flexShrink: 0,
+                      border: "3px solid " + T.ink, cursor: "pointer",
+                      background: running ? T.bg1 : T.magenta,
+                      color: running ? T.fg : "#ffffff",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: running ? "inset 0 0 0 1px " + T.brd2 : "0 0 0 4px " + T.greenSub + ", 0 6px 18px var(--tm-shadow)",
+                      boxShadow: "4px 4px 0 " + T.ink,
                       transition: "background 0.15s, box-shadow 0.15s",
                     }}
                   >
@@ -4100,85 +4092,52 @@ export default function TennisManager() {
       )}
       <div style={styles.screen}>
         <div style={styles.topBar}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 3, overflow: "hidden",
-              background: player.avatar ? "transparent" : T.bg2, border: player.avatar ? "none" : "1px solid " + T.brd2, flexShrink: 0,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              {player.avatar
-                ? <Avatar config={player.avatar} size={40} />
-                : <Icon name="racquet" size={20} color={T.green} />}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ color: T.fg, fontWeight: 600, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{player.name}</div>
-              <div style={{ color: T.fg4, fontSize: 12, marginTop: 1, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }}>
-                <span className="tm-num" style={{ color: T.green, fontWeight: 600 }}>#{ranking}</span>
-                <span>·</span>
-                <span>Sem. {player.week}</span>
-                <span>·</span>
-                <FlagFromEmoji emoji={CITIES[player.location]?.flag} size={9} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{player.location}</span>
-              </div>
+          {/* Manchette de la gazette : logo, aide, trophées, réglages */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <div className="tm-display" style={{ fontSize: 26, lineHeight: 0.9, background: T.ink, color: T.gold, padding: "4px 10px 6px", transform: "rotate(-2deg)" }}>Courtside</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[
+                { key: "help", label: "Aide de cette page", onClick: () => setHelpTab(activeTab), icon: "info", bg: T.bg1 },
+                { key: "trophies", label: "Trophées", onClick: () => {
+                  setShowHallOfFame(true);
+                  if ((player.unseenTrophies || 0) > 0) setPlayer(p => ({ ...p, unseenTrophies: 0 }));
+                }, icon: "trophy", bg: T.gold, badge: player.unseenTrophies || 0 },
+                { key: "settings", label: "Réglages", onClick: () => setScreen("settings"), icon: "cog", bg: T.bg1 },
+              ].map(b => (
+                <button key={b.key} onClick={b.onClick} aria-label={b.label} title={b.label} style={{
+                  width: 42, height: 42, position: "relative", cursor: "pointer",
+                  background: b.bg, border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center", color: b.key === "trophies" ? "#161616" : T.fg,
+                }}>
+                  <Icon name={b.icon} size={19} strokeWidth={2.2} />
+                  {b.badge > 0 && (
+                    <span style={{
+                      position: "absolute", top: -8, right: -8,
+                      background: T.magenta, color: "#ffffff", border: "2px solid " + T.ink,
+                      fontSize: 10, fontWeight: 800, padding: "0 4px", minWidth: 18, textAlign: "center",
+                    }}>{b.badge}</span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button onClick={() => setHelpTab(activeTab)} style={{
-              background: T.bg1, border: "1px solid " + T.brd2,
-              borderRadius: 3, width: 38, height: 38,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", flexShrink: 0, position: "relative", color: T.fg3,
-            }} title="Aide de cette page">
-              <Icon name="info" size={18} />
-            </button>
-            <button
-              onClick={() => {
-                setShowHallOfFame(true);
-                if ((player.unseenTrophies || 0) > 0) setPlayer(p => ({ ...p, unseenTrophies: 0 }));
-              }}
-              style={{
-              background: T.bg1, border: "1px solid " + T.brd2,
-              borderRadius: 3, width: 38, height: 38,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", flexShrink: 0, position: "relative", color: T.fg3,
-            }}
-              title="Trophées"
-            >
-              <Icon name="trophy" size={18} color={T.ball} />
-              {(player.unseenTrophies || 0) > 0 && (
-                <span style={{
-                  position: "absolute", top: -5, right: -5,
-                  background: T.clay, color: T.onAccent,
-                  fontSize: 10, fontWeight: 700, borderRadius: 3, padding: "1px 5px",
-                  fontFamily: T.mono, minWidth: 16, textAlign: "center",
-                }}>{player.unseenTrophies}</span>
-              )}
-            </button>
-            <button onClick={() => setScreen("settings")} style={{
-              background: T.bg1, border: "1px solid " + T.brd2,
-              borderRadius: 3, width: 38, height: 38,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", flexShrink: 0, position: "relative", color: T.fg3,
-            }} title="Réglages">
-              <Icon name="cog" size={18} />
-            </button>
+          {/* Ligne du joueur, entre deux traits d'encre */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, borderTop: "2.5px solid " + T.ink, borderBottom: "2.5px solid " + T.ink, padding: "4px 0", minWidth: 0 }}>
+            <div style={{ width: 30, height: 30, flexShrink: 0, overflow: "hidden" }}>
+              {player.avatar ? <Avatar config={player.avatar} size={30} /> : <Icon name="racquet" size={18} color={T.fg} />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 6, whiteSpace: "nowrap", overflow: "hidden" }}>
+              <span style={{ fontWeight: 800, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", textTransform: "uppercase" }}>{player.name}</span>
+              <span className="tm-num" style={{ fontSize: 12, fontWeight: 800, color: T.blue }}>#{ranking}</span>
+            </div>
+            <div className="tm-num" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap" }}>
+              <span>S{player.week}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><FlagFromEmoji emoji={CITIES[player.location]?.flag} size={9} />{player.location}</span>
+              <span style={{ color: player.money >= 0 ? T.fg : T.red }}>{Math.round(player.money).toLocaleString("fr-FR")} €</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 2, color: player.energy > 60 ? T.green : player.energy > 30 ? T.amber : T.red }}><Icon name="energy" size={12} />{Math.round(player.energy)}</span>
+            </div>
           </div>
         </div>
-        {/* Bandeau ressources : argent + énergie, lisible d'un coup d'œil
-            (l'accueil les affiche déjà dans sa manchette). */}
-        {activeTab !== "hub" && <div style={{ display: "flex", gap: 8, padding: "10px 16px 0" }}>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "8px 12px" }}>
-            <Icon name="money" size={16} color={player.money >= 0 ? T.green : T.red} />
-            <span className="tm-num" style={{ color: T.fg, fontWeight: 600, fontSize: 14 }}>{player.money.toLocaleString()} €</span>
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "8px 12px" }}>
-            <Icon name="energy" size={16} color={player.energy > 60 ? T.green : player.energy > 30 ? T.amber : T.red} />
-            <div style={{ flex: 1, height: 6, background: T.bg3, borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ width: player.energy + "%", height: "100%", borderRadius: 3, background: player.energy > 60 ? T.green : player.energy > 30 ? T.amber : T.red }} />
-            </div>
-            <span className="tm-num" style={{ color: T.fg2, fontSize: 12, fontWeight: 600 }}>{player.energy}</span>
-          </div>
-        </div>}
         {activeGroup.screens.length > 1 && (
           <div style={styles.subTabs}>
             {activeGroup.screens.map(sc => {
@@ -4245,8 +4204,8 @@ export default function TennisManager() {
                   style={{ ...styles.navBtn, ...(isActive ? styles.navBtnActive : {}) }}
                   onClick={() => setActiveTab(isActive ? activeTab : (lastScreenByGroup.current[g.id] || g.screens[0].id))}
                 >
-                  <Icon name={g.icon} size={22} color={isActive ? T.green : T.fg4} strokeWidth={isActive ? 2 : 1.7} />
-                  <span style={{ fontSize: 11, fontWeight: isActive ? 600 : 500 }}>{g.label}</span>
+                  <Icon name={g.icon} size={20} color={isActive ? "#161616" : T.fg} strokeWidth={2.1} />
+                  <span style={{ fontSize: 10.5, fontWeight: 800 }}>{g.label}</span>
                 </button>
               );
             })}

@@ -8,8 +8,16 @@ const absWeek = (y, w) => (y || 0) * 52 + (w || 0);
 // Article principal, du plus important au plus banal :
 // blessure qui empêche de jouer, titre, finale perdue, exploit, élimination
 // récente, tournoi à venir, puis un papier sur le classement.
-// Renvoie { kicker, title, deck, tone } (tone : "clay" | "green" | "blue" | "red").
+// Renvoie { kicker, title, deck, tone, caption, quote } (tone : "clay" |
+// "green" | "blue" | "red") ; caption et quote habillent la case de BD
+// (récitatif et bulle). Pas de hasard ici : l'écran se redessine souvent.
 export function buildFrontPage({ player, ranking, enrolled }) {
+  const story = frontStory({ player, ranking, enrolled });
+  const pick = (a) => a[(player.week || 0) % a.length];
+  return { ...story, quote: pick(story.quotes), quotes: undefined };
+}
+
+function frontStory({ player, ranking, enrolled }) {
   const name = player.name;
   const ln = lastName(name);
   const injury = player.injury;
@@ -19,6 +27,8 @@ export function buildFrontPage({ player, ranking, enrolled }) {
       title: ln + " à l'arrêt",
       deck: injury.label + ". Retour espéré dans " + injury.weeksRemaining + " semaine" + (injury.weeksRemaining > 1 ? "s" : "") + ".",
       tone: "red",
+      caption: "À l'infirmerie…",
+      quotes: ["Je reviendrai plus fort.", "Patience. Le circuit m'attendra."],
     };
   }
 
@@ -34,6 +44,8 @@ export function buildFrontPage({ player, ranking, enrolled }) {
         title: "Sacre de " + ln + where,
         deck: name + " remporte le " + last.tournament + " face à " + last.opponent + " (" + last.score + ").",
         tone: "green",
+        caption: (last.city || "Ce soir-là") + ", la balle de match…",
+        quotes: ["Je l'ai fait !", "Ce trophée, je ne le lâche plus."],
       };
     }
     if (!last.won && last.playedRound === "Finale") {
@@ -42,6 +54,8 @@ export function buildFrontPage({ player, ranking, enrolled }) {
         title: "Si près du titre",
         deck: "Battu en finale du " + last.tournament + " par " + last.opponent + " (" + last.score + ").",
         tone: "clay",
+        caption: (last.city || "En finale") + ", après la finale…",
+        quotes: ["J'y étais presque…", "La prochaine sera la bonne."],
       };
     }
     if (last.won && last.opponentRank && last.opponentRank <= 20 && last.opponentRank < ranking) {
@@ -50,6 +64,8 @@ export function buildFrontPage({ player, ranking, enrolled }) {
         title: ln + " fait tomber le n° " + last.opponentRank,
         deck: "Victoire sur " + last.opponent + " (" + last.score + ") au " + last.tournament + ", " + (last.playedRound || "").toLowerCase() + ".",
         tone: "green",
+        caption: (last.city || "Sur le court") + ", coup de tonnerre…",
+        quotes: ["Le n° " + last.opponentRank + " ? Il faudra compter avec moi.", "Je n'ai peur de personne."],
       };
     }
     if (!last.won) {
@@ -58,6 +74,8 @@ export function buildFrontPage({ player, ranking, enrolled }) {
         title: "Fin de parcours" + where,
         deck: name + " s'incline face à " + last.opponent + " (" + last.score + ") en " + (last.playedRound || "").toLowerCase() + ".",
         tone: "clay",
+        caption: (last.city || "Au vestiaire") + ", dans les vestiaires…",
+        quotes: ["On apprend plus des défaites.", "Je reviendrai."],
       };
     }
   }
@@ -70,6 +88,8 @@ export function buildFrontPage({ player, ranking, enrolled }) {
       title: "Cap sur " + enrolled.city,
       deck: name + " est inscrit au " + enrolled.name + ", semaine " + enrolled.week + "." + status,
       tone: "blue",
+      caption: "Direction " + enrolled.city + "…",
+      quotes: ["Cette semaine, je veux aller loin.", "Un tableau à ma portée. Allons-y."],
     };
   }
 
@@ -79,6 +99,8 @@ export function buildFrontPage({ player, ranking, enrolled }) {
       title: "Tout commence ici",
       deck: name + ", " + player.age + " ans, part de " + player.location + " sans le moindre point. Premier objectif : un tournoi à sa portée.",
       tone: "blue",
+      caption: player.location + ", premier jour…",
+      quotes: ["Un jour, je serai n° 1.", "Tout commence maintenant."],
     };
   }
   return {
@@ -86,6 +108,8 @@ export function buildFrontPage({ player, ranking, enrolled }) {
     title: ln + ", n° " + ranking + " mondial",
     deck: "Aucun tournoi au programme pour l'instant. Le circuit n'attend pas : le calendrier est ouvert.",
     tone: "blue",
+    caption: player.location + ", entre deux tournois…",
+    quotes: ["Il me faut un tournoi.", "Le classement ne monte pas tout seul."],
   };
 }
 
