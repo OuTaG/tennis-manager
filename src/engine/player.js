@@ -49,7 +49,24 @@ export function difficultyFactors(player) {
 // joueur commence un peu au-dessus du niveau de son classement initial.
 export const START_STAT_BONUS = 4;
 
-export function createInitialPlayer(name, styleId, startCity, startNationality, avatar, startDifficulty) {
+// Villes de départ : chacune a son circuit secondaire proche (ITF et
+// Challengers presque chaque semaine) et ses surfaces. L'argent de départ
+// compense l'écart de coût des voyages d'une première saison, estimé en
+// enchaînant chaque semaine le petit tournoi le plus proche.
+export const START_CITIES = [
+  { city: "Paris",        region: "Europe",           money: 9000, desc: "Terre battue et indoor, circuit très dense" },
+  { city: "Miami",        region: "Amérique du Nord", money: 8500, desc: "Dur toute l'année, terre au printemps" },
+  { city: "Tokyo",        region: "Asie",             money: 6500, desc: "Dur et indoor, tournois rapprochés" },
+  { city: "Melbourne",    region: "Océanie",          money: 9000, desc: "Dur et gazon, voyages plus longs" },
+  { city: "Buenos Aires", region: "Amérique du Sud",  money: 7500, desc: "Terre battue, voyages courts" },
+];
+export function startMoney(city, gameOptions) {
+  const base = START_CITIES.find(c => c.city === city)?.money ?? 8000;
+  return (gameOptions || []).includes("low_budget") ? Math.round(base / 2) : base;
+}
+
+// difficulty : niveau choisi (1 Loisir … 5 Légende), voir engine/difficulty.js.
+export function createInitialPlayer(name, styleId, startCity, startNationality, avatar, difficulty, gameOptions = []) {
   const style = PLAYER_STYLES[styleId];
   const stats = {};
   Object.keys(style.base).forEach(k => {
@@ -62,10 +79,14 @@ export function createInitialPlayer(name, styleId, startCity, startNationality, 
   return {
     careerId: "c" + Date.now().toString(36) + random().toString(36).slice(2, 6),
     name, age: 18, nationality, nationalityFlag, styleId, avatar: avatar || null,
-    startDifficulty: startDifficulty || 3, // 1-5, density of nearby tournaments
+    // startDifficulty règle le jeu (progression, moral, sponsors) ; difficulty
+    // et gameOptions fixent le multiplicateur de score.
+    startDifficulty: difficulty || 3,
+    difficulty: difficulty || 3,
+    gameOptions: [...gameOptions],
     favoriteSurface: pickFavoriteSurface(styleId),
     location: city, week: 1, year: 2026,
-    money: 8000, energy: 100,
+    money: startMoney(city, gameOptions), energy: 100,
     atpPointsLog: [], // carrière ATP démarrée de zéro : aucun point au départ
     stats, staff: [],
     matchHistory: [], careerWins: 0, careerLosses: 0, titlesWon: 0, titlesByTier: {},
