@@ -94,7 +94,13 @@ export const styles = {
     letterSpacing: -0.5, fontFamily: T.display, lineHeight: 1, textTransform: "uppercase",
   },
   menuSub: { color: T.clay, fontSize: 18, fontFamily: T.display, fontWeight: 500, display: "block", marginTop: 2 },
-  menuTagline: { color: T.fg3, fontSize: 14, marginBottom: 18, textAlign: "center", fontWeight: 400, lineHeight: 1.5 },
+  // Récitatif de BD : encadré blanc, lettrage à la main.
+  menuTagline: {
+    color: "#161616", background: "#ffffff", fontFamily: T.hand, fontWeight: 700,
+    fontSize: 16, lineHeight: 1.25, textAlign: "center",
+    border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+    padding: "8px 12px", margin: "0 0 20px", transform: "rotate(0.6deg)",
+  },
 
   // BUTTONS — pleins, arrondis, avec un liseré qui les rend "pressables"
   btnPrimary: {
