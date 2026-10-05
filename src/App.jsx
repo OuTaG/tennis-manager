@@ -4,7 +4,7 @@ import {
   Plus,
 } from "lucide-react";
 import { PRIZE_SPLITS_V2, TOURNAMENT_FORMATS } from "./data/formats.js";
-import { CITIES } from "./data/geo.js";
+import { CITIES, SURFACES } from "./data/geo.js";
 import { INVESTMENT_PLANS, LIFE_EVENTS } from "./data/life.js";
 import { PLAYER_STYLES } from "./data/staff.js";
 import { CHALLENGE_SLOT, MEDAL_INFO, challengeActive, challengeTallyWeek, evaluateChallenge, getChallengeDef, getEventById, pickChallengeEvent, saveChallengeResult, setActiveChallenge } from "./engine/challenges.js";
@@ -17,7 +17,7 @@ import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/hist
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
 import { advanceMatchOneGame, aiMatchProb, clampMomentum, createInitialMatchData } from "./engine/match.js";
 import { randomFullName } from "./engine/names.js";
-import { RETIREMENT_AGE, START_CITIES, START_STAT_BONUS, adjustLife, ageTrainingMultiplier, applyWeeklyAgeDecline, clampLife, computeMatchLifeDeltas, createInitialPlayer, difficultyFactors, getEffectiveStats, getPlayerRanking, lifeCaps, rollInjury, startMoney, totalAtpPoints } from "./engine/player.js";
+import { RETIREMENT_AGE, START_CITIES, START_STAT_BONUS, SURFACE_BONUS, adjustLife, ageTrainingMultiplier, applyWeeklyAgeDecline, clampLife, computeMatchLifeDeltas, createInitialPlayer, difficultyFactors, getEffectiveStats, getPlayerRanking, lifeCaps, rollInjury, startMoney, totalAtpPoints } from "./engine/player.js";
 import { buildPressConference } from "./engine/press.js";
 import { computeTournamentProgression, styledProgressionMultiplier } from "./engine/progression.js";
 import { expireOldPoints, playerRaceRank, pointsWeekAfter, raceStandings } from "./engine/race.js";
@@ -65,6 +65,7 @@ export default function TennisManager() {
   const [startCityInput, setStartCityInput] = useState("Paris");
   const [difficultyInput, setDifficultyInput] = useState(3);
   const [gameOptionsInput, setGameOptionsInput] = useState([]);
+  const [surfaceInput, setSurfaceInput] = useState("Dur");
   const [nationalityInput, setNationalityInput] = useState(""); // chosen at step 1
   const [createStep, setCreateStep] = useState(-1); // -1 = circuit, 0 = identity (name+avatar), 1 = profile (style+city)
   const [avatarInput, setAvatarInput] = useState({
@@ -2862,6 +2863,24 @@ export default function TennisManager() {
             </div>
 
             <div>
+              <label style={styles.label}>Surface de prédilection</label>
+              <div style={{ color: T.fg4, fontSize: 11, marginTop: -4, marginBottom: 8 }}>
+                +{SURFACE_BONUS} à toutes vos stats en match sur cette surface. Le gazon compte peu de tournois, mais aussi peu de spécialistes.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
+                {SURFACES.map(sf => (
+                  <button key={sf} onClick={() => setSurfaceInput(sf)} style={{
+                    ...styles.styleBtn, ...(surfaceInput === sf ? styles.styleBtnActive : {}),
+                    padding: "10px 4px", gap: 4, minHeight: 64,
+                  }}>
+                    <SurfaceIcon name={sf} />
+                    <div style={{ fontWeight: 800, fontSize: 11, textAlign: "center", lineHeight: 1.1 }}>{sf}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
               <label style={styles.label}>Ville de départ</label>
               <div style={{ color: T.fg4, fontSize: 11, marginTop: -4, marginBottom: 8 }}>
                 Chaque région a son circuit proche, avec ses surfaces. L'argent de départ compense les écarts de coût des voyages.
@@ -2983,7 +3002,7 @@ export default function TennisManager() {
               onClick={() => {
                 setSeed(newSeed());
                 setCircuit(circuitInput);
-                const newPlayer = createInitialPlayer(nameInput, styleInput, startCityInput, nationalityInput || undefined, avatarInput, difficultyInput, gameOptionsInput);
+                const newPlayer = createInitialPlayer(nameInput, styleInput, startCityInput, nationalityInput || undefined, avatarInput, difficultyInput, gameOptionsInput, surfaceInput);
                 newPlayer.circuit = circuitInput;
                 const newDb = generateAtpDatabase();
                 // Starter sponsor: a low-tier offer to introduce the negotiation
@@ -4072,6 +4091,7 @@ export default function TennisManager() {
         <TrainingOverlay
           mod={trainAnim.mod}
           gain={trainAnim.gain}
+          avatar={player?.avatar}
           onDone={() => setTrainAnim(null)}
         />
       )}

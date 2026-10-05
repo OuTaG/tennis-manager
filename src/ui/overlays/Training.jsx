@@ -1,465 +1,377 @@
-// Animations d'entraînement.
+// Animations d'entraînement : une planche de BD en trois cases.
 import { useState, useEffect, useRef } from "react";
+import { Avatar } from "../avatar.jsx";
 import { T } from "../theme.js";
 
 // ─── TRAINING ANIMATION OVERLAY ─────────────────────────────────────────────
-// Plays a short, type-specific animation when the player completes a training
-// session. Each stat has its own scene built from the same visual language as
-// FlightOverlay (T tokens, dark backdrop, SVG, eyebrow + title + progress bar).
+// Chaque séance se raconte en trois cases qui apparaissent l'une après
+// l'autre : 1. le joueur et ce qu'il travaille (récitatif + bulle),
+// 2. l'action (court, balle, onomatopée), 3. le résultat chiffré, puis la
+// pastille du gain. Toucher l'écran passe l'animation.
 //
-// Scenes:
-//   serve     — top-down court; ball arcs from baseline to opp service box,
-//               impact pulse on landing.
-//   forehand  — court; ball swings to the right side with a curved follow-through.
-//   backhand  — mirror of forehand on the left side.
-//   stamina   — running silhouette across cones with speed ladder underneath.
-//   mental    — pulsing brain/eye with concentric focus rings.
-//   net       — short, low volley dropping just over the net.
-//
-// Props:
-//   mod         — the training module (used for label + stat id)
-//   gain        — numeric stat gain to celebrate at the end (optional)
-//   onDone      — called when the animation finishes
-export function TrainingOverlay({ mod, gain, onDone }) {
-  const [t, setT] = useState(0); // 0..1 progress for the main loop (eased)
-  const [raw, setRaw] = useState(0); // 0..1 linear progress (service : rythme réel)
+// Props :
+//   mod    — le module d'entraînement (nom + stat)
+//   gain   — gain de la stat, affiché à la fin
+//   avatar — avatar du joueur, dessiné dans la première case
+//   onDone — appelé à la fin
+const INK = "#161616";
+const PAPER = "#fffdf6";
+const DURATION = 4600;
+const PANEL_START = [0, 0.24, 0.5];
+const STAT_LABEL = { serve: "service", forehand: "coup droit", backhand: "revers", stamina: "endurance", mental: "mental", net: "filet" };
+
+// Textes de la planche, par exercice.
+const SCRIPT = {
+  serve: {
+    caption1: "Séance de service.", bubble: "Lancer haut, frapper au sommet.",
+    caption2: "Cent services d'affilée…", sfx: "BAM !",
+    caption3: "Dans le coin, à pleine vitesse.",
+  },
+  forehand: {
+    caption1: "Séance de coup droit.", bubble: "Croisé, encore et encore.",
+    caption2: "Le panier de balles se vide…", sfx: "POK !",
+    caption3: "Précision dans la cible.",
+  },
+  backhand: {
+    caption1: "Séance de revers.", bubble: "Long de ligne, sans trembler.",
+    caption2: "Revers à deux mains…", sfx: "CLAC !",
+    caption3: "Précision dans la cible.",
+  },
+  net: {
+    caption1: "Séance au filet.", bubble: "Je monte, je coupe l'angle.",
+    caption2: "Volée après volée…", sfx: "TCHAK !",
+    caption3: "Volées gagnantes.",
+  },
+  stamina: {
+    caption1: "Préparation physique.", bubble: "Encore un tour. Allez !",
+    caption2: "Slalom entre les plots…", sfx: "HOP ! HOP !",
+    caption3: "Le chrono tombe.",
+  },
+  mental: {
+    caption1: "Travail mental : jouer sous pression.", bubble: "Balle de match contre moi…",
+    caption2: "Le public siffle, le coach crie. Rester dans sa bulle.", sfx: "",
+    caption3: "Respirer. Le cœur ralentit.",
+  },
+};
+
+export function TrainingOverlay({ mod, gain, avatar, onDone }) {
+  const [p, setP] = useState(0);
   const rafRef = useRef(null);
-  const DURATION = 2400;
+  const doneRef = useRef(false);
+  // Variante tirée une fois (purement visuelle : chiffres affichés).
+  const seedRef = useRef(Math.random());
+  const finish = () => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    cancelAnimationFrame(rafRef.current);
+    if (onDone) onDone();
+  };
 
   useEffect(() => {
     let start = null;
-    const ease = (p) => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
     const step = (now) => {
       if (start === null) start = now;
-      const p = Math.min(1, (now - start) / DURATION);
-      setT(ease(p));
-      setRaw(p);
-      if (p < 1) { rafRef.current = requestAnimationFrame(step); }
-      else { setTimeout(() => onDone && onDone(), 480); }
+      const q = Math.min(1, (now - start) / DURATION);
+      setP(q);
+      if (q < 1) rafRef.current = requestAnimationFrame(step);
+      else setTimeout(finish, 650);
     };
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const stat = mod?.stat || "serve";
-
-  // ── Court geometry shared by court-based scenes (serve, fh, bh, net) ─────
-  // viewBox 0..200 × 0..120, net at x=100. Player on the right, opp on the left.
-  const COURT = { x0: 16, x1: 184, y0: 14, y1: 106 };
-  const cw = COURT.x1 - COURT.x0, ch = COURT.y1 - COURT.y0;
-  const netX = (COURT.x0 + COURT.x1) / 2;
-  const midY = (COURT.y0 + COURT.y1) / 2;
-
-  // Reusable top-down court SVG block.
-  const LINE = "#ffffff";
-  const sTopY = COURT.y0 + ch * 0.12, sBotY = COURT.y1 - ch * 0.12;
-  const CourtBackdrop = (
-    <>
-      {/* Pourtour du court, un ton plus sombre */}
-      <rect x="0" y="0" width="200" height="120" fill={T.greenDk} />
-      {/* Surface : aplat vert + bandes de tonte très légères pour la crédibilité */}
-      <rect x={COURT.x0 - 8} y={COURT.y0 - 7} width={cw + 16} height={ch + 14} rx="2" fill={T.green} />
-      {[0, 1, 2, 3, 4, 5, 6].map(k => k % 2 === 0 ? null : (
-        <rect key={k} x={COURT.x0 - 8 + k * (cw + 16) / 7} y={COURT.y0 - 7} width={(cw + 16) / 7} height={ch + 14} fill="#ffffff" opacity="0.05" />
-      ))}
-      <g stroke={LINE} strokeLinecap="square" fill="none">
-        {/* Double (contour) */}
-        <rect x={COURT.x0} y={COURT.y0} width={cw} height={ch} strokeWidth="1.2" />
-        {/* Couloirs du simple */}
-        <line x1={COURT.x0} y1={sTopY} x2={COURT.x1} y2={sTopY} strokeWidth="0.9" />
-        <line x1={COURT.x0} y1={sBotY} x2={COURT.x1} y2={sBotY} strokeWidth="0.9" />
-        {/* Lignes de service + ligne médiane */}
-        <line x1={COURT.x0 + cw * 0.30} y1={sTopY} x2={COURT.x0 + cw * 0.30} y2={sBotY} strokeWidth="0.9" />
-        <line x1={COURT.x1 - cw * 0.30} y1={sTopY} x2={COURT.x1 - cw * 0.30} y2={sBotY} strokeWidth="0.9" />
-        <line x1={COURT.x0 + cw * 0.30} y1={midY} x2={COURT.x1 - cw * 0.30} y2={midY} strokeWidth="0.9" />
-        {/* Marques centrales sur les lignes de fond */}
-        <line x1={COURT.x0} y1={midY} x2={COURT.x0 + 3} y2={midY} strokeWidth="0.9" />
-        <line x1={COURT.x1 - 3} y1={midY} x2={COURT.x1} y2={midY} strokeWidth="0.9" />
-      </g>
-      {/* Filet : ombre portée + bande blanche + poteaux */}
-      <line x1={netX + 1.2} y1={COURT.y0 - 4} x2={netX + 1.2} y2={COURT.y1 + 4} stroke="#000000" strokeWidth="1.6" opacity="0.18" />
-      <line x1={netX} y1={COURT.y0 - 4} x2={netX} y2={COURT.y1 + 4} stroke="#f4eee3" strokeWidth="1.3" />
-      <circle cx={netX} cy={COURT.y0 - 4.5} r="1.4" fill="#2b2620" />
-      <circle cx={netX} cy={COURT.y1 + 4.5} r="1.4" fill="#2b2620" />
-    </>
-  );
-
-  // Balle : aplat ocre, couture blanche, petite ombre au sol (lift = hauteur).
-  const Ball = ({ x, y, lift = 0 }) => (
-    <g transform={"translate(" + x.toFixed(2) + "," + y.toFixed(2) + ")"}>
-      <ellipse cx={0.8 + lift * 0.5} cy={1.6 + lift} rx="2.3" ry="1.1" fill="#000000" opacity={Math.max(0.08, 0.22 - lift * 0.02)} />
-      <g transform={"translate(0," + (-lift).toFixed(2) + ")"}>
-        <circle r="2.5" fill={T.amber} />
-        <path d="M -1.6 -1.8 C -0.2 -0.6 -0.2 0.6 -1.6 1.8" fill="none" stroke="#ffffff" strokeWidth="0.5" opacity="0.9" strokeLinecap="round" />
-      </g>
-    </g>
-  );
-
-  // Helper: quadratic bezier point (used by serve & shot trajectories)
-  const bez = (p0, p1, p2, tt) => {
-    const u = 1 - tt;
-    return { x: u * u * p0.x + 2 * u * tt * p1.x + tt * tt * p2.x, y: u * u * p0.y + 2 * u * tt * p1.y + tt * tt * p2.y };
-  };
-
-  // Pick a stable variant for this session so each entraînement looks a bit
-  // different. Chosen once on mount.
-  const variantRef = useRef(Math.floor(Math.random() * 10000));
-  const variant = variantRef.current;
-
-  // ── Per-stat scenes ──────────────────────────────────────────────────────
-  let scene = null;
-  let label = mod?.name || "Entraînement";
-
-  if (stat === "serve") {
-    // Player serves from the RIGHT baseline (deuce or ad side depending on
-    // variant). Ball travels in a taut, near-straight line to land inside the
-    // opponent's service box. 4 tactical variants.
-    // Opp service box: x ∈ [COURT.x0, COURT.x0 + cw*0.30], y ∈ [COURT.y0 + ch*0.12, COURT.y1 - ch*0.12]
-    // Opponent's service boxes: x between the service line (x0 + 30%) and the
-    // net, y split by the centre line. The serve always goes CROSS-COURT: a
-    // server standing below the centre mark serves into the upper box.
-    const svcLineX = COURT.x0 + cw * 0.30;
-    const sTop = COURT.y0 + ch * 0.12, sBot = COURT.y1 - ch * 0.12;
-    const serves = [
-      // Server below the centre mark → upper box: wide / body / T
-      { serverY: midY + ch * 0.07, ballEndX: svcLineX + cw * 0.03, ballEndY: sTop + ch * 0.05 },
-      { serverY: midY + ch * 0.07, ballEndX: svcLineX + cw * 0.06, ballEndY: (sTop + midY) / 2 },
-      { serverY: midY + ch * 0.07, ballEndX: svcLineX + cw * 0.02, ballEndY: midY - ch * 0.04 },
-      // Server above the centre mark → lower box: wide / body / T
-      { serverY: midY - ch * 0.07, ballEndX: svcLineX + cw * 0.03, ballEndY: sBot - ch * 0.05 },
-      { serverY: midY - ch * 0.07, ballEndX: svcLineX + cw * 0.06, ballEndY: (sBot + midY) / 2 },
-      { serverY: midY - ch * 0.07, ballEndX: svcLineX + cw * 0.02, ballEndY: midY + ch * 0.04 },
-    ];
-    const v = serves[variant % serves.length];
-    // Server stands just BEHIND the baseline.
-    const playerPos = { x: COURT.x1 + 4, y: v.serverY };
-    const start = { x: COURT.x1 + 1, y: v.serverY - 1 };
-    const end   = { x: v.ballEndX, y: v.ballEndY };
-    // Rythme réel d'un service (progression linéaire, sans easing) :
-    //   0.00–0.30  lancer de balle (la balle monte au-dessus du serveur)
-    //   0.30–0.41  frappe → rebond dans le carré (~0,25 s, trajectoire tendue)
-    //   0.41–0.56  la balle file après le rebond vers le fond du court
-    const r = raw;
-    const TOSS = 0.30, BOUNCE = 0.41, OUT = 0.56;
-    const lerp = (a1, b1, k) => a1 + (b1 - a1) * k;
-    // Après le rebond, la balle continue dans le même axe jusqu'au fond.
-    const dx = end.x - start.x, dy = end.y - start.y;
-    const kOut = (COURT.x0 - 8 - end.x) / dx; // prolongement jusqu'au-delà de la ligne de fond
-    const outPt = { x: end.x + dx * kOut, y: end.y + dy * kOut };
-    let ballPos, lift;
-    if (r < TOSS) {
-      const k = r / TOSS;
-      ballPos = { x: start.x - 0.5, y: start.y - 1.5 };
-      lift = 9 * Math.sin(k * Math.PI * 0.55) ; // monte, frappée près du sommet
-    } else if (r < BOUNCE) {
-      const k = (r - TOSS) / (BOUNCE - TOSS);
-      ballPos = { x: lerp(start.x, end.x, k), y: lerp(start.y - 1.5, end.y, k) };
-      lift = lerp(9 * Math.sin(Math.PI * 0.55), 0, k);
-    } else {
-      const k = Math.min(1, (r - BOUNCE) / (OUT - BOUNCE));
-      ballPos = { x: lerp(end.x, outPt.x, k), y: lerp(end.y, outPt.y, k) };
-      lift = 3.5 * Math.sin(k * Math.PI * 0.8);
-    }
-    const ballVisible = r < OUT + 0.02;
-    const swing = Math.max(0, Math.min(1, (r - (TOSS - 0.05)) / 0.09)); // geste de frappe
-    const impactK = (r - BOUNCE) / 0.14;
-    scene = (
-      <>
-        {CourtBackdrop}
-        {/* Serveur */}
-        <g transform={"translate(" + playerPos.x + "," + playerPos.y + ")"}>
-          <circle r="3.2" fill="#f4eee3" stroke="#2b2620" strokeWidth="0.6" />
-          {swing > 0 && swing < 1 && (
-            <path
-              d={"M 1 -5 A 7 7 0 0 0 " + (-6 * swing).toFixed(2) + " " + (-4 + 6 * swing).toFixed(2)}
-              fill="none" stroke="#ffffff" strokeWidth="0.8" strokeLinecap="round" opacity={0.9}
-            />
-          )}
-        </g>
-        {/* Trace de la balle pendant le vol */}
-        {r >= TOSS && r < BOUNCE + 0.06 && (
-          <line x1={start.x} y1={start.y - 1.5} x2={ballPos.x} y2={ballPos.y} stroke="#ffffff" strokeWidth="0.5" opacity={0.35} strokeDasharray="1.5 1.5" />
-        )}
-        {ballVisible && <Ball x={ballPos.x} y={ballPos.y} lift={lift} />}
-        {/* Marque du rebond dans le carré */}
-        {impactK > 0 && impactK < 1 && (
-          <circle cx={end.x} cy={end.y} r={2.5 + impactK * 6} fill="none" stroke="#ffffff" strokeWidth="0.8" opacity={1 - impactK} />
-        )}
-      </>
-    );
-  } else if (stat === "forehand" || stat === "backhand" || stat === "net") {
-    // Même rythme que le service : progression linéaire, trajectoires tendues
-    // vues de dessus, hauteur de balle rendue par l'ombre, rebond marqué.
-    const clamp01 = (x) => Math.max(0, Math.min(1, x));
-    const lerpP = (A, B, k) => ({ x: A.x + (B.x - A.x) * k, y: A.y + (B.y - A.y) * k });
-    // Prolonge le segment A→B au-delà de B d'une longueur `len`.
-    const beyond = (A, B, len) => {
-      const dx = B.x - A.x, dy = B.y - A.y, d = Math.hypot(dx, dy) || 1;
-      return { x: B.x + dx / d * len, y: B.y + dy / d * len };
-    };
-    const isNet = stat === "net";
-    const sign = stat === "backhand" ? -1 : 1;
-    const playerPos = isNet ? { x: netX + 12, y: midY } : { x: COURT.x1 - 12, y: midY + sign * 6 };
-    const contactPt = { x: playerPos.x - 4, y: playerPos.y + (isNet ? 0 : sign * 2) };
-
-    // Coups joués (fond de court ou volée), 5 variantes chacun.
-    const groundShots = [
-      { name: "Long de ligne",     end: { x: COURT.x0 + cw * 0.08, y: midY - sign * 32 }, peak: 5, dur: 0.15 },
-      { name: "Croisé court",      end: { x: COURT.x0 + cw * 0.22, y: midY + sign * 33 }, peak: 5, dur: 0.14 },
-      { name: "Croisé profond",    end: { x: COURT.x0 + cw * 0.07, y: midY + sign * 28 }, peak: 6, dur: 0.16 },
-      { name: "Amortie",           end: { x: COURT.x0 + cw * 0.40, y: midY + sign * 10 }, peak: 7, dur: 0.22, drop: true },
-      { name: "Contre-pied",       end: { x: COURT.x0 + cw * 0.10, y: midY - sign * 20 }, peak: 5, dur: 0.15 },
-    ];
-    const volleyShots = [
-      { end: { x: COURT.x0 + cw * 0.12, y: midY - ch * 0.32 }, peak: 2, dur: 0.12 },
-      { end: { x: netX - 14, y: midY + 7 }, peak: 3, dur: 0.14, drop: true },
-      { end: { x: COURT.x0 + cw * 0.22, y: midY + ch * 0.34 }, peak: 2, dur: 0.12 },
-      { end: { x: COURT.x0 + cw * 0.08, y: midY + ch * 0.20 }, peak: 1, dur: 0.10, smash: true },
-      { end: { x: COURT.x0 + cw * 0.10, y: midY - ch * 0.10 }, peak: 3, dur: 0.13 },
-    ];
-    // Deux échanges pendant la séance (variantes différentes), au même
-    // rythme que le service : chaque échange dure la moitié de l'animation.
-    const exchange = (vIdx, r) => {
-    const sv = (isNet ? volleyShots : groundShots)[vIdx % 5];
-
-    // Balle adverse : départ du fond de court d'en face.
-    const oppPos = isNet
-      ? (sv.smash ? { x: COURT.x0 + cw * 0.12, y: midY - ch * 0.28 } : { x: COURT.x0 + cw * 0.10, y: midY - 10 })
-      : { x: COURT.x0 + 6, y: midY - sign * 18 };
-
-    // Phases : [r0, r1, départ, arrivée, hauteur de départ, d'arrivée, flèche]
-    const phases = [];
-    const bounces = [];
-    let tHit;
-    if (isNet) {
-      // Volée : pas de rebond avant la frappe. Smash = lob haut et plus lent.
-      const inEnd = sv.smash ? 0.30 : 0.20;
-      phases.push({ r0: 0, r1: inEnd, A: oppPos, B: contactPt, h0: 1, h1: sv.smash ? 7 : 2.5, peak: sv.smash ? 14 : 3 });
-      tHit = inEnd;
-    } else {
-      // Fond de court : la balle adverse rebondit devant le joueur puis monte vers lui.
-      const inBounce = { x: contactPt.x - 24, y: lerpP(oppPos, contactPt, 0.85).y };
-      phases.push({ r0: 0, r1: 0.20, A: oppPos, B: inBounce, h0: 1, h1: 0, peak: 5 });
-      bounces.push({ r: 0.20, p: inBounce });
-      phases.push({ r0: 0.20, r1: 0.28, A: inBounce, B: contactPt, h0: 0, h1: 2.5, peak: 2 });
-      tHit = 0.28;
-    }
-    // Coup du joueur → rebond dans le camp adverse → la balle file ensuite.
-    const outBounce = tHit + sv.dur;
-    phases.push({ r0: tHit, r1: outBounce, A: contactPt, B: sv.end, h0: isNet ? (sv.smash ? 7 : 2.5) : 2.5, h1: 0, peak: sv.peak });
-    bounces.push({ r: outBounce, p: sv.end });
-    const after = beyond(contactPt, sv.end, sv.drop ? 10 : 34);
-    phases.push({ r0: outBounce, r1: outBounce + (sv.drop ? 0.12 : 0.14), A: sv.end, B: after, h0: 0, h1: 0, peak: sv.drop ? 1.2 : 3.5 });
-    if (sv.drop) {
-      // Amortie : deuxième petit rebond qui meurt.
-      const after2 = beyond(contactPt, sv.end, 16);
-      bounces.push({ r: outBounce + 0.12, p: after });
-      phases.push({ r0: outBounce + 0.12, r1: outBounce + 0.20, A: after, B: after2, h0: 0, h1: 0, peak: 0.5 });
-    }
-
-    const cur = phases.find(ph => r >= ph.r0 && r < ph.r1);
-    let ballPos = null, lift = 0, trailFrom = null;
-    if (cur) {
-      const k = clamp01((r - cur.r0) / (cur.r1 - cur.r0));
-      ballPos = lerpP(cur.A, cur.B, k);
-      lift = cur.h0 + (cur.h1 - cur.h0) * k + cur.peak * Math.sin(Math.PI * k);
-      if (cur.peak >= 2) trailFrom = cur.A;
-    }
-    const swing = clamp01((r - (tHit - 0.05)) / 0.09);
-    return { oppPos, ballPos, lift, trailFrom, bounces, swing, r };
-    };
-    const first = raw < 0.5;
-    const ex = exchange(variant + (first ? 0 : 2), (first ? raw : raw - 0.5) * 1.3);
-    const { oppPos, ballPos, lift, trailFrom, bounces, swing } = ex;
-    const r = ex.r;
-    scene = (
-      <>
-        {CourtBackdrop}
-        {/* Adversaire (renvoyeur) */}
-        <circle cx={oppPos.x - 3} cy={oppPos.y} r="2.6" fill="#2b2620" opacity="0.55" />
-        {/* Joueur */}
-        <g transform={"translate(" + playerPos.x + "," + playerPos.y + ")"}>
-          <circle r="3.2" fill="#f4eee3" stroke="#2b2620" strokeWidth="0.6" />
-          {swing > 0 && swing < 1 && (
-            <path
-              d={isNet
-                ? "M -1 -5 L -1 " + (-5 + 10 * swing).toFixed(2)
-                : (sign > 0
-                  ? "M 1 5 A 7 7 0 0 1 " + (-6 * swing).toFixed(2) + " " + (5 - 10 * swing).toFixed(2)
-                  : "M 1 -5 A 7 7 0 0 0 " + (-6 * swing).toFixed(2) + " " + (-5 + 10 * swing).toFixed(2))}
-              fill="none" stroke="#ffffff" strokeWidth="0.8" strokeLinecap="round" opacity="0.9"
-            />
-          )}
-        </g>
-        {/* Trace pendant le vol */}
-        {ballPos && trailFrom && (
-          <line x1={trailFrom.x} y1={trailFrom.y} x2={ballPos.x} y2={ballPos.y} stroke="#ffffff" strokeWidth="0.5" opacity="0.35" strokeDasharray="1.5 1.5" />
-        )}
-        {ballPos && <Ball x={ballPos.x} y={ballPos.y} lift={lift} />}
-        {/* Marques de rebond */}
-        {bounces.map((bn, i) => {
-          const k = (r - bn.r) / 0.14;
-          return k > 0 && k < 1
-            ? <circle key={i} cx={bn.p.x} cy={bn.p.y} r={2.5 + k * 6} fill="none" stroke="#ffffff" strokeWidth="0.8" opacity={1 - k} />
-            : null;
-        })}
-      </>
-    );
-  } else if (stat === "stamina") {
-    // Top-down view: the player (dot) slaloms between a line of cones, leaving
-    // a trail, on the same court backdrop as the other drills.
-    // 4 plots répartis sur toute la longueur : le joueur les passe tous.
-    const spacing = 36;
-    const cones = [0, 1, 2, 3].map(i => COURT.x0 + 30 + i * spacing);
-    const amp = ch * 0.20;
-    const xStart = COURT.x0 + 8, xEnd = cones[cones.length - 1] + 14;
-    const posAt = (tt) => {
-      const x = xStart + tt * (xEnd - xStart);
-      // At each cone the runner is at max lateral offset, alternating sides.
-      const y = midY + amp * Math.cos(Math.PI * (x - cones[0]) / spacing);
-      return { x, y };
-    };
-    const run = Math.min(1, raw / 0.95); // vitesse constante
-    const cur = posAt(run);
-    const trail = [];
-    const N = 60;
-    for (let i = 0; i <= N; i++) {
-      const q = posAt((run * i) / N);
-      trail.push(q.x.toFixed(1) + "," + q.y.toFixed(1));
-    }
-    scene = (
-      <>
-        {CourtBackdrop}
-        {/* Trail */}
-        <polyline points={trail.join(" ")} fill="none" stroke="#ffffff" strokeWidth="0.8" strokeDasharray="2 2" opacity="0.6" />
-        {/* Cones (seen from above) */}
-        {cones.map((cx, i) => {
-          const passed = cur.x > cx + 4;
-          return (
-            <g key={i} transform={"translate(" + cx + "," + midY + ")"} opacity={passed ? 0.45 : 1}>
-              <circle r="3.4" fill={T.clay} />
-              <circle r="1.4" fill="#f4eee3" opacity="0.8" />
-            </g>
-          );
-        })}
-        {/* Runner */}
-        <g transform={"translate(" + cur.x.toFixed(2) + "," + cur.y.toFixed(2) + ")"}>
-          <circle r="3.2" fill="#f4eee3" stroke="#2b2620" strokeWidth="0.6" />
-        </g>
-      </>
-    );
-  } else if (stat === "mental") {
-    // Jeu de réflexes : des plots s'allument au hasard autour du joueur, il
-    // doit les toucher le plus vite possible. Temps de réaction affiché.
-    const center = { x: 100, y: 62 };
-    const pods = [
-      { x: 58, y: 32 }, { x: 100, y: 24 }, { x: 142, y: 32 },
-      { x: 58, y: 92 }, { x: 100, y: 100 }, { x: 142, y: 92 },
-      { x: 40, y: 62 }, { x: 160, y: 62 },
-    ];
-    // Séquence stable pour la séance : 6 allumages, temps de réaction 190–330 ms.
-    let seed = variant * 9301 + 49297;
-    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-    const CYCLE = 0.155, START = 0.04;
-    const seq = [];
-    let prev = -1;
-    for (let i = 0; i < 6; i++) {
-      let idx = Math.floor(rnd() * pods.length);
-      if (idx === prev) idx = (idx + 3) % pods.length;
-      prev = idx;
-      const reactMs = Math.round(190 + rnd() * 140);
-      const on = START + i * CYCLE;
-      seq.push({ idx, on, hit: on + reactMs / DURATION, reactMs });
-    }
-    const r = raw;
-    const active = seq.filter(e => r >= e.on && r < e.hit + 0.09);
-    const done = seq.filter(e => r >= e.hit);
-    const lastHit = done[done.length - 1];
-    const cur = active[active.length - 1];
-    // Position de la main : part du centre vers le plot allumé, touche à `hit`.
-    let hand = center;
-    if (cur) {
-      const k = Math.max(0, Math.min(1, (r - cur.on) / (cur.hit - cur.on)));
-      const back = r > cur.hit ? Math.min(1, (r - cur.hit) / 0.08) : 0;
-      const kk = Math.pow(k, 2.2) * (1 - back);
-      const P = pods[cur.idx];
-      hand = { x: center.x + (P.x - center.x) * kk * 0.86, y: center.y + (P.y - center.y) * kk * 0.86 };
-    }
-    const avg = done.length ? Math.round(done.reduce((a1, e) => a1 + e.reactMs, 0) / done.length) : null;
-    scene = (
-      <>
-        {CourtBackdrop}
-        {/* Plots */}
-        {pods.map((P, i) => {
-          const lit = active.find(e => e.idx === i && r < e.hit);
-          const flash = active.find(e => e.idx === i && r >= e.hit);
-          const fk = flash ? (r - flash.hit) / 0.09 : 0;
-          return (
-            <g key={i} transform={"translate(" + P.x + "," + P.y + ")"}>
-              <ellipse cx="0.8" cy="1.6" rx="6.2" ry="3" fill="#000000" opacity="0.18" />
-              <circle r="6" fill="#2b2620" />
-              <circle r="4.4" fill={lit ? T.amber : flash ? "#f4eee3" : "#473f35"} />
-              {lit && <circle r={4.4 + ((r - lit.on) * 60) % 5} fill="none" stroke={T.amber} strokeWidth="0.7" opacity="0.7" />}
-              {flash && <circle r={6 + fk * 7} fill="none" stroke="#ffffff" strokeWidth="0.8" opacity={1 - fk} />}
-            </g>
-          );
-        })}
-        {/* Trait de la main vers le plot */}
-        {cur && (
-          <line x1={center.x} y1={center.y} x2={hand.x} y2={hand.y} stroke="#ffffff" strokeWidth="0.6" opacity="0.5" strokeDasharray="1.5 1.5" />
-        )}
-        {/* Joueur + main */}
-        <circle cx={center.x} cy={center.y} r="3.4" fill="#f4eee3" stroke="#2b2620" strokeWidth="0.6" />
-        <circle cx={hand.x} cy={hand.y} r="1.6" fill="#f4eee3" stroke="#2b2620" strokeWidth="0.4" />
-        {/* Tableau de score */}
-        <g transform="translate(10,9)">
-          <rect x="0" y="0" width="46" height="15" rx="3" fill="#2b2620" opacity="0.85" />
-          <text x="5" y="10.2" fontSize="7" fill="#f4eee3" fontFamily="IBM Plex Mono, monospace">{done.length}/6</text>
-          <text x="22" y="10.2" fontSize="6.2" fill={T.amber} fontFamily="IBM Plex Mono, monospace">{lastHit ? lastHit.reactMs + " ms" : "—"}</text>
-        </g>
-        {avg !== null && done.length === seq.length && (
-          <g transform="translate(144,9)">
-            <rect x="0" y="0" width="46" height="15" rx="3" fill="#2b2620" opacity="0.85" />
-            <text x="23" y="10.2" fontSize="6.2" fill="#f4eee3" textAnchor="middle" fontFamily="IBM Plex Mono, monospace">moy. {avg} ms</text>
-          </g>
-        )}
-      </>
-    );
-  }
+  const stat = SCRIPT[mod?.stat] ? mod.stat : "serve";
+  const sc = SCRIPT[stat];
+  const seed = seedRef.current;
+  // Avancement propre à chaque case (0 → 1 pendant ~45 % de l'animation).
+  const local = (i) => Math.max(0, Math.min(1, (p - PANEL_START[i]) / 0.42));
+  const shown = (i) => p >= PANEL_START[i];
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 60,
-      background: T.bg0,
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", padding: 18,
-      animation: "tm-fade-up 0.25s ease-out both",
-    }}>
-      <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 6 }}>Entraînement</div>
-      <div style={{ color: T.fg, fontSize: 20, fontWeight: 800, letterSpacing: 0.3, marginBottom: 4, textAlign: "center" }}>
-        {label}
-      </div>
-      <div style={{ color: T.fg4, fontSize: 12, fontFamily: T.mono, marginBottom: 16 }}>
-        {typeof gain === "number" && gain > 0 ? "+" + gain.toFixed(2) + " " + ({ serve: "service", forehand: "coup droit", backhand: "revers", stamina: "endurance", mental: "mental", net: "filet" }[mod?.stat] || "") : "session en cours…"}
-      </div>
+    <div
+      onClick={finish}
+      className="tm-paper"
+      style={{
+        position: "fixed", inset: 0, zIndex: 300,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        padding: 16, cursor: "pointer",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "3px solid " + INK, paddingBottom: 4 }}>
+          <span className="tm-display" style={{ fontSize: 22, color: T.fg }}>{mod?.name || "Entraînement"}</span>
+          <span className="tm-eyebrow" style={{ color: T.fg }}>Entraînement</span>
+        </div>
 
-      <div style={{
-        width: "100%", maxWidth: 460,
-        borderRadius: 16, overflow: "hidden",
-        border: "1px solid " + T.brd2,
-        background: T.bg1,
-        boxShadow: "0 10px 30px var(--tm-shadow)",
-      }}>
-        <svg viewBox="0 0 200 120" style={{ width: "100%", display: "block", background: T.greenDk }}>
-          {scene}
-        </svg>
-      </div>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 10 }}>
+          <Panel visible={shown(0)} className="tm-halftone-cyan" caption={sc.caption1} height={190}>
+            <div style={{ position: "absolute", left: "50%", bottom: 0, transform: "translateX(-50%)" }}>
+              {avatar ? <Avatar config={avatar} size={150} bare /> : null}
+            </div>
+            <Bubble text={sc.bubble} k={local(0)} />
+          </Panel>
+          <Panel visible={shown(1)} className={stat === "mental" ? "tm-halftone-magenta" : "tm-halftone-yellow"} caption={sc.caption2} height={190}>
+            <ActionScene stat={stat} k={local(1)} sfx={sc.sfx} avatar={avatar} />
+          </Panel>
+        </div>
 
-      {/* Progress bar */}
-      <div style={{ marginTop: 16, height: 5, width: "100%", maxWidth: 460, background: T.bg3, borderRadius: 3, overflow: "hidden", border: "1px solid " + T.brd }}>
-        <div style={{ height: "100%", width: (t * 100).toFixed(1) + "%", background: "linear-gradient(90deg,var(--tm-green),var(--tm-ball))", borderRadius: 3, transition: "width 0.05s linear" }} />
+        <Panel visible={shown(2)} className="" caption={sc.caption3} height={170}>
+          <ResultScene stat={stat} k={local(2)} seed={seed} />
+          {p > 0.84 && typeof gain === "number" && gain > 0 && (
+            <div className="tm-display" style={{
+              position: "absolute", right: 10, top: 10, zIndex: 4,
+              background: T.magenta, color: "#ffffff", border: "3px solid " + INK, boxShadow: "3px 3px 0 " + INK,
+              padding: "4px 10px", fontSize: 20, transform: "rotate(-6deg)",
+              animation: "tm-pop 0.25s ease-out both",
+            }}>
+              +{gain.toFixed(2).replace(".", ",")} {STAT_LABEL[stat]}
+            </div>
+          )}
+        </Panel>
+
+        <div className="tm-eyebrow" style={{ textAlign: "center", color: T.fg4 }}>Toucher pour passer</div>
       </div>
+      <style>{"@keyframes tm-pop { from { transform: scale(0.6) rotate(-6deg); opacity: 0; } to { transform: scale(1) rotate(-6deg); opacity: 1; } } @keyframes tm-panel-in { from { transform: scale(0.92); opacity: 0; } to { transform: none; opacity: 1; } }"}</style>
     </div>
+  );
+}
+
+// Case de BD : cadre d'encre, ombre décalée, récitatif en haut à gauche.
+function Panel({ visible, className, caption, height, children }) {
+  return (
+    <div className={className} style={{
+      position: "relative", height, overflow: "hidden",
+      background: className ? undefined : PAPER,
+      border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK,
+      opacity: visible ? 1 : 0.08,
+      animation: visible ? "tm-panel-in 0.22s ease-out both" : "none",
+    }}>
+      {visible && children}
+      {visible && caption && (
+        <div className="tm-lettering" style={{
+          position: "absolute", left: 0, top: 0, maxWidth: "88%",
+          background: "#ffd200", color: INK, borderRight: "2.5px solid " + INK, borderBottom: "2.5px solid " + INK,
+          padding: "2px 7px", fontSize: 13.5, zIndex: 3,
+        }}>{caption}</div>
+      )}
+    </div>
+  );
+}
+
+function Bubble({ text, k }) {
+  if (k < 0.15) return null;
+  return (
+    <>
+      <div className="tm-lettering" style={{
+        position: "absolute", right: 6, top: 34, width: "62%", zIndex: 2,
+        background: "#ffffff", color: INK, border: "2.5px solid " + INK, borderRadius: "50% / 44%",
+        padding: "9px 8px", fontSize: 13, textAlign: "center",
+      }}>{text}</div>
+    </>
+  );
+}
+
+// Onomatopée de BD : lettres épaisses, contour d'encre, légère rotation.
+function Sfx({ x, y, text, size = 26, rot = -10, color = "#ffd200" }) {
+  return (
+    <text x={x} y={y} transform={"rotate(" + rot + " " + x + " " + y + ")"} textAnchor="middle"
+      fontFamily="'Archivo Black', 'Arial Black', sans-serif" fontSize={size}
+      fill={color} stroke={INK} strokeWidth="2.2" paintOrder="stroke" strokeLinejoin="round">{text}</text>
+  );
+}
+
+function SpeedLines({ x, y, n = 5, len = 22, angle = 0 }) {
+  return (
+    <g transform={"translate(" + x + "," + y + ") rotate(" + angle + ")"} stroke={INK} strokeWidth="2" strokeLinecap="round">
+      {Array.from({ length: n }).map((_, i) => (
+        <line key={i} x1={-len - (i % 2) * 6} y1={(i - (n - 1) / 2) * 6} x2={-6} y2={(i - (n - 1) / 2) * 6} />
+      ))}
+    </g>
+  );
+}
+
+function BallSvg({ x, y, r = 6 }) {
+  return (
+    <g transform={"translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")"}>
+      <circle r={r} fill="#e8f23a" stroke={INK} strokeWidth="2" />
+      <path d={"M " + (-r * 0.7) + " " + (-r * 0.6) + " Q 0 0 " + (-r * 0.7) + " " + (r * 0.6)} fill="none" stroke={INK} strokeWidth="1.3" />
+    </g>
+  );
+}
+
+function Racket({ x, y, angle }) {
+  return (
+    <g transform={"translate(" + x + "," + y + ") rotate(" + angle + ")"}>
+      <rect x="-2.5" y="0" width="5" height="26" fill={INK} />
+      <ellipse cx="0" cy="-15" rx="12" ry="16" fill="#ffffff" stroke={INK} strokeWidth="3" />
+      <path d="M -8 -24 L 8 -6 M -11 -15 L 11 -15 M -8 -6 L 8 -24 M 0 -30 L 0 0" stroke={INK} strokeWidth="0.9" opacity="0.5" />
+    </g>
+  );
+}
+
+// Case 2 : l'action.
+function ActionScene({ stat, k, sfx, avatar }) {
+  const W = 180, H = 184;
+  if (stat === "mental") {
+    // Le joueur au centre, les cris du public autour. Une bulle de calme
+    // grandit et repousse le bruit.
+    const shouts = [
+      { x: 16, y: 54, t: "HOUUU !", r: -12 }, { x: 110, y: 50, t: "Il va craquer !", r: 8 },
+      { x: 10, y: 120, t: "BOUH !", r: 6 }, { x: 112, y: 128, t: "Allez !!", r: -8 },
+    ];
+    const calm = Math.max(0, (k - 0.35) / 0.65);
+    return (
+      <div style={{ position: "absolute", inset: 0 }}>
+        <div style={{ position: "absolute", left: "50%", bottom: -6, transform: "translateX(-50%)" }}>
+          {avatar ? <Avatar config={avatar} size={120} bare /> : null}
+        </div>
+        <svg viewBox={"0 0 " + W + " " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true">
+          <circle cx={W / 2} cy={H - 56} r={36 + calm * 40} fill="none" stroke="#ffffff" strokeWidth="3" strokeDasharray="6 5" opacity={0.3 + calm * 0.7} />
+        </svg>
+        {shouts.map((s, i) => {
+          const appear = k > 0.05 + i * 0.07;
+          const fade = Math.max(0, 1 - calm * 1.4);
+          return appear ? (
+            <div key={i} className="tm-display" style={{
+              position: "absolute", left: s.x, top: s.y, transform: "rotate(" + s.r + "deg) scale(" + (0.85 + fade * 0.15) + ")",
+              background: "#ffffff", color: INK, border: "2px solid " + INK, padding: "1px 5px", fontSize: 11,
+              opacity: fade,
+            }}>{s.t}</div>
+          ) : null;
+        })}
+        {calm > 0.6 && (
+          <div className="tm-lettering" style={{ position: "absolute", left: "50%", bottom: 8, transform: "translateX(-50%)", background: "#ffffff", border: "2px solid " + INK, padding: "1px 8px", fontSize: 13, color: INK, whiteSpace: "nowrap" }}>… silence.</div>
+        )}
+      </div>
+    );
+  }
+  if (stat === "stamina") {
+    // Baskets qui zigzaguent entre trois plots, nuage de poussière.
+    const cones = [40, 90, 140];
+    const x = 14 + k * 156;
+    const y = 120 + Math.sin(k * Math.PI * 3) * 26;
+    return (
+      <svg viewBox={"0 0 " + W + " " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true">
+        <path d={"M 0 150 L " + W + " 150"} stroke={INK} strokeWidth="2.5" />
+        {cones.map((c, i) => (
+          <path key={i} d={"M " + (c - 9) + " 150 L " + c + " 118 L " + (c + 9) + " 150 Z"} fill="#ff7a1a" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
+        ))}
+        <g transform={"translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")"}>
+          <ellipse cx="-14" cy="6" rx="9" ry="5" fill="#ffffff" stroke={INK} strokeWidth="2" opacity="0.8" />
+          <path d="M -10 -6 L 10 -6 L 14 2 L -10 2 Z" fill="#ffffff" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M -10 2 L 14 2" stroke="#e6336f" strokeWidth="3" />
+        </g>
+        {k > 0.15 && <SpeedLines x={x - 14} y={y - 2} n={3} len={16} />}
+        {k > 0.25 && <Sfx x={W / 2} y={84} text={sfx} size={24} rot={-6} />}
+      </svg>
+    );
+  }
+  // Coups : la balle arrive, la raquette frappe, onomatopée et traits de vitesse.
+  const isServe = stat === "serve";
+  const hit = isServe ? 0.5 : 0.45;
+  const swingAngle = stat === "backhand" ? 40 - Math.min(1, k / hit) * 110 : -40 + Math.min(1, k / hit) * 110;
+  let ball;
+  if (isServe) {
+    ball = k < hit
+      ? { x: 70, y: 150 - Math.sin((k / hit) * Math.PI * 0.6) * 120 }
+      : { x: 70 + (k - hit) * 260, y: 46 + (k - hit) * 120 };
+  } else {
+    ball = k < hit
+      ? { x: 175 - (k / hit) * 95, y: 80 + Math.sin((k / hit) * Math.PI) * -30 }
+      : { x: 80 + (k - hit) * 240, y: 90 - (k - hit) * 70 };
+  }
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true">
+      {stat === "net" && <path d="M 0 140 L 180 140 M 0 140 L 0 112 M 180 140 L 180 112 M 0 112 L 180 112" stroke={INK} strokeWidth="2.5" fill="none" />}
+      {stat === "net" && <path d="M 0 118 L 180 118 M 0 126 L 180 126 M 0 134 L 180 134" stroke={INK} strokeWidth="1" opacity="0.5" />}
+      <Racket x={isServe ? 60 : 70} y={isServe ? 120 : 112} angle={isServe ? -20 + Math.min(1, k / hit) * 70 : swingAngle} />
+      {k >= hit - 0.02 && k < 0.95 && <SpeedLines x={ball.x} y={ball.y} n={4} len={22} angle={isServe ? 25 : -16} />}
+      <BallSvg x={ball.x} y={ball.y} r={7} />
+      {k >= hit && <Sfx x={isServe ? 124 : 116} y={isServe ? 96 : 84} text={sfx} size={30} rot={-12} />}
+    </svg>
+  );
+}
+
+// Case 3 : le résultat chiffré.
+function ResultScene({ stat, k, seed }) {
+  const W = 360, H = 164;
+  if (stat === "mental") {
+    // Moniteur cardiaque : la courbe s'apaise, le pouls descend.
+    const from = 148 + Math.round(seed * 14), to = 96 + Math.round(seed * 16);
+    const bpm = Math.round(from - (from - to) * k);
+    const pts = [];
+    for (let i = 0; i <= 120; i++) {
+      const x = 20 + i * 1.9;
+      const amp = 34 * (1 - (i / 120) * k * 0.9);
+      const beat = i % 12 === 6 ? -amp : i % 12 === 7 ? amp * 0.6 : 0;
+      pts.push(x.toFixed(1) + "," + (96 + beat).toFixed(1));
+    }
+    const visible = Math.max(2, Math.round(121 * Math.min(1, k * 1.2)));
+    return (
+      <svg viewBox={"0 0 " + W + " " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true">
+        <rect x="14" y="40" width="236" height="108" fill="#161616" />
+        <polyline points={pts.slice(0, visible).join(" ")} fill="none" stroke="#3cc173" strokeWidth="3" strokeLinejoin="round" />
+        <text x="262" y="86" fontFamily="'Archivo Black', sans-serif" fontSize="34" fill={INK}>{bpm}</text>
+        <text x="262" y="104" fontFamily="'Archivo', sans-serif" fontWeight="800" fontSize="11" fill={INK}>PULS./MIN</text>
+        {k > 0.7 && <text x="262" y="124" fontFamily="'Archivo', sans-serif" fontWeight="800" fontSize="11" fill="#16804a">CALME</text>}
+      </svg>
+    );
+  }
+  if (stat === "stamina") {
+    const secs = Math.round(38 + seed * 10 - k * 4);
+    const sweep = k * 330;
+    const rad = (a) => (a - 90) * Math.PI / 180;
+    return (
+      <svg viewBox={"0 0 " + W + " " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true">
+        <g transform="translate(110,96)">
+          <rect x="-8" y="-62" width="16" height="10" fill={INK} />
+          <circle r="50" fill="#ffffff" stroke={INK} strokeWidth="4" />
+          <line x1="0" y1="0" x2={(Math.cos(rad(sweep)) * 40).toFixed(1)} y2={(Math.sin(rad(sweep)) * 40).toFixed(1)} stroke="#e6336f" strokeWidth="4" strokeLinecap="round" />
+          <circle r="4" fill={INK} />
+        </g>
+        <text x="190" y="100" fontFamily="'Archivo Black', sans-serif" fontSize="40" fill={INK}>{"0:" + String(Math.max(30, secs)).padStart(2, "0")}</text>
+        {k > 0.6 && <path d="M 300 52 q 6 10 0 16 q -6 -6 0 -16 Z M 318 70 q 5 8 0 13 q -5 -5 0 -13 Z" fill="#0f9bd7" stroke={INK} strokeWidth="2" />}
+      </svg>
+    );
+  }
+  if (stat === "serve") {
+    const kmh = Math.round(178 + seed * 32);
+    const land = Math.min(1, k * 1.4);
+    return (
+      <svg viewBox={"0 0 " + W + " " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true">
+        <rect x="20" y="40" width="200" height="110" fill="#0f9bd7" stroke={INK} strokeWidth="3" />
+        <path d="M 120 40 L 120 150 M 20 95 L 220 95" stroke="#ffffff" strokeWidth="3" />
+        <BallSvg x={30 + land * 76} y={140 - land * 92} r={8} />
+        {k > 0.7 && <Sfx x={292} y={100} text="ACE !" size={34} rot={-8} color="#e6336f" />}
+        <text x="240" y="142" fontFamily="'Archivo Black', sans-serif" fontSize="24" fill={INK}>{kmh} km/h</text>
+      </svg>
+    );
+  }
+  // Coups et volées : une cible, les impacts s'accumulent.
+  const hits = 6 + Math.round(seed * 3);
+  const shownHits = Math.round(10 * Math.min(1, k * 1.3));
+  const marks = [];
+  for (let i = 0; i < shownHits; i++) {
+    const inT = i < Math.round(hits * shownHits / 10);
+    const a = (i * 137.5) * Math.PI / 180;
+    const d = inT ? 6 + (i * 7) % 26 : 46 + (i * 5) % 10;
+    marks.push({ x: 110 + Math.cos(a) * d, y: 96 + Math.sin(a) * d * 0.8, inT });
+  }
+  const scored = marks.filter(m => m.inT).length;
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true">
+      <g transform="translate(110,96)">
+        <ellipse rx="60" ry="48" fill="#ffffff" stroke={INK} strokeWidth="3" />
+        <ellipse rx="40" ry="32" fill="#ffd200" stroke={INK} strokeWidth="3" />
+        <ellipse rx="20" ry="16" fill="#e6336f" stroke={INK} strokeWidth="3" />
+      </g>
+      {marks.map((m, i) => (
+        <g key={i} transform={"translate(" + m.x.toFixed(1) + "," + m.y.toFixed(1) + ")"}>
+          <path d="M -5 -5 L 5 5 M -5 5 L 5 -5" stroke={INK} strokeWidth="3" strokeLinecap="round" />
+        </g>
+      ))}
+      <text x="196" y="90" fontFamily="'Archivo Black', sans-serif" fontSize="38" fill={INK}>{scored}/10</text>
+      <text x="198" y="110" fontFamily="'Archivo', sans-serif" fontWeight="800" fontSize="12" fill={INK}>DANS LA CIBLE</text>
+    </svg>
   );
 }

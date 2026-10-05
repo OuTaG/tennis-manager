@@ -66,7 +66,8 @@ export function startMoney(city, gameOptions) {
 }
 
 // difficulty : niveau choisi (1 Loisir … 5 Légende), voir engine/difficulty.js.
-export function createInitialPlayer(name, styleId, startCity, startNationality, avatar, difficulty, gameOptions = []) {
+// favoriteSurface : surface de prédilection choisie à la création (sinon tirée selon le style).
+export function createInitialPlayer(name, styleId, startCity, startNationality, avatar, difficulty, gameOptions = [], favoriteSurface = null) {
   const style = PLAYER_STYLES[styleId];
   const stats = {};
   Object.keys(style.base).forEach(k => {
@@ -84,7 +85,7 @@ export function createInitialPlayer(name, styleId, startCity, startNationality, 
     startDifficulty: difficulty || 3,
     difficulty: difficulty || 3,
     gameOptions: [...gameOptions],
-    favoriteSurface: pickFavoriteSurface(styleId),
+    favoriteSurface: favoriteSurface || pickFavoriteSurface(styleId),
     location: city, week: 1, year: 2026,
     money: startMoney(city, gameOptions), energy: 100,
     atpPointsLog: [], // carrière ATP démarrée de zéro : aucun point au départ
