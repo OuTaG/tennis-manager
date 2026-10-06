@@ -3711,10 +3711,10 @@ export default function TennisManager() {
       );
       const portrait = (avatar, flag, name, rank, me) => (
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-          <div style={{ border: "3px solid " + ink, background: me ? T.gold : "#ffffff", boxShadow: "3px 3px 0 " + ink, overflow: "hidden" }}>
-            <Avatar config={avatar} size={104} bare />
+          <div style={{ border: "3px solid " + ink, background: me ? "#ffffff" : "#ffffff", boxShadow: "4px 4px 0 " + ink, overflow: "hidden", transform: "rotate(" + (me ? -2.5 : 2.5) + "deg)" }}>
+            <Avatar config={avatar} size={112} bare />
           </div>
-          <div className="tm-display" style={{ fontSize: 15, lineHeight: 1.05, textAlign: "center", color: "#141414", overflowWrap: "anywhere" }}>{name}</div>
+          <div className="tm-display" style={{ marginTop: 4, fontSize: 15, lineHeight: 1.05, textAlign: "center", color: "#141414", overflowWrap: "anywhere" }}>{name}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {flagEmojiToCode(flag) && <FlagFromEmoji emoji={flag} size={14} />}
             <span className="tm-num" style={{ fontSize: 13, fontWeight: 800, background: me ? T.blue : "#ffffff", color: me ? "#ffffff" : "#141414", border: "2px solid " + ink, padding: "0 6px" }}>#{rank}</span>
@@ -3733,14 +3733,24 @@ export default function TennisManager() {
             </div>
 
             <div style={{ padding: "14px 16px 0", display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Face-à-face */}
-              <div className="tm-halftone-lilac" style={{ border: panel.border, boxShadow: panel.boxShadow, position: "relative", display: "flex", alignItems: "flex-start", gap: 6, padding: "14px 10px 12px" }}>
-                {portrait(player.avatar, player.nationalityFlag, player.name, ranking, true)}
-                {portrait(avatarFromName(ms.opponent.name, player.circuit === "wta"), ms.opponent.nat?.flag, ms.opponent.name, ms.opponentRank, false)}
-                <svg viewBox="0 0 100 100" width="62" height="62" aria-hidden="true" style={{ position: "absolute", left: "50%", top: 40, marginLeft: -31 }}>
-                  <polygon points="50,2 61,30 92,20 72,45 98,60 66,64 70,96 50,74 30,96 34,64 2,60 28,45 8,20 39,30" fill={T.gold} stroke={ink} strokeWidth="4" strokeLinejoin="round" />
-                  <text x="50" y="60" textAnchor="middle" fontFamily={T.display} fontSize="30" fill="#141414">VS</text>
-                </svg>
+              {/* Face-à-face : les deux portraits côte à côte, « VS » entre les deux */}
+              <div style={{
+                border: panel.border, boxShadow: panel.boxShadow, position: "relative", overflow: "hidden",
+                background: "linear-gradient(100deg, #d6ef3c 0 50%, #c9b6ea 50% 100%)",
+                padding: "16px 8px 12px",
+              }}>
+                <div aria-hidden="true" style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(20,20,20,0.16) 1.4px, transparent 1.6px)", backgroundSize: "6px 6px" }} />
+                <div aria-hidden="true" style={{ position: "absolute", top: -10, bottom: -10, left: "50%", width: 4, marginLeft: -2, background: ink, transform: "rotate(10deg)" }} />
+                <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 0 }}>
+                  {portrait(player.avatar, player.nationalityFlag, player.name, ranking, true)}
+                  <div style={{ width: 64, flexShrink: 0, height: 118, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg viewBox="0 0 100 100" width="64" height="64" aria-hidden="true">
+                      <polygon points="50,2 61,30 92,20 72,45 98,60 66,64 70,96 50,74 30,96 34,64 2,60 28,45 8,20 39,30" fill="#c4302b" stroke={ink} strokeWidth="4" strokeLinejoin="round" />
+                      <text x="50" y="61" textAnchor="middle" fontFamily={T.display} fontSize="30" fill="#ffffff" stroke={ink} strokeWidth="1.5">VS</text>
+                    </svg>
+                  </div>
+                  {portrait(avatarFromName(ms.opponent.name, player.circuit === "wta"), ms.opponent.nat?.flag, ms.opponent.name, ms.opponentRank, false)}
+                </div>
               </div>
 
               {/* Scouting */}
