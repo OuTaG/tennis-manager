@@ -26,7 +26,11 @@ export function trainingEfficiency(player) {
     { key: "boost", label: "Bonus", mul: boost },
     { key: "challenge", label: "Défi", mul: challenge },
   ];
-  return { total: parts.reduce((a, p) => a * p.mul, 1), parts };
+  // La difficulté compte dans le gain réel mais n'est pas affichée : à 100 %
+  // d'énergie, l'efficacité affichée reste 100 % ; la difficulté ne se voit
+  // que dans les valeurs de gain.
+  const shownParts = parts.filter(p => p.key !== "difficulty");
+  return { total: parts.reduce((a, p) => a * p.mul, 1), shown: shownParts.reduce((a, p) => a * p.mul, 1), parts: shownParts };
 }
 
 // Gain (points de stat) d'une séance réussie de base (programme ×1).
