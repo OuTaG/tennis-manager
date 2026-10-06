@@ -146,8 +146,11 @@ function SmashGauge({ done, onHit }) {
 // Trois programmes avec leur probabilité de réussite (façon essais libres).
 // Au choix, le jet est tiré puis animé sur une jauge : à gauche du seuil,
 // réussi ; à droite, raté. onPick(id, outcome) lance la séance.
-const fmtMul = (m) => "×" + String(m).replace(".", ",");
-export function TrainingCards({ mod, costs, affordable, odds, oddsCtx, onPick, onClose }) {
+// Pourcentage exact, au dixième (ex. 71,4 %).
+const fmtPct = (p) => (Math.round(p * 1000) / 10).toLocaleString("fr-FR") + " %";
+const fmtGain = (g) => "+" + g.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx, noStaff = false, onPick, onClose }) {
   const colors = { commune: "#ffffff", rare: LILAC, mystere: BALL };
   const [chosen, setChosen] = useState(null); // { card, outcome }
   const [needle, setNeedle] = useState(0);
@@ -172,8 +175,10 @@ export function TrainingCards({ mod, costs, affordable, odds, oddsCtx, onPick, o
     return () => cancelAnimationFrame(rafRef.current);
   }, [chosen]);
 
+  // Sans staff, pas de coach : le pari est le vôtre.
+  const cardName = (c) => (noStaff && c.id === "mystere" ? "Pari audacieux" : c.name);
   const pick = (card) => {
-    if (chosen || !affordable[card.id]) return;
+    if (chosen) return;
     setChosen({ card, outcome: rollTraining(card, oddsCtx) });
   };
 
@@ -184,43 +189,43 @@ export function TrainingCards({ mod, costs, affordable, odds, oddsCtx, onPick, o
           <span className="tm-display" style={{ fontSize: 22, color: T.fg }}>{mod.name}</span>
           <span className="tm-eyebrow" style={{ color: T.fg }}>Programme du jour</span>
         </div>
-        <Caption>{chosen ? chosen.card.name + "… le coach lance le chrono." : "Choisissez un programme. Plus il est ambitieux, moins il réussit."}</Caption>
+        {chosen && <Caption>{cardName(chosen.card) + (noStaff ? "… c'est parti." : "… le coach lance le chrono.")}</Caption>}
 
         {!chosen && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {TRAINING_CARDS.map(c => {
-              const ok = affordable[c.id];
               const p = odds[c.id] ?? c.baseP;
-              const pct = Math.round(p * 100);
+              const pct = Math.round(p * 1000) / 10;
               return (
-                <button key={c.id} onClick={() => pick(c)} disabled={!ok} style={{
+                <button key={c.id} onClick={() => pick(c)} style={{
                   padding: 0, border: "3px solid " + INK, background: colors[c.id], color: INK,
-                  boxShadow: "4px 4px 0 " + INK, cursor: ok ? "pointer" : "not-allowed", opacity: ok ? 1 : 0.45,
+                  boxShadow: "4px 4px 0 " + INK, cursor: "pointer",
                   display: "grid", gridTemplateColumns: "minmax(0, 1fr) 92px", textAlign: "left", fontFamily: T.body,
                 }}>
                   <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ background: INK, color: c.id === "commune" ? "#ffffff" : BALL, fontSize: 9.5, fontWeight: 800, letterSpacing: 1, padding: "2px 6px", textTransform: "uppercase" }}>{c.rarity}</span>
-                      <span style={{ fontWeight: 800, fontSize: 14 }}>{c.name}</span>
+                      <span style={{ fontWeight: 800, fontSize: 14 }}>{cardName(c)}</span>
                     </div>
-                    <div style={{ fontSize: 11.5, fontWeight: 700 }}>
-                      Réussi : gain {fmtMul(c.successMul)} · Raté : rien
+                    <div style={{ fontSize: 12.5, fontWeight: 800 }}>
+                      {fmtGain(gains[c.id] ?? 0)} en {statLabel}
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "#3c3c34" }}>
-                      Énergie −{costs[c.id]}. {c.desc}
-                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#3c3c34" }}>{c.desc}</div>
                     <div style={{ height: 10, border: "2px solid " + INK, background: "#ffffff", marginTop: 2 }}>
                       <div style={{ width: pct + "%", height: "100%", background: GRASS }} />
                     </div>
                   </div>
                   <div style={{ borderLeft: "3px solid " + INK, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#ffffff" }}>
-                    <div className="tm-display" style={{ fontSize: 30, lineHeight: 1 }}>{pct}%</div>
+                    <div className="tm-display" style={{ fontSize: 24, lineHeight: 1 }}>{fmtPct(p)}</div>
                     <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6 }}>RÉUSSITE</div>
                   </div>
                 </button>
               );
             })}
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: T.fg3 }}>Les chances montent avec votre énergie, votre bonheur et un bon coach.</div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: T.fg3, lineHeight: 1.45 }}>
+              Énergie −{energyCost} quel que soit le programme. Raté, il ne rapporte rien.
+              Les chances montent avec {noStaff ? "votre énergie et votre bonheur" : "votre énergie, votre bonheur et un bon coach"}.
+            </div>
             <button onClick={onClose} style={{ minHeight: 46, border: "2.5px solid " + INK, background: T.bg1, color: T.fg, fontFamily: T.body, fontWeight: 800, textTransform: "uppercase", cursor: "pointer" }}>Annuler</button>
           </div>
         )}
@@ -230,7 +235,7 @@ export function TrainingCards({ mod, costs, affordable, odds, oddsCtx, onPick, o
             {/* Jauge : zone verte = réussite (jusqu'au seuil), lilas = échec */}
             <div style={{ position: "relative", height: 64, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, background: LILAC, overflow: "hidden" }}>
               <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: (chosen.outcome.p * 100) + "%", background: GRASS, borderRight: "3px solid " + INK }} />
-              <div style={{ position: "absolute", left: 8, top: 6, color: "#ffffff", fontFamily: T.display, fontSize: 14 }}>RÉUSSITE {Math.round(chosen.outcome.p * 100)}%</div>
+              <div style={{ position: "absolute", left: 8, top: 6, color: "#ffffff", fontFamily: T.display, fontSize: 14 }}>RÉUSSITE {fmtPct(chosen.outcome.p)}</div>
               <div style={{ position: "absolute", right: 8, bottom: 6, color: INK, fontFamily: T.display, fontSize: 14 }}>ÉCHEC</div>
               <div style={{ position: "absolute", top: -3, bottom: -3, width: 8, marginLeft: -4, left: (needle * 100) + "%", background: INK }} />
             </div>
@@ -239,7 +244,7 @@ export function TrainingCards({ mod, costs, affordable, odds, oddsCtx, onPick, o
                 <Sfx color={chosen.outcome.success ? BALL : LILAC}>{chosen.outcome.success ? "RÉUSSI !" : "RATÉ…"}</Sfx>
                 <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
                   {chosen.outcome.success
-                    ? "Programme bouclé : gain " + fmtMul(chosen.card.successMul) + "."
+                    ? "Programme bouclé : " + fmtGain(gains[chosen.card.id] ?? 0) + " en " + statLabel + "."
                     : "Programme raté : pas de progrès cette fois."}
                 </div>
               </div>

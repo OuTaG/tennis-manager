@@ -79,12 +79,9 @@ describe("programmes d'entraînement", () => {
     expect(intensif).toBeGreaterThan(exploit);
   });
 
-  it("raté = rien ; plus c'est risqué, plus ça fatigue et plus ça rapporte", () => {
+  it("raté = rien ; plus c'est risqué, plus ça rapporte (×1, ×1,4, ×2)", () => {
     for (const c of TRAINING_CARDS) expect(c.failMul).toBe(0);
-    for (let i = 1; i < TRAINING_CARDS.length; i++) {
-      expect(TRAINING_CARDS[i].energyMul).toBeGreaterThan(TRAINING_CARDS[i - 1].energyMul);
-      expect(TRAINING_CARDS[i].successMul).toBeGreaterThan(TRAINING_CARDS[i - 1].successMul);
-    }
+    expect(TRAINING_CARDS.map(c => c.successMul)).toEqual([1, 1.4, 2]);
   });
 
   it("la forme et le coach augmentent les chances", () => {
@@ -98,5 +95,18 @@ describe("programmes d'entraînement", () => {
     let ok = 0;
     for (let i = 0; i < 4000; i++) if (rollTraining(c, ctx).success) ok++;
     expect(ok / 4000).toBeCloseTo(trainingOdds(c, ctx), 1);
+  });
+});
+
+describe("gain d'un programme", () => {
+  it("le gain affiché suit le multiplicateur du programme", async () => {
+    const { programmeGain, trainingBaseGain } = await import("../src/engine/training.js");
+    const { createInitialPlayer } = await import("../src/engine/player.js");
+    const player = createInitialPlayer("Test", "allcourt", "Paris", "France");
+    const mod = { stat: "serve", baseGain: 0.8 };
+    const base = trainingBaseGain(player, mod);
+    expect(base).toBeGreaterThan(0);
+    expect(programmeGain(player, mod, TRAINING_CARDS[0])).toBeCloseTo(base, 2);
+    expect(programmeGain(player, mod, TRAINING_CARDS[2])).toBeCloseTo(base * 2, 2);
   });
 });
