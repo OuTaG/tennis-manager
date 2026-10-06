@@ -1692,8 +1692,9 @@ export default function TennisManager() {
 
     const allPoints = result.points && result.points.length ? result.points : [{ winner: result.gameType && /won|break|hold|rebreak/.test(result.gameType) ? "p" : "o", kind: "winner", rallies: 3, label: "JEU", servingPlayer: !!result.isPlayerServing }];
     // Jeu repris après un mini-jeu : on n'anime que les points restants.
-    const points = result.resumeFrom ? allPoints.slice(result.resumeFrom) : allPoints;
-    const resumeLabel = result.resumeFrom ? allPoints[result.resumeFrom - 1] : null;
+    // (le point du mini-jeu est déjà affiché : JEU ou ÉGALITÉ).
+    const points = result.resumeFrom ? allPoints.slice(result.resumeFrom + 1) : allPoints;
+    const resumeLabel = result.resumeFrom ? allPoints[result.resumeFrom] : null;
 
     // Decompose a point label into per-player cells for the scoreboard.
     // For the deciding "JEU" label, show it only on the winner's line so the
@@ -1748,11 +1749,11 @@ export default function TennisManager() {
       autoTimerRef.current = setTimeout(() => {
         autoTimerRef.current = null;
         if (matchModeRef.current !== "manual" && playGameRef.current) playGameRef.current();
-      }, (result.setComplete ? 1300 : 650) * speedFactor()); // slightly longer pause between sets
+      }, (result.resumeFrom ? 2400 : result.setComplete ? 1300 : 650) * speedFactor()); // pause plus longue entre les sets, et après un point décisif pour se remettre dans le match
     };
     const commitAndMaybeContinue = () => { commitNow(); scheduleAuto(); };
     pendingCommitRef.current = commitAndMaybeContinue;
-    const startSplit = resumeLabel ? splitLabel(resumeLabel.label, resumeLabel.winner, "0", "0") : { p: "0", o: "0" };
+    const startSplit = resumeLabel ? splitLabel(resumeLabel.label, resumeLabel.winner, "40", "40") : { p: "0", o: "0" };
     setLivePoint({ ...startSplit, server: serverAt(0) });
     let step = 0;
     let prevP = startSplit.p, prevO = startSplit.o;
@@ -1844,7 +1845,15 @@ export default function TennisManager() {
         eventLog: [...evts, ...(ms.eventLog || [])].slice(0, 80),
       };
     });
-    resumeAfterDilemma();
+    // Le score s'affiche tout de suite : jeu gagné, ou retour à égalité.
+    setLivePoint(lp => ({ p: win ? "JEU" : "40", o: "40", server: lp ? lp.server : true }));
+    if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
+    // Jeu gagné : le tableau se met à jour aussitôt. Égalité : courte pause
+    // pour se remettre dans le match, puis la fin du jeu se joue.
+    autoTimerRef.current = setTimeout(() => {
+      autoTimerRef.current = null;
+      if (!matchPausedRef.current && playGameRef.current) playGameRef.current();
+    }, (win ? 250 : 1600) * speedFactor());
   };
   const resolveDilemma = (option, dilemma) => {
     // ── Special handling: match-fixing proposal ──
@@ -4064,7 +4073,27 @@ export default function TennisManager() {
 
             {/* Dilemma overlay */}
             {ms.pendingDilemma && ms.pendingDilemma.minigame && (
-              <div className="tm-paper" style={{ position: "fixed", inset: 0, zIndex: 250, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+              <div className="tm-paper" style={{ position: "fixed", inset: 0, zIndex: 250, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", padding: 16, gap: 12 }}>
+                {/* Score du match, toujours visible pendant le mini-jeu */}
+                {(() => {
+                  const pg = m.pendingGame;
+                  // Avantage joueur au moment du mini-jeu : AV contre 40.
+                  const pt = pg ? { p: pg.pp > pg.op ? "AV" : "40", o: pg.op > pg.pp ? "AV" : "40" } : null;
+                  return (
+                    <div style={{ width: "100%", maxWidth: 400, background: "#ffffff", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, flexShrink: 0 }}>
+                      {[{ name: player.name, isP: true }, { name: ms.opponent.name, isP: false }].map((row, ri) => (
+                        <div key={ri} style={{ display: "flex", alignItems: "center", borderTop: ri ? "2px solid " + T.ink : "none", background: row.isP ? "rgba(214,239,60,0.22)" : "transparent" }}>
+                          <span className="tm-display" style={{ flex: 1, minWidth: 0, padding: "5px 10px", fontSize: 13, color: "#141414", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
+                          {setsPlayed.map((st, i) => (
+                            <span key={i} className="tm-display" style={{ width: 30, textAlign: "center", fontSize: 17, color: !st.completed ? T.magenta : "#141414" }}>{row.isP ? st.pGames : st.oGames}</span>
+                          ))}
+                          <span className="tm-display" style={{ width: 44, alignSelf: "stretch", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#141414", background: T.gold, borderLeft: "2.5px solid " + T.ink }}>{pt ? (row.isP ? pt.p : pt.o) : "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+                <div style={{ flex: 1 }} />
                 <MatchMiniGame
                   kind={ms.pendingDilemma.minigame}
                   oppName={ms.opponent.name}
@@ -4076,6 +4105,7 @@ export default function TennisManager() {
                   myAvatar={player.avatar}
                   onDone={(win, text, zone) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone)}
                 />
+                <div style={{ flex: 1 }} />
               </div>
             )}
             {ms.pendingDilemma && !ms.pendingDilemma.minigame && (
