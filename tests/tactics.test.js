@@ -2,7 +2,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { seedRandom } from "./helpers.js";
 import { DEFAULT_TACTICS, coachAdvice, doubleFaultRate, normalizeTactics, tacticsBonus } from "../src/engine/tactics.js";
-import { opponentRead, serveDuel, smashResult } from "../src/engine/minigames.js";
+import { TRAINING_CARDS, opponentRead, rollTraining, serveDuel, smashResult, trainingOdds } from "../src/engine/minigames.js";
 import { advanceMatchOneGame, createInitialMatchData } from "../src/engine/match.js";
 
 afterEach(() => vi.restoreAllMocks());
@@ -69,5 +69,34 @@ describe("mini-jeux", () => {
   it("smash : pile dans la zone verte = gagné, raté = perdu", () => {
     expect(smashResult(0.9).win).toBe(true);
     expect(smashResult(0).win).toBe(false);
+  });
+});
+
+describe("programmes d'entraînement", () => {
+  it("plus le programme est ambitieux, moins il réussit", () => {
+    const [routine, intensif, exploit] = TRAINING_CARDS.map(c => trainingOdds(c, { energy: 80, happiness: 70 }));
+    expect(routine).toBeGreaterThan(intensif);
+    expect(intensif).toBeGreaterThan(exploit);
+  });
+
+  it("raté = rien ; plus c'est risqué, plus ça fatigue et plus ça rapporte", () => {
+    for (const c of TRAINING_CARDS) expect(c.failMul).toBe(0);
+    for (let i = 1; i < TRAINING_CARDS.length; i++) {
+      expect(TRAINING_CARDS[i].energyMul).toBeGreaterThan(TRAINING_CARDS[i - 1].energyMul);
+      expect(TRAINING_CARDS[i].successMul).toBeGreaterThan(TRAINING_CARDS[i - 1].successMul);
+    }
+  });
+
+  it("la forme et le coach augmentent les chances", () => {
+    const c = TRAINING_CARDS[1];
+    expect(trainingOdds(c, { energy: 95, happiness: 90, staffTrainGain: 0.1 })).toBeGreaterThan(trainingOdds(c, { energy: 40, happiness: 30 }));
+  });
+
+  it("la fréquence de réussite suit la probabilité affichée", () => {
+    seedRandom(12);
+    const c = TRAINING_CARDS[1], ctx = { energy: 70, happiness: 60 };
+    let ok = 0;
+    for (let i = 0; i < 4000; i++) if (rollTraining(c, ctx).success) ok++;
+    expect(ok / 4000).toBeCloseTo(trainingOdds(c, ctx), 1);
   });
 });

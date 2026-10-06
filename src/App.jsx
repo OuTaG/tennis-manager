@@ -53,7 +53,7 @@ import { styles } from "./ui/styles.js";
 import { T, applyTheme } from "./ui/theme.js";
 import { getRngState, newSeed, random, setRngState, setSeed } from "./engine/rng.js";
 import { TACTIC_DEFS, coachAdvice, normalizeTactics } from "./engine/tactics.js";
-import { TRAINING_CARDS, ZONES, miniGameEffect, pickMatchMiniGame, revealMystery } from "./engine/minigames.js";
+import { TRAINING_CARDS, ZONES, miniGameEffect, pickMatchMiniGame, trainingOdds } from "./engine/minigames.js";
 import { MatchMiniGame, TrainingCards } from "./ui/overlays/MiniGames.jsx";
 import { DIFFICULTY_LEVELS, GAME_OPTIONS, formatMultiplier, hasGameOption, injuryRiskMul, scoreMultiplier } from "./engine/difficulty.js";
 
@@ -1078,6 +1078,8 @@ export default function TennisManager() {
   // Énergie de base d'une séance : l'endurance réduit le coût, certains
   // coachs intensifs ajoutent un surcoût.
   const baseTrainingEnergy = (mod) => Math.round(mod.energyCost * Math.max(0.6, 1 - (player.stats.stamina - 50) / 100)) + staffTrainEnergyExtra(player.staff);
+  // Forme du joueur pour les probabilités de réussite des programmes.
+  const trainingOddsCtx = player ? { energy: player.energy, happiness: player.happiness ?? 70, staffTrainGain: Math.max(-0.3, sumStaffEffect(player.staff || [], "trainGain")) } : {};
   // Choix de la fiche d'entraînement (mini-jeu), puis la séance.
   const doTraining = (mod) => {
     const absNow = (player.year || 0) * 52 + (player.week || 0);
@@ -1090,7 +1092,9 @@ export default function TennisManager() {
     if (player.energy < baseTrainingEnergy(mod) + 3) { notify("Énergie insuffisante", "warn"); return; }
     setCardPick(mod);
   };
-  const runTraining = (mod, cardId = "commune") => {
+  // outcome : résultat du programme tiré à l'écran des fiches
+  // ({ success, gainMul, injury }) ; sans résultat, séance de routine réussie.
+  const runTraining = (mod, cardId = "commune", outcome = null) => {
     const card = TRAINING_CARDS.find(c => c.id === cardId) || TRAINING_CARDS[0];
     {
       const absNow = (player.year || 0) * 52 + (player.week || 0);
@@ -1108,9 +1112,7 @@ export default function TennisManager() {
     const extraEnergyFromStaff = staffTrainEnergyExtra(player.staff);
     const actualEnergyCost = Math.round((Math.round(mod.energyCost * staminaReduction) + extraEnergyFromStaff) * card.energyMul);
     if (player.energy < actualEnergyCost + 3) { notify("Énergie insuffisante", "warn"); return; }
-    // Fiche mystère : révélée maintenant (déclic, séance normale ou petite gêne).
-    const mystery = card.gainMul === null ? revealMystery() : null;
-    const cardGainMul = mystery ? mystery.gainMul : card.gainMul;
+    const cardGainMul = outcome ? outcome.gainMul : card.successMul;
 
     // Staff bonus: somme des trainGain de TOUS les staff applicables (coachs en pratique).
     // Net = trainGain bonuses - trainGain malus (sumStaffEffect le gère).
@@ -1142,9 +1144,6 @@ export default function TennisManager() {
     // The physio/staff injuryProtect reduces (but never removes) the risk.
     let aggravated = false;
     let updatedInjury = player.injury;
-    if (mystery && mystery.outcome === "gene" && !player.injury) {
-      updatedInjury = { severity: "minor", label: "Petite gêne musculaire", emoji: "", weeksRemaining: 1, statPenalty: 0.05, canPlay: true };
-    }
     if (player.injury && player.injury.weeksRemaining > 0) {
       const protect = Math.max(0, Math.min(0.5, sumStaffEffect(player.staff, "injuryProtect")));
       const aggravationChance = 0.45 * (1 - protect); // ~45%, lowered by physio
@@ -1172,10 +1171,9 @@ export default function TennisManager() {
       totalSpent: (p.totalSpent || 0) + mod.cost,
       trainCount: (p.trainCount || 0) + 1,
       energy: Math.max(0, p.energy - actualEnergyCost),
-      happiness: clampLife((p.happiness ?? 70) + card.happinessDelta),
       injury: updatedInjury,
     }));
-    if (mystery) notify(mystery.text, mystery.outcome === "gene" ? "warn" : "info");
+    if (outcome && !outcome.success) notify(card.name + " ratée : pas de progrès cette fois.", "warn");
     if (aggravated) {
       notify("Vous avez aggravé votre blessure ! Repos prolongé (" + updatedInjury.label + ").", "warn");
     } else if (player.injury && player.injury.weeksRemaining > 0) {
@@ -4225,7 +4223,9 @@ export default function TennisManager() {
           mod={cardPick}
           costs={Object.fromEntries(TRAINING_CARDS.map(c => [c.id, Math.round(baseTrainingEnergy(cardPick) * c.energyMul)]))}
           affordable={Object.fromEntries(TRAINING_CARDS.map(c => [c.id, player.energy >= Math.round(baseTrainingEnergy(cardPick) * c.energyMul) + 3]))}
-          onPick={(id) => { const mod = cardPick; setCardPick(null); runTraining(mod, id); }}
+          odds={Object.fromEntries(TRAINING_CARDS.map(c => [c.id, trainingOdds(c, trainingOddsCtx)]))}
+          oddsCtx={trainingOddsCtx}
+          onPick={(id, outcome) => { const mod = cardPick; setCardPick(null); runTraining(mod, id, outcome); }}
           onClose={() => setCardPick(null)}
         />
       )}
