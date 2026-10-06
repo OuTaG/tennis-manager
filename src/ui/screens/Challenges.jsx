@@ -12,7 +12,7 @@ export function DifficultyDots({ n }) {
   return (
     <span style={{ display: "inline-flex", gap: 3 }}>
       {[1, 2, 3, 4, 5].map(i => (
-        <span key={i} style={{ width: 7, height: 7, borderRadius: 4, background: i <= n ? T.clay : T.bg4 }} />
+        <span key={i} style={{ width: 7, height: 7, borderRadius: 0, background: i <= n ? T.clay : T.bg4 }} />
       ))}
     </span>
   );
@@ -43,7 +43,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
     if (d) setName(randomFullName(nat, d.circuit === "wta"));
   };
   const CircuitBadge = ({ c }) => (
-    <span data-nofem="" style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, color: c === "wta" ? "#b23f73" : "#4d7a3a", border: "1px solid " + (c === "wta" ? "#b23f73" : "#4d7a3a") }}>
+    <span data-nofem="" style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 0, color: c === "wta" ? "#b23f73" : "#4d7a3a", border: "1px solid " + (c === "wta" ? "#b23f73" : "#4d7a3a") }}>
       {c === "wta" ? "Circuit féminin" : "Circuit masculin"}
     </span>
   );
@@ -63,7 +63,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
             <div style={{ color: T.fg, fontSize: 22, fontWeight: 700, fontFamily: T.display, marginBottom: 4 }}>{def.name}</div>
             <div style={{ color: T.fg3, fontSize: 13, marginBottom: 14 }}>{def.tagline}</div>
             <div style={{ color: T.fg2, fontSize: 13.5, lineHeight: 1.6, marginBottom: 14 }}>{def.context}</div>
-            <div style={{ background: T.bg2, border: "1px solid " + T.brd, borderRadius: 3, padding: 12, marginBottom: 12 }}>
+            <div style={{ background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: 12, marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.fg, fontWeight: 700, fontSize: 14 }}>
                 <Icon name="target" size={16} color={T.green} /> {def.objectiveLabel}
               </div>
@@ -89,7 +89,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               <input style={{ ...styles.input, flex: 1, minWidth: 0 }} value={name} onChange={e => setName(e.target.value)} />
               <button type="button" title="Nom au hasard" onClick={() => setName(randomFullName(nat, circuit === "wta"))}
-                style={{ flexShrink: 0, width: 46, borderRadius: 3, cursor: "pointer", background: T.bg2, border: "1px solid " + T.greenBrd, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                style={{ flexShrink: 0, width: 46, borderRadius: 0, cursor: "pointer", background: T.bg2, border: "1px solid " + T.greenBrd, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Icon name="dice" size={20} color={T.green} />
               </button>
             </div>
@@ -225,8 +225,8 @@ export function ChallengePanel({ player, atpDb, repayDebt }) {
         )}
         {!finished && c.id === "pression" && (
           <div style={{ marginTop: 8 }}>
-            <div style={{ position: "relative", height: 6, background: T.bg3, borderRadius: 3 }}>
-              <div style={{ width: Math.max(0, Math.min(100, player.happiness ?? 0)) + "%", height: "100%", borderRadius: 3, background: (player.happiness ?? 0) < 40 ? T.red : T.amber }} />
+            <div style={{ position: "relative", height: 6, background: T.bg3, borderRadius: 0 }}>
+              <div style={{ width: Math.max(0, Math.min(100, player.happiness ?? 0)) + "%", height: "100%", borderRadius: 0, background: (player.happiness ?? 0) < 40 ? T.red : T.amber }} />
               <div style={{ position: "absolute", left: "30%", top: -3, width: 2, height: 12, background: T.red }} />
             </div>
           </div>

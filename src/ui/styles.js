@@ -150,11 +150,11 @@ export const styles = {
   styleBtnActive: { border: INK_BORDER, background: T.gold, color: "#161616", boxShadow: "3px 3px 0 " + T.ink },
 
   // STAT PREVIEW
-  statPreview: { width: "100%", background: T.bg2, borderRadius: 0, padding: 14, boxSizing: "border-box", border: "1px solid " + T.brd },
+  statPreview: { width: "100%", background: T.bg2, borderRadius: 0, padding: 14, boxSizing: "border-box", border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink },
   statBarRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 6 },
   statLabel: { color: T.fg3, fontSize: 12, width: 80, flexShrink: 0, fontWeight: 500 },
-  statBarBg: { flex: 1, height: 8, background: T.bg3, borderRadius: 4, overflow: "hidden" },
-  statBarFill: { height: "100%", background: T.green, borderRadius: 4, transition: "width 0.3s" },
+  statBarBg: { flex: 1, height: 10, background: "#ffffff", border: "2px solid " + T.ink, borderRadius: 0, overflow: "hidden" },
+  statBarFill: { height: "100%", background: T.green, borderRadius: 0, transition: "width 0.3s" },
   statVal: { color: T.fg2, fontSize: 12, width: 30, textAlign: "right", fontFamily: T.body, fontVariantNumeric: "tabular-nums" },
 
   // NOTIF — toast en bas, au-dessus du dock (zone du pouce)
@@ -188,7 +188,7 @@ export const styles = {
   },
   bigAvatar: {
     fontSize: 36, background: T.bg2, borderRadius: 0, padding: 12,
-    border: "1px solid " + T.brd,
+    border: "2px solid " + T.ink,
   },
   badge: {
     background: T.bg1, color: T.fg,
@@ -200,8 +200,8 @@ export const styles = {
   // ENERGY
   energyBar: { display: "flex", alignItems: "center", gap: 12 },
   energyLabel: { color: T.fg3, fontSize: 12, fontWeight: 600, flexShrink: 0, width: 70 },
-  energyTrack: { flex: 1, height: 8, background: T.bg3, borderRadius: 4, overflow: "hidden" },
-  energyFill: { height: "100%", borderRadius: 4, transition: "width 0.4s ease-out" },
+  energyTrack: { flex: 1, height: 10, background: "#ffffff", border: "2px solid " + T.ink, borderRadius: 0, overflow: "hidden" },
+  energyFill: { height: "100%", borderRadius: 0, transition: "width 0.4s ease-out" },
   energyVal: { color: T.fg, fontWeight: 600, fontSize: 13, width: 44, textAlign: "right", fontFamily: T.body, fontVariantNumeric: "tabular-nums" },
 
   // QUICK GRID
@@ -262,7 +262,7 @@ export const styles = {
   },
 
   infoChip: {
-    background: T.bg2, border: "1px solid " + T.brd,
+    background: T.bg2, border: "2px solid " + T.ink,
     borderRadius: 0, padding: "5px 11px",
     color: T.fg3, fontSize: 12, fontWeight: 500,
     letterSpacing: 0, textTransform: "none",
@@ -270,7 +270,7 @@ export const styles = {
   resultPill: {
     background: T.bg1, borderRadius: 0, padding: "12px 18px",
     color: T.fg, fontWeight: 600, fontSize: 15,
-    border: "1px solid " + T.brd2, fontFamily: T.mono,
+    border: "2px solid " + T.ink, fontFamily: T.mono,
   },
 
   // FILTERS — pastilles arrondies
@@ -288,7 +288,7 @@ export const styles = {
   tournCard: { ...cardBase, padding: 16, marginBottom: 10, cursor: "pointer" },
   tournHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, gap: 10 },
   tierBadge: { fontSize: 11, fontWeight: 600, textAlign: "right", flexShrink: 0 },
-  tournChip: { background: T.bg2, borderRadius: 0, padding: "4px 9px", fontSize: 12, color: T.fg3, fontWeight: 500, border: "1px solid " + T.brd },
+  tournChip: { background: T.bg2, borderRadius: 0, padding: "4px 9px", fontSize: 12, color: T.fg3, fontWeight: 500, border: "2px solid " + T.ink },
 
   // TRAINING/STAFF
   trainingCard: { ...cardBase, padding: 16, marginBottom: 10 },
@@ -297,7 +297,7 @@ export const styles = {
   // ATP / STATS
   atpCard: { ...cardBase, padding: 20, marginBottom: 14, position: "relative", overflow: "hidden" },
   skillsCard: { ...cardBase, padding: 16, marginBottom: 14 },
-  historyCard: { background: T.bg2, borderRadius: 0, padding: 12, marginBottom: 6, border: "1px solid " + T.brd },
+  historyCard: { background: T.bg2, borderRadius: 0, padding: 12, marginBottom: 6, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink },
 
   momentumChip: {
     background: T.bg1, border: "2px solid " + T.ink,
@@ -321,7 +321,7 @@ export const styles = {
   },
   dilemmaBtn: {
     width: "100%", padding: "12px 14px",
-    background: T.bg2, border: "1px solid " + T.brd2,
+    background: T.bg2, border: "2px solid " + T.ink,
     borderRadius: 0, color: T.fg, textAlign: "left",
     cursor: "pointer", marginBottom: 8, fontFamily: T.body,
     fontSize: 14, transition: "background 0.15s",
@@ -332,7 +332,7 @@ export const styles = {
     background: T.bg1, borderRadius: 0, padding: "11px 14px",
     marginBottom: 4, display: "flex", alignItems: "center",
     justifyContent: "space-between",
-    border: "1px solid " + T.brd, cursor: "pointer",
+    border: "2px solid " + T.ink, cursor: "pointer",
   },
 
   // NEWS

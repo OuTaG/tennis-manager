@@ -46,10 +46,10 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
             <div key={i} style={{
               display: "flex", alignItems: "center", gap: 10,
               background: T.bg1, border: "1px solid " + (r.met ? T.greenBrd : "var(--tm-redBrd)"),
-              borderRadius: 3, padding: "12px 14px", marginBottom: 8,
+              borderRadius: 0, padding: "12px 14px", marginBottom: 8,
             }}>
               <div style={{
-                width: 22, height: 22, borderRadius: 3, flexShrink: 0,
+                width: 22, height: 22, borderRadius: 0, flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: r.met ? T.greenSub : "var(--tm-redSub)",
                 border: "1px solid " + (r.met ? T.green : T.red),
@@ -125,11 +125,11 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
           <div style={{
             background: T.bg1, border: "1px solid " + T.greenBrd,
             borderLeft: "4px solid " + T.green,
-            borderRadius: 3, padding: 14, marginBottom: 14,
+            borderRadius: 0, padding: 14, marginBottom: 14,
             display: "flex", gap: 12, alignItems: "flex-start",
           }}>
             <div style={{
-              flexShrink: 0, width: 32, height: 32, borderRadius: 3,
+              flexShrink: 0, width: 32, height: 32, borderRadius: 0,
               background: T.greenSub, border: "1px solid " + T.greenBrd,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
@@ -149,7 +149,7 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
         )}
 
         {offers.length === 0 ? (
-          <div style={{ background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "24px 16px", textAlign: "center", color: T.fg4, fontSize: 13, marginBottom: 20 }}>
+          <div style={{ background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "24px 16px", textAlign: "center", color: T.fg4, fontSize: 13, marginBottom: 20 }}>
             {player.image < 20
               ? "Votre image est trop dégradée : aucun sponsor ne se présente."
               : "Aucune offre cette fois. Améliorez votre classement et votre image pour attirer les marques."}
@@ -178,7 +178,7 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
                 background: walked ? T.bg2 : T.bg1,
                 border: "1px solid " + (walked ? "var(--tm-redBrd)" : wasNegotiated ? T.greenBrd : catBrd),
                 borderLeft: "4px solid " + (walked ? T.red : catColor),
-                borderRadius: 3, padding: 14, marginBottom: 12, fontFamily: T.body,
+                borderRadius: 0, padding: 14, marginBottom: 12, fontFamily: T.body,
                 display: "block", opacity: walked ? 0.7 : 1,
                 boxShadow: introHighlight ? "0 0 0 2px " + T.green + ", 0 0 24px " + T.greenSub : "none",
                 animation: introHighlight ? "tm-pulse-green 1.8s infinite" : "none",
@@ -189,17 +189,17 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ color: T.fg, fontWeight: 800, fontSize: 16 }}>{o.brand}</span>
                       {wasNegotiated && !walked && (
-                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 4, background: T.greenSub, color: T.green, border: "1px solid " + T.greenBrd, textTransform: "none" }}>Négocié</span>
+                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 0, background: T.greenSub, color: T.green, border: "1px solid " + T.greenBrd, textTransform: "none" }}>Négocié</span>
                       )}
                       {walked && (
-                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 4, background: "var(--tm-redSub)", color: T.red, border: "1px solid var(--tm-redBrd)", textTransform: "none" }}>Marque partie</span>
+                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 0, background: "var(--tm-redSub)", color: T.red, border: "1px solid var(--tm-redBrd)", textTransform: "none" }}>Marque partie</span>
                       )}
                       {o.nonNegotiable && !walked && (
-                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 4, background: T.bg3, color: T.fg3, border: "1px solid " + T.brd2, textTransform: "none" }}>Non-négociable</span>
+                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 0, background: T.bg3, color: T.fg3, border: "2px solid " + T.ink, textTransform: "none" }}>Non-négociable</span>
                       )}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                      <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 3, background: catColor }} />
+                      <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 0, background: catColor }} />
                       <span style={{ color: T.fg4, fontSize: 11 }}>
                         {catLabel[o.cat] || "Partenaire"} · {tierLabel[o.tier] || o.tier}
                       </span>
@@ -216,7 +216,7 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
                   {med && <span style={{ ...styles.tournChip, color: T.ball }}><Icon name="target" size={10} /> {(neg && neg.levelId ? (o.objectiveLevels || []).find(l => l.level === neg.levelId) : med).label}</span>}
                 </div>
                 {slotWarn && (
-                  <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 10, padding: "8px 10px", borderRadius: 3, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", color: T.red, fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
+                  <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 10, padding: "8px 10px", borderRadius: 0, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", color: T.red, fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
                     <span>{slotWarn.short}</span>
                   </div>
                 )}
@@ -430,7 +430,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
 
         {slotWarning && (
           <div style={{
-            marginTop: 12, padding: "10px 12px", borderRadius: 3,
+            marginTop: 12, padding: "10px 12px", borderRadius: 0,
             background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)",
             borderLeft: "4px solid " + T.red, color: T.fg2, fontSize: 12, lineHeight: 1.5,
           }}>
@@ -443,13 +443,13 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
             buttons, the patience gauge and the sign/walk-away outcomes. */}
         {isFirstNegotiation && !offer.nonNegotiable && (
           <div style={{
-            marginTop: 12, padding: "12px 14px", borderRadius: 3,
+            marginTop: 12, padding: "12px 14px", borderRadius: 0,
             background: T.bg1, border: "1px solid " + T.greenBrd,
             borderLeft: "4px solid " + T.green,
             display: "flex", gap: 10, alignItems: "flex-start",
           }}>
             <div style={{
-              flexShrink: 0, width: 28, height: 28, borderRadius: 3,
+              flexShrink: 0, width: 28, height: 28, borderRadius: 0,
               background: T.greenSub, border: "1px solid " + T.greenBrd,
               display: "flex", alignItems: "center", justifyContent: "center",
               color: T.green, fontWeight: 900, fontSize: 14, fontFamily: T.mono,
@@ -462,8 +462,8 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
 
         {offer.nonNegotiable && (
           <div style={{
-            marginTop: 12, padding: "10px 12px", borderRadius: 3,
-            background: T.bg2, border: "1px solid " + T.brd2, color: T.fg2, fontSize: 12, lineHeight: 1.5,
+            marginTop: 12, padding: "10px 12px", borderRadius: 0,
+            background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, color: T.fg2, fontSize: 12, lineHeight: 1.5,
           }}>
             <div style={{ color: T.amber, fontWeight: 800, fontSize: 11, letterSpacing: 0.2, textTransform: "none", marginBottom: 4 }}>À prendre ou à laisser</div>
             Cette marque ne négocie pas : les conditions ci-dessous sont fermes. Vous signez tel quel ou vous passez.
@@ -471,14 +471,14 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
         )}
 
         {/* Dialogue log */}
-        <div ref={logRef} style={{ background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: 14, margin: "12px 0", height: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div ref={logRef} style={{ background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: 14, margin: "12px 0", height: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
           {log.map((e, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: e.who === "player" ? "flex-end" : "flex-start" }}>
               <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.2, textTransform: "none", color: e.who === "player" ? T.green : T.fg5, marginBottom: 3, padding: "0 4px" }}>
                 {e.who === "player" ? "Vous" : offer.brand}
               </div>
               <div style={{
-                maxWidth: "85%", fontSize: 13, lineHeight: 1.45, padding: "9px 13px", borderRadius: 3,
+                maxWidth: "85%", fontSize: 13, lineHeight: 1.45, padding: "9px 13px", borderRadius: 0,
                 borderBottomRightRadius: e.who === "player" ? 3 : 12,
                 borderBottomLeftRadius: e.who === "player" ? 12 : 3,
                 background: e.who === "player" ? T.greenSub : T.bg3,
@@ -498,7 +498,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
             const lab = { easy: "Facile", medium: "Moyen", hard: "Ambitieux" }[l.level] || l.level;
             return (
               <button key={l.level} onClick={() => !closed && setLevelId(l.level)} style={{
-                flex: 1, padding: "8px 4px", borderRadius: 3, cursor: closed ? "default" : "pointer", fontFamily: T.body,
+                flex: 1, padding: "8px 4px", borderRadius: 0, cursor: closed ? "default" : "pointer", fontFamily: T.body,
                 background: active ? T.greenSub : T.bg2, border: "1px solid " + (active ? T.green : T.brd2),
                 color: active ? T.green : T.fg3, fontWeight: 700, fontSize: 12,
               }}>{lab}</button>
@@ -506,14 +506,14 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
           })}
         </div>
         {level && (
-          <div style={{ background: T.bg2, borderRadius: 3, padding: "10px 12px", marginBottom: 14, border: "1px solid " + T.brd }}>
+          <div style={{ background: T.bg2, borderRadius: 0, padding: "10px 12px", marginBottom: 14, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
             <div style={{ color: T.fg2, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{level.label}</div>
             <div style={{ display: "flex", gap: 8 }}>
-              <div style={{ flex: 1, background: T.greenSub, border: "1px solid " + T.greenBrd, borderRadius: 3, padding: "6px 8px", textAlign: "center" }}>
+              <div style={{ flex: 1, background: T.greenSub, border: "1px solid " + T.greenBrd, borderRadius: 0, padding: "6px 8px", textAlign: "center" }}>
                 <div style={{ color: T.fg5, fontSize: 9, fontWeight: 700 }}>Réussi</div>
                 <div style={{ color: T.green, fontWeight: 800, fontSize: 13, fontFamily: T.mono }}>+{reward.toLocaleString()}€</div>
               </div>
-              <div style={{ flex: 1, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", borderRadius: 3, padding: "6px 8px", textAlign: "center" }}>
+              <div style={{ flex: 1, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", borderRadius: 0, padding: "6px 8px", textAlign: "center" }}>
                 <div style={{ color: T.fg5, fontSize: 9, fontWeight: 700 }}>Échoué</div>
                 <div style={{ color: T.red, fontWeight: 800, fontSize: 13, fontFamily: T.mono }}>−{penalty.toLocaleString()}€</div>
               </div>
@@ -537,8 +537,8 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
                 <span className="tm-eyebrow" style={{ color: T.fg5 }}>Patience du sponsor</span>
                 <span style={{ color: col, fontSize: 11, fontWeight: 700 }}>{mood}</span>
               </div>
-              <div style={{ height: 7, background: T.bg3, borderRadius: 4, overflow: "hidden", border: "1px solid " + T.brd }}>
-                <div style={{ width: (frac * 100).toFixed(0) + "%", height: "100%", background: col, borderRadius: 4, transition: "width 0.4s, background 0.4s" }} />
+              <div style={{ height: 7, background: T.bg3, borderRadius: 0, overflow: "hidden", border: "2px solid " + T.ink }}>
+                <div style={{ width: (frac * 100).toFixed(0) + "%", height: "100%", background: col, borderRadius: 0, transition: "width 0.4s, background 0.4s" }} />
               </div>
             </div>
           );
@@ -547,7 +547,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
         {/* Money terms */}
         <div className="tm-eyebrow" style={{ marginBottom: 8 }}>Conditions financières</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "10px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "10px 12px" }}>
             <div>
               <div style={{ color: T.fg4, fontSize: 11 }}>Salaire hebdomadaire</div>
               <div style={{ color: T.green, fontWeight: 800, fontSize: 15, fontFamily: T.mono }}>{weeklyPay.toLocaleString()}€</div>
@@ -566,14 +566,14 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
               >{offer.nonNegotiable ? "Verrouillé" : "Demander +"}</button>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "10px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "10px 12px" }}>
             <div>
               <div style={{ color: T.fg4, fontSize: 11 }}>Prime par titre</div>
               <div style={{ color: T.fg, fontWeight: 800, fontSize: 15, fontFamily: T.mono }}>{titleBonus.toLocaleString()}€</div>
             </div>
             <button disabled={closed || offer.nonNegotiable} onClick={() => demand("bonus")} style={negBtnStyle(closed || offer.nonNegotiable)}>{offer.nonNegotiable ? "Verrouillé" : "Demander +"}</button>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "10px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "10px 12px" }}>
             <div>
               <div style={{ color: T.fg4, fontSize: 11 }}>Durée du contrat</div>
               <div style={{ color: T.fg, fontWeight: 800, fontSize: 15, fontFamily: T.mono }}>{offer.durationWeeks} sem. <span style={{ color: T.fg4, fontWeight: 600, fontSize: 12 }}>(objectif sur toute la durée)</span></div>
@@ -583,7 +583,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
 
         {walkedAway ? (
           <div>
-            <div style={{ background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", borderRadius: 3, padding: "14px 16px", marginBottom: 12, textAlign: "center" }}>
+            <div style={{ background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", borderRadius: 0, padding: "14px 16px", marginBottom: 12, textAlign: "center" }}>
               <div style={{ marginBottom: 6 }}><Icon name="arrowLeft" size={26} color={T.fg3} /></div>
               <div style={{ color: T.red, fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Négociation rompue</div>
               <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.5 }}>
@@ -612,8 +612,8 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
 
 export function negBtnStyle(closed) {
   return {
-    background: closed ? T.bg3 : T.bg3, border: "1px solid " + T.brd2, color: closed ? T.fg5 : T.fg,
-    borderRadius: 3, padding: "8px 12px", fontSize: 12, fontWeight: 700, fontFamily: T.body,
+    background: closed ? T.bg3 : T.bg3, border: "2px solid " + T.ink, color: closed ? T.fg5 : T.fg,
+    borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700, fontFamily: T.body,
     cursor: closed ? "default" : "pointer", whiteSpace: "nowrap",
   };
 }

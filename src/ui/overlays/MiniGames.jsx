@@ -68,15 +68,17 @@ export function buildDuelSteps(r) {
   const lx = zoneX(r.serveZone);
   // 1. Le relanceur s'est placé là où il lit le service, le service part.
   steps.push({ ball: { x: SERVER_X, y: BOT_Y - 6 }, dur: 0, ret: zoneX(r.readZone), srv: SERVER_X, hideZones: true });
-  steps.push({ ball: { x: lx, y: LAND_Y }, dur: 430, ret: zoneX(r.shift), bounce: true });
+  // Le relanceur reste sur sa lecture pendant le service…
+  steps.push({ ball: { x: lx, y: LAND_Y }, dur: 430, bounce: true });
   if (r.kind === "ace") {
-    // La balle file derrière le relanceur, qui n'a fait qu'un pas : ace.
+    // …et ne se jette d'une case qu'au dernier moment : trop tard, ace.
     const k = (TOP_Y - 70 - LAND_Y) / (LAND_Y - BOT_Y);
-    steps.push({ ball: { x: lx + (lx - SERVER_X) * k, y: -40 }, dur: 380, burst: { text: "ACE !", at: { x: lx, y: 96 } } });
+    steps.push({ ball: { x: lx + (lx - SERVER_X) * k, y: -40 }, dur: 380, ret: zoneX(r.shift), burst: { text: "ACE !", at: { x: lx, y: 96 } } });
     return steps;
   }
-  // Le relanceur touche la balle.
-  steps.push({ ball: { x: lx, y: TOP_Y + 18 }, dur: 200 });
+  // …puis se décale au dernier moment (s'il n'était pas sur la bonne
+  // zone) et touche la balle.
+  steps.push({ ball: { x: lx, y: TOP_Y + 18 }, dur: 260, ret: zoneX(r.shift) });
   if (r.kind === "return_winner") {
     // Bien lu : retour gagnant à l'opposé du serveur. La balle rebondit
     // d'abord dans le terrain (côté serveur, loin de lui), puis file hors du cadre.
@@ -169,7 +171,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
 
   const revealed = phase === "reveal";
   const figure = (who, x, y) => (
-    <div style={{ position: "absolute", left: pct(x, VW), top: pct(y, VH), width: 0, height: 0, zIndex: 3, transition: "left 0.32s cubic-bezier(.3,1.3,.6,1)" }}>
+    <div style={{ position: "absolute", left: pct(x, VW), top: pct(y, VH), width: 0, height: 0, zIndex: 3, transition: "left 0.24s cubic-bezier(.3,1.3,.6,1)" }}>
       <div style={{ position: "absolute", left: -21, top: -21, width: 42, height: 42, borderRadius: "50%", overflow: "hidden", border: "2.5px solid " + INK, background: "#ffffff", animation: phase === "pick" ? "tm-mg-bob 0.9s ease-in-out infinite" : "none" }}>
         {who.avatar ? <Avatar config={who.avatar} size={42} bare /> : null}
       </div>

@@ -32,7 +32,7 @@ export function RecordsScreen({ onBack }) {
                 const when = career && def.when ? def.when(career) : null;
                 return (
                   <div key={def.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: i < records.length - 1 ? "1px solid " + T.brd : "none" }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 3, background: career ? T.amberSub : T.bg2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 0, background: career ? T.amberSub : T.bg2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <Icon name={def.icon} size={16} color={career ? T.amber : T.fg5} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -70,7 +70,7 @@ export function RecordsScreen({ onBack }) {
               return (
                 <div key={d.id} style={{ borderBottom: i < CHALLENGES.length - 1 ? "1px solid " + T.brd : "none" }}>
                   <div onClick={() => r && setOpenCh(open ? null : d.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", cursor: r ? "pointer" : "default" }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 3, background: r ? T.amberSub : T.bg2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 0, background: r ? T.amberSub : T.bg2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <Icon name={r && r.medal ? "award" : "target"} size={16} color={r && r.medal ? (MEDAL_INFO[r.medal] || {}).color : r ? T.clay : T.fg5} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -95,7 +95,7 @@ export function RecordsScreen({ onBack }) {
                     </div>
                   </div>
                   {open && (
-                    <div style={{ background: T.bg2, borderRadius: 3, padding: "6px 10px", marginBottom: 10 }}>
+                    <div style={{ background: T.bg2, borderRadius: 0, padding: "6px 10px", marginBottom: 10 }}>
                       {r.rows.map((row, k) => (
                         <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, padding: "3px 0", color: T.fg3 }}>
                           <span>{row.label} <span style={{ color: T.fg5 }}>· {row.detail}</span></span>

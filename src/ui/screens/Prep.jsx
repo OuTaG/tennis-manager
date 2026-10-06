@@ -5,7 +5,7 @@ import { STAFF_LIST } from "../../data/staff.js";
 import { challengeActive } from "../../engine/challenges.js";
 import { hasGameOption } from "../../engine/difficulty.js";
 import { staffTrainEnergyExtra } from "../../engine/staff.js";
-import { trainingBaseGain } from "../../engine/training.js";
+import { trainingBaseGain, trainingEfficiency } from "../../engine/training.js";
 import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
@@ -16,15 +16,38 @@ export function TrainingScreen({ player, doTraining }) {
     <div style={styles.tabContent}>
       <div style={styles.sectionTitle}>Entraînement</div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={styles.infoChip}><span className="tm-num">{player.energy}%</span> énergie</div>
-      </div>
-
-      {player.energy < 25 && (
-        <div style={styles.alertBox}>
-          <strong style={{ color: T.amber }}>Énergie basse</strong> — gains réduits. Reposez-vous.
-        </div>
-      )}
+      {/* Forme d'entraînement : énergie et efficacité des séances */}
+      {(() => {
+        const eff = trainingEfficiency(player);
+        const effPct = Math.round(eff.total * 100);
+        const e = Math.round(player.energy);
+        const fmt = (m) => (m >= 1 ? "+" : "−") + Math.abs(Math.round((m - 1) * 100)) + " %";
+        return (
+          <div style={{ background: T.bg1, border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+              <div style={{ padding: "8px 10px", borderRight: "2.5px solid " + T.ink }}>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4 }}><Icon name="energy" size={11} /> Énergie</div>
+                <div className="tm-display" style={{ fontSize: 26, lineHeight: 1.05 }}>{e} %</div>
+                <div style={{ height: 10, border: "2px solid " + T.ink, background: "#ffffff", marginTop: 3 }}>
+                  <div style={{ height: "100%", width: e + "%", background: e > 60 ? "#1f7a45" : e > 30 ? "#e0a21b" : "#c4302b" }} />
+                </div>
+              </div>
+              <div className={effPct >= 100 ? "tm-halftone-yellow" : undefined} style={{ padding: "8px 10px", color: "#141414", background: effPct >= 100 ? undefined : "#c9b6ea" }}>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase" }}>Efficacité des séances</div>
+                <div className="tm-display" style={{ fontSize: 26, lineHeight: 1.05 }}>{effPct} %</div>
+                <div className="tm-lettering" style={{ fontSize: 13 }}>{effPct >= 110 ? "Au top !" : effPct >= 95 ? "Bonne forme" : effPct >= 75 ? "Correcte" : "Reposez-vous…"}</div>
+              </div>
+            </div>
+            {/* Ce qui fait monter ou baisser l'efficacité */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, padding: "7px 10px", borderTop: "2.5px solid " + T.ink }}>
+              {eff.parts.filter(pt => Math.abs(pt.mul - 1) >= 0.005).map(pt => (
+                <span key={pt.key} style={{ fontSize: 11, fontWeight: 800, border: "2px solid " + T.ink, padding: "0 5px", background: pt.mul >= 1 ? "#1f7a45" : "#c4302b", color: "#ffffff" }}>{pt.label} {fmt(pt.mul)}</span>
+              ))}
+              {eff.parts.every(pt => Math.abs(pt.mul - 1) < 0.005) && <span style={{ fontSize: 11, fontWeight: 700 }}>Aucun bonus ni malus en ce moment.</span>}
+            </div>
+          </div>
+        );
+      })()}
 
       {TRAINING_MODULES.map(mod => {
         // Same energy cost as doTraining: stamina reduction, then staff surcharge.
@@ -42,8 +65,8 @@ export function TrainingScreen({ player, doTraining }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                   <div style={{
-                    width: 36, height: 36, borderRadius: 3,
-                    background: T.bg3, border: "1px solid " + T.brd2,
+                    width: 36, height: 36, borderRadius: 0,
+                    background: T.bg3, border: "2px solid " + T.ink,
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
                     <Icon name={mod.iconName} size={18} color={T.green} />
@@ -162,8 +185,8 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
       )}
 
       <div style={{
-        background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 16,
-        border: "1px solid " + T.brd, display: "flex", justifyContent: "space-between", alignItems: "center",
+        background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 16,
+        border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <div>
           <div className="tm-eyebrow">Coût hebdomadaire</div>
@@ -184,7 +207,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
             <div className="tm-eyebrow" style={{ marginBottom: 10 }}>{role}</div>
             {hired ? (
               <div style={{
-                background: T.greenSub, borderRadius: 3, padding: 14,
+                background: T.greenSub, borderRadius: 0, padding: 14,
                 border: "1px solid " + T.greenBrd, borderLeft: "3px solid " + T.green,
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
@@ -194,7 +217,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
                     </div>
                     {hired.surface && (
                       <div style={{ display: "inline-block", marginTop: 4, fontSize: 10, fontWeight: 800, letterSpacing: 0.5, textTransform: "none",
-                        color: "var(--tm-blue)", background: T.bg3, padding: "2px 6px", borderRadius: 4 }}>
+                        color: "var(--tm-blue)", background: T.bg3, padding: "2px 6px", borderRadius: 0 }}>
                         Spé. {hired.surface}
                       </div>
                     )}
@@ -213,8 +236,8 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
                 const canAfford = !noStaff && player.money >= s.cost * 4;
                 return (
                   <div key={s.id} style={{
-                    background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 6,
-                    border: "1px solid " + T.brd,
+                    background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 6,
+                    border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -223,7 +246,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
                         </div>
                         {s.surface && (
                           <div style={{ display: "inline-block", marginTop: 4, fontSize: 10, fontWeight: 800, letterSpacing: 0.5, textTransform: "none",
-                            color: "var(--tm-blue)", background: T.bg3, padding: "2px 6px", borderRadius: 4 }}>
+                            color: "var(--tm-blue)", background: T.bg3, padding: "2px 6px", borderRadius: 0 }}>
                             Spé. {s.surface}
                           </div>
                         )}

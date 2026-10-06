@@ -49,14 +49,14 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
                      : T.fg4;
     return (
       <div key={p.id} className="tm-fade-up" style={{
-        background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 8,
-        border: "1px solid " + T.brd,
+        background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 8,
+        border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
       }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
           <div style={{
-            width: 38, height: 38, borderRadius: 3, flexShrink: 0,
-            background: T.bg3, border: "1px solid " + T.brd2,
+            width: 38, height: 38, borderRadius: 0, flexShrink: 0,
+            background: T.bg3, border: "2px solid " + T.ink,
             display: "flex", alignItems: "center", justifyContent: "center",
             color: typeColor, fontWeight: 800, fontSize: 14,
           }}>
@@ -129,8 +129,8 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
                   key={i}
                   onClick={() => handleReply(p.id, opt)}
                   style={{
-                    background: T.bg2, border: "1px solid " + T.brd2,
-                    borderRadius: 3, padding: "8px 12px",
+                    background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+                    borderRadius: 0, padding: "8px 12px",
                     color: T.fg, fontSize: 12, fontFamily: T.body,
                     textAlign: "left", cursor: "pointer",
                   }}
@@ -144,7 +144,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
         {p.repliedWith && (
           <div style={{
             marginTop: 12, marginLeft: 48, paddingTop: 10, borderTop: "1px solid " + T.brd,
-            background: T.bg2, borderRadius: 3, padding: "8px 12px",
+            background: T.bg2, borderRadius: 0, padding: "8px 12px",
             color: T.fg3, fontSize: 12, fontStyle: "italic",
           }}>
             Votre réponse : « {p.repliedWith} »

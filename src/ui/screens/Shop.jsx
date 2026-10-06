@@ -30,7 +30,7 @@ export function ShopScreen() {
       {SHOP_ITEMS.length === 0 ? (
         <div style={{ ...styles.skillsCard, textAlign: "center", padding: "28px 18px" }}>
           <div style={{
-            width: 56, height: 56, borderRadius: 3, margin: "0 auto 12px",
+            width: 56, height: 56, borderRadius: 0, margin: "0 auto 12px",
             background: T.amberSub, border: "1px solid " + T.amberBrd,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
@@ -51,7 +51,7 @@ export function ShopScreen() {
             return (
               <div key={item.id} style={{ ...styles.skillsCard, marginBottom: 8, padding: 14, opacity: soon ? 0.85 : 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 3, background: soon ? T.bg2 : T.amberSub, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 0, background: soon ? T.bg2 : T.amberSub, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Icon name={item.icon || "bag"} size={20} color={soon ? T.fg4 : T.amber} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
