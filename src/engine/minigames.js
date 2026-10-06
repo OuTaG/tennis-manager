@@ -79,10 +79,15 @@ export function returnDuel(guess) {
 }
 
 // Smash : précision de 0 (raté) à 1 (pile au centre de la zone verte).
+// Zone « presque » : le smash est trop court pour être imparable, une fois
+// sur deux l'adversaire le remet. Le texte dit lequel des deux s'est produit.
 export function smashResult(precision) {
-  if (precision >= 0.6) return { win: true, text: "SMASH ! Imparable." };
-  if (precision >= 0.25) return { win: random() < 0.5, text: "Smash un peu court…" };
-  return { win: false, text: "Dans le filet !" };
+  if (precision >= 0.6) return { win: true, label: "Parfait", text: "SMASH ! Imparable." };
+  if (precision >= 0.25) {
+    const win = random() < 0.5;
+    return { win, label: "Un peu court", text: win ? "Smash un peu court… mais l'adversaire ne le remet pas !" : "Smash un peu court… l'adversaire le remet et gagne le point." };
+  }
+  return { win: false, label: "Dans le filet", text: "Dans le filet !" };
 }
 
 // Effet d'un mini-jeu sur le match : l'élan.

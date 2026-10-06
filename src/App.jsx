@@ -1838,7 +1838,7 @@ export default function TennisManager() {
   const GAME_INJURY_RISK = 0.0005;
 
   // Fin d'un mini-jeu de match : l'élan bouge, le résultat entre dans le fil.
-  const resolveMiniGame = (kind, win, text, zone) => {
+  const resolveMiniGame = (kind, win, text, zone, label) => {
     setMatchState(ms => {
       if (!ms) return ms;
       const m = { ...ms.matchData };
@@ -1848,7 +1848,7 @@ export default function TennisManager() {
       if (m.pendingGame) m.pendingGame = { ...m.pendingGame, miniGameWon: !!win };
       const title = kind === "serve_duel" ? "Duel au service" : kind === "return_duel" ? "Duel au retour" : kind === "mental" ? "Sang-froid" : "Smash";
       const outcome = kind === "mental" ? (win ? " Point gagné !" : " Point perdu.") : (win ? " Jeu !" : " Retour à égalité.");
-      const evts = [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text: text + outcome }];
+      const evts = [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (label || (win ? "Réussi" : "Raté")), text: text + outcome }];
       // Smash raté : réception difficile, petit risque de blessure.
       if (kind === "smash" && !win && random() < SMASH_INJURY_RISK * injuryRiskMul(player)) {
         evts.unshift({ id: Date.now() + random() + 1, type: "injury", text: "Mauvaise réception après le smash… " + inflictMatchInjury(m) });
@@ -4079,7 +4079,7 @@ export default function TennisManager() {
                   return (
                     <div key={b.id} className="tm-halftone-lilac" style={{ ...styles.eventItem, opacity: fade, border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, color: "#141414" }}>
                       <span style={{ display: "inline-block", background: T.ink, color: T.gold, fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase", marginBottom: 5 }}>{decisive ? "Point décisif" : "Décision"}{b.title ? " · " + b.title : ""}</span>
-                      {b.choice && <div style={{ fontSize: 12, marginBottom: 3 }}>Choix : <strong>{b.choice}</strong></div>}
+                      {b.choice && <div style={{ fontSize: 12, marginBottom: 3 }}>{b.title === "Smash" ? "Frappe" : "Choix"} : <strong>{b.choice}</strong></div>}
                       <div style={{ fontSize: 13.5, fontWeight: 600 }}>{withFlags(b.text || "")}</div>
                     </div>
                   );
@@ -4143,7 +4143,7 @@ export default function TennisManager() {
                   myMental={player.stats.mental}
                   oppAvatar={aiAvatar(ms.opponent, player.circuit === "wta")}
                   myAvatar={player.avatar}
-                  onDone={(win, text, zone) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone)}
+                  onDone={(win, text, zone, label) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone, label)}
                 />
                 <div style={{ flex: 1 }} />
               </div>

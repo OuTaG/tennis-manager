@@ -120,7 +120,7 @@ export function buildDuelSteps(r) {
 }
 
 // kind : "serve_duel" | "return_duel" | "smash"
-// onDone(win, text, zone) : appelé quand le joueur clique « Continuer ».
+// onDone(win, text, zone, label) : appelé quand le joueur clique « Continuer ».
 export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, myMental, onDone }) {
   const [res, setRes] = useState(null);
   const [phase, setPhase] = useState("pick"); // pick → play → reveal
@@ -241,7 +241,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
         </div>
       )}
       {res && revealed && (
-        <button onClick={() => onDone(res.win, res.text, res.zone)} style={{
+        <button onClick={() => onDone(res.win, res.text, res.zone, res.label)} style={{
           minHeight: 52, border: "3px solid " + INK, background: PURPLE, color: "#ffffff", cursor: "pointer",
           fontFamily: T.display, fontSize: 19, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
         }}>Continuer ▶</button>
