@@ -215,14 +215,6 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         </div>
       )}
 
-      {/* Travel reminder */}
-      {enrolled && enrolled.week === (player.week === 52 ? 1 : player.week + 1) && player.location !== enrolled.city && (
-        <div style={styles.alertBox}>
-          <strong><Icon name="plane" size={11} /> Rappel voyage</strong><br />
-          <span style={{ fontSize: 12 }}>Tournoi à <strong>{enrolled.city}</strong> dès la semaine prochaine. Actuellement à {player.location}.</span>
-        </div>
-      )}
-
       {player.money < 1000 && (
         <div style={{ ...styles.alertBox, borderLeftColor: T.red, borderColor: T.red, color: T.fg2 }}>
           <strong style={{ color: T.red }}>Budget critique</strong> — Inscrivez-vous à des tournois du Circuit Open locaux.
