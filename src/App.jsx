@@ -3149,7 +3149,8 @@ export default function TennisManager() {
                 const startRanking = 1100;
                 const starter = generateSponsorOffer(startRanking, 0, [], newPlayer.image, {}, 2026, newPlayer.startDifficulty);
                 if (starter) {
-                  newPlayer.sponsorOffers = [{ ...starter, week: 1, year: 2026 }];
+                  // Premier sponsor : toujours négociable (pour apprendre).
+                  newPlayer.sponsorOffers = [{ ...starter, nonNegotiable: false, week: 1, year: 2026 }];
                 }
                 setPlayer(newPlayer);
                 setAtpDb(newDb);

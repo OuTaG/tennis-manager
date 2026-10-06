@@ -228,10 +228,14 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
           })
         )}
 
-        <button style={{ ...styles.btnSecondary, width: "100%", marginTop: 8 }} onClick={onClose}>
-          {offers.length > 0 ? "Terminer les négociations" : "Continuer"}
-        </button>
-        {offers.length > 0 && (
+        {/* Premier sponsor : la signature est obligatoire, pas de sortie
+            tant que l'offre est sur la table. */}
+        {!(data.phase === "intro" && offers.length > 0) && (
+          <button style={{ ...styles.btnSecondary, width: "100%", marginTop: 8 }} onClick={onClose}>
+            {offers.length > 0 ? "Terminer les négociations" : "Continuer"}
+          </button>
+        )}
+        {offers.length > 0 && data.phase !== "intro" && (
           <div style={{ color: T.fg5, fontSize: 11, textAlign: "center", marginTop: 10 }}>
             Les offres non signées seront perdues. Prochaine session de négociation à la mi ou fin de saison.
           </div>
@@ -282,6 +286,11 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [log]);
+
+  // Premier sponsor : quand il ne reste qu'un cran de patience, on bloque
+  // les demandes et on conseille de signer (la marque ne peut pas partir).
+  const lastChance = isFirstNegotiation && !offer.nonNegotiable && !closed && patience <= 1 && patienceMax > 1;
+  const askLocked = closed || offer.nonNegotiable || lastChance;
 
   const reward = Math.round((offer.baseReward || 0) * (level?.rewardMul || 1));
   const penalty = Math.round((offer.basePenalty || 0) * (level?.penaltyMul || 1));
@@ -383,7 +392,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
   };
 
   const demand = (kind) => {
-    if (closed) return;
+    if (askLocked) return;
     const nextPay   = kind === "pay"   ? weeklyPay  + stepPay   : weeklyPay;
     const nextBonus = kind === "bonus" ? titleBonus + stepBonus : titleBonus;
     const prob = kind === "pay"
@@ -544,6 +553,15 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
           );
         })()}
 
+        {lastChance && (
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 12, padding: "10px 12px", background: "#fff6c9", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
+            <Icon name="warning" size={18} color="#c4302b" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ fontSize: 12.5, lineHeight: 1.45 }}>
+              <strong>Attention, la marque est à bout de patience.</strong> Une demande de plus et elle pourrait quitter la table. Pour votre premier contrat, mieux vaut ne pas prendre de risque : signez avec les conditions actuelles.
+            </div>
+          </div>
+        )}
+
         {/* Money terms */}
         <div className="tm-eyebrow" style={{ marginBottom: 8 }}>Conditions financières</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
@@ -553,17 +571,17 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
               <div style={{ color: T.green, fontWeight: 800, fontSize: 15, fontFamily: T.mono }}>{weeklyPay.toLocaleString()}€</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {isFirstNegotiation && log.length <= 1 && !closed && (
+              {isFirstNegotiation && log.length <= 1 && !askLocked && (
                 <span style={{ color: T.green, fontSize: 16, animation: "tm-bounce-x 1.1s infinite" }}>→</span>
               )}
               <button
-                disabled={closed || offer.nonNegotiable}
+                disabled={askLocked}
                 onClick={() => demand("pay")}
                 style={{
-                  ...negBtnStyle(closed || offer.nonNegotiable),
-                  animation: isFirstNegotiation && log.length <= 1 && !closed ? "tm-pulse-green 1.6s infinite" : "none",
+                  ...negBtnStyle(askLocked),
+                  animation: isFirstNegotiation && log.length <= 1 && !askLocked ? "tm-pulse-green 1.6s infinite" : "none",
                 }}
-              >{offer.nonNegotiable ? "Verrouillé" : "Demander +"}</button>
+              >{offer.nonNegotiable || lastChance ? "Verrouillé" : "Demander +"}</button>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "10px 12px" }}>
@@ -571,7 +589,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
               <div style={{ color: T.fg4, fontSize: 11 }}>Prime par titre</div>
               <div style={{ color: T.fg, fontWeight: 800, fontSize: 15, fontFamily: T.mono }}>{titleBonus.toLocaleString()}€</div>
             </div>
-            <button disabled={closed || offer.nonNegotiable} onClick={() => demand("bonus")} style={negBtnStyle(closed || offer.nonNegotiable)}>{offer.nonNegotiable ? "Verrouillé" : "Demander +"}</button>
+            <button disabled={askLocked} onClick={() => demand("bonus")} style={negBtnStyle(askLocked)}>{offer.nonNegotiable || lastChance ? "Verrouillé" : "Demander +"}</button>
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "10px 12px" }}>
             <div>
@@ -600,9 +618,11 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
               onClick={() => onDeal({ weeklyPay, titleBonus, level })}>
               Signer le contrat
             </button>
-            <button style={{ ...styles.btnSecondary, width: "100%", marginTop: 8 }} onClick={onCancel}>
-              Abandonner cette offre
-            </button>
+            {!isFirstNegotiation && (
+              <button style={{ ...styles.btnSecondary, width: "100%", marginTop: 8 }} onClick={onCancel}>
+                Abandonner cette offre
+              </button>
+            )}
           </>
         )}
       </div>
