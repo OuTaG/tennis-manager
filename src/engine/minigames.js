@@ -82,10 +82,10 @@ export function returnDuel(guess) {
 // Zone « presque » : le smash est trop court pour être imparable, une fois
 // sur deux l'adversaire le remet. Le texte dit lequel des deux s'est produit.
 export function smashResult(precision) {
-  if (precision >= 0.6) return { win: true, label: "Parfait", text: "SMASH ! Imparable." };
+  if (precision >= 0.6) return { win: true, label: "Parfaite", text: "SMASH ! Imparable." };
   if (precision >= 0.25) {
     const win = random() < 0.5;
-    return { win, label: "Un peu court", text: win ? "Smash un peu court… mais l'adversaire ne le remet pas !" : "Smash un peu court… l'adversaire le remet et gagne le point." };
+    return { win, label: "Un peu courte", text: win ? "Smash un peu court… mais l'adversaire ne le remet pas !" : "Smash un peu court… l'adversaire le remet et gagne le point." };
   }
   return { win: false, label: "Dans le filet", text: "Dans le filet !" };
 }

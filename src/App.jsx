@@ -562,10 +562,10 @@ export default function TennisManager() {
       }
     }
 
-    // Récupération de la semaine : 32 de base, 50 après une semaine de repos
+    // Récupération de la semaine : 25 de base, 50 après une semaine de repos
     // complet, plus le bonus du staff (kiné, nutritionniste).
     const recoveryBonus = sumStaffEffect(p.staff, "recovery"); // flat extra energy
-    p.energy = Math.min(100, p.energy + (restedWeek ? 50 : 32) + Math.max(0, recoveryBonus));
+    p.energy = Math.min(100, p.energy + (restedWeek ? 50 : 25) + Math.max(0, recoveryBonus));
     // Cumulative happiness drain from staff (joueur surchargé par trop de membres)
     const happDrain = sumStaffEffect(p.staff, "happinessDrain");
     if (happDrain > 0) {
