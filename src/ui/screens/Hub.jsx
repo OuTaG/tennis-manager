@@ -121,33 +121,38 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         </div>
       </section>
 
-      {/* INJURY */}
-      {injury && (
-        <div className="tm-fade-up" style={{
-          background: T.bg1,
-          padding: 16, marginBottom: 14,
-          border: "2.5px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink,
-          borderLeft: "8px solid " + (injury.severity === "severe" ? T.red : injury.severity === "moderate" ? "var(--tm-clay)" : T.amber),
-        }}>
-          <div className="tm-eyebrow" style={{ color: injury.severity === "severe" ? T.red : T.amber, marginBottom: 6 }}>
-            {injury.severity === "severe" ? "Blessure sévère" : injury.severity === "moderate" ? "Blessure" : "Gêne"}
+      {/* BLESSURE : case BD rouge, onomatopée, état et durée en tampons */}
+      {injury && (() => {
+        const sev = injury.severity === "severe" ? "Blessure sévère" : injury.severity === "moderate" ? "Blessure" : "Gêne";
+        return (
+          <div className="tm-fade-up" style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, marginBottom: 14, overflow: "hidden" }}>
+            <div style={{ background: "#c4302b", backgroundImage: "radial-gradient(rgba(20,20,20,0.22) 1.3px, transparent 1.5px)", backgroundSize: "6px 6px", position: "relative", borderBottom: "3px solid " + T.ink, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 38, height: 38, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2.5px solid " + T.ink, transform: "rotate(-4deg)" }}>
+                <Icon name="bandage" size={22} color="#c4302b" />
+              </span>
+              <div style={{ minWidth: 0, paddingRight: 64 }}>
+                <span style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase" }}>{sev}</span>
+                <div className="tm-display" style={{ color: "#ffffff", fontSize: 19, lineHeight: 1.1, marginTop: 3, textShadow: "2px 2px 0 " + T.ink }}>{injury.label}</div>
+              </div>
+              <span className="tm-display" style={{ position: "absolute", right: 10, top: 6, fontSize: 22, color: "#d6ef3c", WebkitTextStroke: "1.5px " + T.ink, textShadow: "2px 2px 0 " + T.ink, transform: "rotate(8deg)" }}>AÏE !</span>
+            </div>
+            <div style={{ padding: "10px 12px 12px" }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ background: injury.canPlay ? "#e0a21b" : "#c4302b", color: injury.canPlay ? "#141414" : "#ffffff", border: "2px solid " + T.ink, fontSize: 11.5, fontWeight: 800, padding: "1px 7px" }}>
+                  {injury.canPlay ? "Stats −" + Math.round(injury.statPenalty * 100) + " % en match" : "Tournois impossibles"}
+                </span>
+                <span style={{ background: "#ffffff", border: "2px solid " + T.ink, fontSize: 11.5, fontWeight: 800, padding: "1px 7px" }}>
+                  Retour dans {injury.weeksRemaining} sem.
+                </span>
+              </div>
+              <div className="tm-lettering" style={{ marginTop: 9, background: "#fff6c9", border: "2px solid " + T.ink, padding: "6px 9px", fontSize: 14, lineHeight: 1.3, display: "flex", gap: 7, alignItems: "flex-start" }}>
+                <Icon name="warning" size={15} color="#c4302b" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>Vous pouvez vous entraîner, mais chaque séance risque fort d'aggraver la blessure et de rallonger l'indisponibilité.</span>
+              </div>
+            </div>
           </div>
-          <div style={{ color: T.fg, fontSize: 14, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-            <Icon name="bandage" size={16} color={T.amber} />
-            {injury.label}
-          </div>
-          <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.5 }}>
-            {injury.canPlay
-              ? "Stats réduites de " + Math.round(injury.statPenalty * 100) + "% en match."
-              : "Impossible de disputer un tournoi."}
-            <span style={{ color: T.fg5 }}> · </span>
-            Rétablissement dans <strong style={{ color: T.fg2, fontFamily: T.mono }}>{injury.weeksRemaining} sem</strong>.
-          </div>
-          <div style={{ marginTop: 10, padding: "8px 10px", background: T.amberSub, border: "1px solid " + T.amber, color: T.amber, fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
-            <Icon name="warning" size={12} /> Vous pouvez continuer à vous entraîner, mais chaque séance risque fortement d'aggraver la blessure et de rallonger l'indisponibilité.
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* WILDCARDS */}
       {wildcardOffers.length > 0 && (

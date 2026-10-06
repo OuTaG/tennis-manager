@@ -37,9 +37,9 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
       .filter(t => selTiers.length === 0 || selTiers.includes(t.tier))
       .filter(t => !(playedThisWeek && t.week === player.week))
       .filter(t => {
-        if (calFilters.region === "near") return distanceKm(player.location, t.city) < 1000;
-        if (calFilters.region === "country") return CITIES[t.city]?.country === CITIES[player.location]?.country;
-        return true;
+        // Filtre de distance depuis la ville actuelle (« all » = mondial).
+        const maxKm = { r3000: 3000, r1000: 1000 }[calFilters.region];
+        return !maxKm || distanceKm(player.location, t.city) < maxKm;
       })
       .map(t => ({ ...t, displayWeek: t.week >= player.week ? t.week : t.week + 52 }))
       .sort((a, b) => a.displayWeek - b.displayWeek);
@@ -139,12 +139,12 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
         </div>
       </div>
       <div style={{ marginBottom: 18 }}>
-        <div className="tm-display" style={{ fontSize: 13, marginBottom: 6 }}>Région</div>
+        <div className="tm-display" style={{ fontSize: 13, marginBottom: 6 }}>Distance</div>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {[
             { k: "all", label: "Mondial", iconName: null },
-            { k: "country", label: "Pays", iconName: "home" },
-            { k: "near", label: "Proximité", iconName: "location" },
+            { k: "r3000", label: "<3000km", iconName: "location" },
+            { k: "r1000", label: "<1000km", iconName: "location" },
           ].map(({ k, label, iconName }) => (
             <button key={k} style={{ ...styles.filterBtn, ...(calFilters.region === k ? styles.filterBtnActive : {}), display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setCalFilters({ ...calFilters, region: k })}>
               {iconName && <Icon name={iconName} size={11} />}

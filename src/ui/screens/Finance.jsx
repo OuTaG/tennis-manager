@@ -1,11 +1,11 @@
 // Écran Bureau › Finances.
 import { tournamentEarningsFromHistory, tournamentIdByName } from "../../engine/history.js";
 import { SPONSOR_CAPS, sponsorSlotWarning } from "../../engine/sponsors.js";
-import { Icon } from "../icons.jsx";
+import { BangBadge, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
-export function FinanceScreen({ player, ranking, acceptSponsorOffer, declineSponsorOffer, requestCancelSponsor, sponsorCancelCost, setTournamentDetail }) {
+export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSponsorOffer, declineSponsorOffer, requestCancelSponsor, sponsorCancelCost, setTournamentDetail }) {
   const balance = player.money;
   const earned = player.totalEarnings || 0;
   const spent = player.totalSpent || 0;
@@ -113,7 +113,8 @@ export function FinanceScreen({ player, ranking, acceptSponsorOffer, declineSpon
             const left = Math.max(1, o.expiresAbs - nowAbs);
             const warn = sponsorSlotWarning(player, o, ranking ?? 9999);
             return (
-              <div key={o.id} className="tm-halftone-yellow" style={{ padding: 12, borderTop: k ? "2px dashed " + INK : 0 }}>
+              <div key={o.id} className="tm-halftone-yellow" onClick={() => markSponsorOfferSeen && markSponsorOfferSeen(o)} style={{ position: "relative", padding: 12, borderTop: k ? "2px dashed " + INK : 0, cursor: o.seen ? "default" : "pointer" }}>
+                {!o.seen && <BangBadge size={26} top={-10} right={-14} />}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>

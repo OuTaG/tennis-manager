@@ -30,7 +30,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
             <div className="tm-display" style={{ fontSize: 48, color: "#141414", lineHeight: 1, letterSpacing: -1, textShadow: "3px 3px 0 #ffffff" }}>#{ranking}</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div className="tm-eyebrow">Côte</div>
+            <div className="tm-eyebrow">Cote</div>
             <div className="tm-display" style={{ fontSize: 30, color: "#141414", lineHeight: 1, background: "#ffffff", border: "2.5px solid " + T.ink, padding: "2px 8px" }}>{rating}</div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -110,7 +110,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
           info="Votre rang mondial parmi les 1 200 joueurs du circuit, établi d'après vos points ATP. Plus le chiffre est bas, meilleur vous êtes. Il décide de votre accès aux tournois et de la valeur de vos sponsors." />
         <MiniLineChart data={moneySeries} label="Trésorerie" color={T.green} suffix="€"
           info="L'argent dont vous disposez : gains en tournoi, sponsors et primes, moins les dépenses (staff, voyages, entraînements, frais fixes). Sous zéro, c'est la faillite." />
-        <MiniLineChart data={ratingSeries} label="Côte moyenne" color={T.green}
+        <MiniLineChart data={ratingSeries} label="Cote moyenne" color={T.green}
           info="La moyenne de vos six statistiques (service, coup droit, revers, endurance, mental, filet). Elle résume votre niveau de jeu global." />
       </div>
 

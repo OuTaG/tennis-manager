@@ -38,7 +38,7 @@ import { loadRosterConfigs, rosterEditCount, rosterEntries } from "./engine/rost
 const LIVE_SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2c6fd1", "Indoor": "#5b2d8e" };
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, aiAvatar, femaleHairStyle } from "./ui/avatar.jsx";
 import { rankingName } from "./ui/format.js";
-import { FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
+import { BangBadge, FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
 import { SponsorNegotiationOverlay } from "./ui/overlays/Negotiation.jsx";
@@ -2539,6 +2539,13 @@ export default function TennisManager() {
 
     setSponsorReplaceModal(null);
   };
+  // Offre reçue en cours de saison et pas encore ouverte : point
+  // d'exclamation sur Bureau, Finances et la carte de l'offre.
+  const hasNewSponsorOffer = (player?.sponsorOffers || []).some(o => o.midSeason && !o.seen);
+  const markSponsorOfferSeen = (offer) => {
+    if (offer.seen) return;
+    setPlayer(p => ({ ...p, sponsorOffers: (p.sponsorOffers || []).map(o => (o.id === offer.id ? { ...o, seen: true } : o)) }));
+  };
   const declineSponsorOffer = (offer) => {
     setPlayer(p => ({ ...p, sponsorOffers: (p.sponsorOffers || []).filter(o => o.id !== offer.id) }));
 
@@ -4079,14 +4086,28 @@ export default function TennisManager() {
                     </div>
                   );
                 }
+                // Blessure en match : case BD rouge tramée avec onomatopée.
+                if (b.type === "injury") {
+                  return (
+                    <div key={b.id} style={{ ...styles.eventItem, background: "#c4302b", backgroundImage: "radial-gradient(rgba(20,20,20,0.22) 1.3px, transparent 1.5px)", backgroundSize: "6px 6px", opacity: fade, position: "relative", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, color: "#ffffff", padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ width: 34, height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2.5px solid " + T.ink, transform: "rotate(-4deg)" }}>
+                        <Icon name="bandage" size={19} color="#c4302b" />
+                      </span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <span className="tm-display" style={{ display: "inline-block", fontSize: 20, lineHeight: 1, color: "#d6ef3c", WebkitTextStroke: "1.2px " + T.ink, textShadow: "2px 2px 0 " + T.ink, transform: "rotate(-3deg)", marginBottom: 4 }}>AÏE !</span>
+                        <div style={{ fontSize: 13.5, fontWeight: 800, textShadow: "1px 1px 0 " + T.ink }}>{withFlags(b.text)}</div>
+                      </div>
+                    </div>
+                  );
+                }
                 const good = ["break_clean", "break_grind", "rebreak", "tb_won", "set_won", "hold_easy", "hold_tough"].includes(b.type);
-                const bad = ["lose_serve", "opp_rebreak", "tb_lost", "set_lost", "injury"].includes(b.type);
+                const bad = ["lose_serve", "opp_rebreak", "tb_lost", "set_lost"].includes(b.type);
                 const big = b.type === "set_won" || b.type === "set_lost";
                 const tag = b.type === "set_won" ? "SET !" : b.type === "set_lost" ? "SET PERDU"
                   : ["break_clean", "break_grind", "rebreak"].includes(b.type) ? "BREAK !"
                   : ["lose_serve", "opp_rebreak"].includes(b.type) ? "BREAKÉ"
                   : b.type === "tb_won" ? "TIE-BREAK !" : b.type === "tb_lost" ? "TIE-BREAK"
-                  : b.type === "injury" ? "AÏE !" : null;
+                  : null;
                 const band = good ? "#1f7a45" : bad ? "#c4302b" : T.bg4;
                 return (
                   <div key={b.id} style={{
@@ -4431,9 +4452,10 @@ export default function TennisManager() {
             {activeGroup.screens.map(sc => {
               const on = activeTab === sc.id;
               return (
-                <button key={sc.id} onClick={() => setActiveTab(sc.id)} style={{ ...styles.subTab, ...(on ? styles.subTabActive : {}) }}>
+                <button key={sc.id} onClick={() => setActiveTab(sc.id)} style={{ ...styles.subTab, ...(on ? styles.subTabActive : {}), position: "relative", overflow: "visible" }}>
                   <Icon name={sc.icon} size={15} color={on ? T.green : T.fg4} />
                   {sc.label}
+                  {sc.id === "finance" && hasNewSponsorOffer && <BangBadge size={22} top="calc(50% - 11px)" right={3} />}
                 </button>
               );
             })}
@@ -4502,7 +4524,7 @@ export default function TennisManager() {
               });
             }
           }} />}
-          {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
+          {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} markSponsorOfferSeen={markSponsorOfferSeen} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "shop" && <ShopScreen />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>
@@ -4514,9 +4536,10 @@ export default function TennisManager() {
               return (
                 <button
                   key={g.id}
-                  style={{ ...styles.navBtn, ...(isActive ? styles.navBtnActive : {}) }}
+                  style={{ ...styles.navBtn, ...(isActive ? styles.navBtnActive : {}), position: "relative", overflow: "visible" }}
                   onClick={() => setActiveTab(isActive ? activeTab : (lastScreenByGroup.current[g.id] || g.screens[0].id))}
                 >
+                  {g.id === "office" && hasNewSponsorOffer && <BangBadge size={22} top={-12} right={4} />}
                   <Icon name={g.icon} size={20} color={isActive ? "#161616" : T.fg} strokeWidth={2.1} />
                   <span style={{ fontSize: 10.5, fontWeight: 800 }}>{g.label}</span>
                 </button>
@@ -5093,73 +5116,75 @@ export default function TennisManager() {
         const playerIsSeed = entry.status === "direct" && fmt.byeSeeds > 0 && ranking <= fmt.byeSeeds;
         return (
           <div style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400, padding: 16 }} onClick={() => setTournamentDetail(null)}>
-            <div style={{ background: T.bg1, borderRadius: 0, padding: 20, border: "1px solid " + tierColor(t.tier), maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: tierColor(t.tier), fontSize: 11, fontWeight: 800, letterSpacing: 0.2, textTransform: "none" }}>{tierLabel(t.tier)}</div>
-                  <div style={{ color: T.fg, fontSize: 20, fontWeight: 900, lineHeight: 1.2 }}>{t.name}</div>
-                  <div style={{ color: T.fg4, fontSize: 13, marginTop: 4 }}><FlagFromEmoji emoji={cityInfo?.flag} /> {t.city}, {cityInfo?.country}</div>
+            <div className="tm-paper" style={{ border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto", color: "#141414" }} onClick={e => e.stopPropagation()}>
+              {/* En-tête : bandeau à la couleur de la catégorie */}
+              <div style={{ background: tierColor(t.tier), borderBottom: "3px solid " + T.ink, padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ display: "inline-block", background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, padding: "0 6px", textTransform: "uppercase" }}>{tierLabel(t.tier)}</span>
+                  <div className="tm-display" style={{ color: "#ffffff", fontSize: 22, lineHeight: 1.05, marginTop: 5, textShadow: "2px 2px 0 " + T.ink, overflowWrap: "anywhere" }}>{t.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#ffffff", fontSize: 12.5, fontWeight: 800, marginTop: 4 }}><FlagFromEmoji emoji={cityInfo?.flag} size={14} /> {t.city}, {cityInfo?.country}</div>
                 </div>
-                <button style={{ background: "none", border: "none", color: T.fg4, fontSize: 22, cursor: "pointer", padding: 4 }} onClick={() => setTournamentDetail(null)}>✕</button>
+                <button aria-label="Fermer" style={{ background: "#ffffff", border: "2px solid " + T.ink, color: T.ink, fontSize: 16, fontWeight: 800, cursor: "pointer", width: 32, height: 32, flexShrink: 0 }} onClick={() => setTournamentDetail(null)}>✕</button>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                <div style={{ background: T.bg0, borderRadius: 0, padding: 10 }}>
-                  <div style={{ color: T.fg4, fontSize: 10 }}>Surface</div>
-                  <div style={{ color: T.fg, fontWeight: 700 }}><SurfaceIcon name={t.surface} /> {t.surface}</div>
+              <div style={{ padding: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                  {[
+                    ["Surface", <span key="s" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><SurfaceIcon name={t.surface} size={16} />{t.surface}</span>, "#141414"],
+                    ["Semaine", "Semaine " + t.week, "#141414"],
+                    ["Dotation totale", t.prize.toLocaleString() + " €", "#1f7a45"],
+                    ["Points (vainqueur)", t.points + " pts", "#5b2d8e"],
+                  ].map(([l, v, c]) => (
+                    <div key={l} style={{ background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "6px 8px" }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>{l}</div>
+                      <div style={{ color: c, fontFamily: T.display, fontSize: 16, marginTop: 2 }}>{v}</div>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 0, padding: 10 }}>
-                  <div style={{ color: T.fg4, fontSize: 10 }}>Semaine</div>
-                  <div style={{ color: T.fg, fontWeight: 700 }}>S{t.week}</div>
-                </div>
-                <div style={{ background: T.bg0, borderRadius: 0, padding: 10 }}>
-                  <div style={{ color: T.fg4, fontSize: 10 }}>Prize money total</div>
-                  <div style={{ color: T.green, fontWeight: 700 }}>{t.prize.toLocaleString()}€</div>
-                </div>
-                <div style={{ background: T.bg0, borderRadius: 0, padding: 10 }}>
-                  <div style={{ color: T.fg4, fontSize: 10 }}>Points (vainqueur)</div>
-                  <div style={{ color: T.amber, fontWeight: 700 }}>{t.points} pts</div>
-                </div>
-              </div>
 
-              <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12 }}>
-                <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 6 }}><Icon name="clipboard" size={11} /> Format</div>
-                <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
-                  Tableau principal : <strong>{fmt.drawSize} joueurs</strong><br />
-                  Nombre de tours : <strong>{fmt.mainRounds.length}</strong> ({fmt.mainRounds.join(" → ")})<br />
-                  Format : <strong>{fmt.setsToWin === 3 && !isWTA() ? "3 sets gagnants (Best of 5)" : "2 sets gagnants (Best of 3)"}</strong>
-                  {fmt.setsToWin === 3 && !isWTA() && (fmt.qualiRounds || 0) > 0 && (
-                    <span style={{ color: T.fg4 }}> · qualifs en 2 sets gagnants{t.id === "wimbledon" ? " (3 au dernier tour)" : ""}</span>
-                  )}<br />
-                  Têtes de série : <strong>{getSeedCount(fmt)}</strong>
-                  {fmt.byeSeeds > 0 && <> · Bye 1er tour pour le top <strong>{fmt.byeSeeds}</strong></>}<br />
-                  Qualifications : <strong>{fmt.qualiRounds} tours</strong>
-                </div>
-              </div>
+                {[
+                  ["clipboard", "Format", [
+                    ["Tableau principal", fmt.drawSize + " joueurs"],
+                    ["Tours", fmt.mainRounds.length + " (" + fmt.mainRounds.join(" → ") + ")"],
+                    ["Format", (fmt.setsToWin === 3 && !isWTA() ? "3 sets gagnants" : "2 sets gagnants") + (fmt.setsToWin === 3 && !isWTA() && (fmt.qualiRounds || 0) > 0 ? " · qualifs en 2 sets gagnants" + (t.id === "wimbledon" ? " (3 au dernier tour)" : "") : "")],
+                    ["Têtes de série", getSeedCount(fmt) + (fmt.byeSeeds > 0 ? " · exemption au 1er tour pour le top " + fmt.byeSeeds : "")],
+                    ["Qualifications", fmt.qualiRounds + " tours"],
+                  ]],
+                  ["target", "Critères d'accès", [
+                    ["Entrée directe", "top " + fmt.directCut],
+                    ["Qualifs ouvertes", "jusqu'au top " + (fmt.qualiCut === 9999 ? "∞" : fmt.qualiCut)],
+                  ]],
+                ].map(([icon, title, rows]) => (
+                  <div key={title} style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12 }}>
+                    <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}><Icon name={icon} size={12} color="#d6ef3c" /> {title}</div>
+                    <div style={{ padding: "2px 10px 6px" }}>
+                      {rows.map(([l, v], i) => (
+                        <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "5px 0", borderBottom: i < rows.length - 1 ? "1.5px dashed " + T.ink : "none", fontSize: 12.5 }}>
+                          <span style={{ fontWeight: 600 }}>{l}</span>
+                          <strong style={{ textAlign: "right" }}>{v}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
 
-              <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12 }}>
-                <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 6 }}><Icon name="target" size={11} /> Critères d'accès</div>
-                <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
-                  Entrée directe : <strong>top {fmt.directCut}</strong> ATP<br />
-                  Qualifs ouvertes jusqu'au top <strong>{fmt.qualiCut === 9999 ? "∞" : fmt.qualiCut}</strong>
+                <div className="tm-halftone-yellow" style={{ border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12 }}>
+                  <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}><Icon name="user" size={12} color="#d6ef3c" /> Votre situation</div>
+                  <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, fontWeight: 700 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      <span style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>#{ranking}</span>
+                      {entry.status === "direct" && <span style={{ background: "#1f7a45", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>✓ Entrée directe{entry.protected ? " (classement protégé)" : ""}</span>}
+                      {entry.status === "qualifying" && <span style={{ background: "#e0a21b", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>Qualifs requises</span>}
+                      {entry.status === "blocked" && <span style={{ background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>Classement insuffisant</span>}
+                      {playerIsSeed && <span style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>Tête de série · exempté au 1er tour</span>}
+                    </div>
+                    <div>Distance : {Math.round(dist)} km ({travelCost} € de voyage)</div>
+                    {t.entryFee > 0 && <div>Frais d'inscription : {t.entryFee} €</div>}
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12 }}>
-                <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 6 }}><Icon name="user" size={12} /> Votre situation</div>
-                <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.7 }}>
-                  Votre classement : <strong>#{ranking}</strong><br />
-                  Statut :{" "}
-                  {entry.status === "direct" && <strong style={{ color: T.green }}><Icon name="check" size={11} /> Entrée directe{entry.protected ? " (classement protégé)" : ""}</strong>}
-                  {entry.status === "qualifying" && <strong style={{ color: T.amber }}>Qualifs requises</strong>}
-                  {entry.status === "blocked" && <strong style={{ color: T.red }}><Icon name="fail" size={11} /> Classement insuffisant</strong>}
-                  {playerIsSeed && <span style={{ color: T.green }}> (tête de série, bye 1er tour)</span>}<br />
-                  Distance : <strong>{Math.round(dist)} km</strong> ({travelCost}€ de voyage)<br />
-                  {t.entryFee > 0 && <>Frais d'inscription : <strong>{t.entryFee}€</strong></>}
-                </div>
+                <button style={styles.btnSecondary} onClick={() => setTournamentDetail(null)}>Fermer</button>
               </div>
-
-              <button style={{ ...styles.btnSecondary, marginTop: 8 }} onClick={() => setTournamentDetail(null)}>Fermer</button>
             </div>
           </div>
         );
@@ -5201,7 +5226,7 @@ export default function TennisManager() {
                   <div style={{ color: T.fg, fontFamily: T.display, fontSize: 18 }}>{p.age || "—"} ans</div>
                 </div>
                 <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
-                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Côte globale</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Cote globale</div>
                   <div style={{ color: T.fg, fontFamily: T.display, fontSize: 18 }}>{getRating(p.stats)}</div>
                 </div>
                 <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
