@@ -2,7 +2,7 @@
 import { PLAYER_STYLES } from "../../data/staff.js";
 import { ALL_TOURNAMENTS, tierLabel } from "../../engine/circuit.js";
 import { difficultyLevel, formatMultiplier, scoreMultiplier } from "../../engine/difficulty.js";
-import { buildFrontPage, pickDispatches } from "../../engine/frontpage.js";
+import { buildFrontPage } from "../../engine/frontpage.js";
 import { Avatar } from "../avatar.jsx";
 import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
@@ -20,9 +20,27 @@ function Rubric({ title, aside, color }) {
   );
 }
 
-// Étiquette noire et jaune des dépêches.
-function Tag({ children }) {
-  return <span style={{ background: T.ink, color: T.gold, fontSize: 10, fontWeight: 800, padding: "1px 5px", letterSpacing: 0.6, textTransform: "uppercase", marginRight: 6 }}>{children}</span>;
+// Jauge BD (0–100) : case encrée, remplissage tramé, mot d'humeur.
+function MoodGauge({ icon, label, value, color, words }) {
+  const v = Math.max(0, Math.min(100, Math.round(value)));
+  const word = v >= 75 ? words[3] : v >= 50 ? words[2] : v >= 25 ? words[1] : words[0];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "26px minmax(0, 1fr) 40px", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", background: color, border: "2px solid " + T.ink }}>
+        <Icon name={icon} size={14} color="#ffffff" />
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6, marginBottom: 3 }}>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase" }}>{label}</span>
+          <span className="tm-lettering" style={{ fontSize: 13, color }}>{word}</span>
+        </div>
+        <div style={{ height: 12, border: "2px solid " + T.ink, background: "#ffffff" }}>
+          <div style={{ height: "100%", width: v + "%", background: color, backgroundImage: "radial-gradient(rgba(255,255,255,0.35) 1.2px, transparent 1.4px)", backgroundSize: "5px 5px", borderRight: v > 0 && v < 100 ? "2px solid " + T.ink : "none" }} />
+        </div>
+      </div>
+      <span className="tm-display tm-num" style={{ fontSize: 20, textAlign: "right" }}>{v}</span>
+    </div>
+  );
 }
 
 // ─── SUB SCREENS ───────────────────────────────────────────────────────────────
@@ -33,7 +51,6 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
   const wildcardOffers = player.wildcardOffers || [];
   const canRetire = (player.age || 0) >= 28;
   const story = buildFrontPage({ player, ranking, enrolled });
-  const dispatches = pickDispatches(news, 3);
   const level = difficultyLevel(player.difficulty ?? 3);
   const mul = scoreMultiplier(player);
   const ss = (player.seasonStats && player.seasonStats.year === player.year) ? player.seasonStats : { wins: 0, losses: 0, titles: 0 };
@@ -87,9 +104,6 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         <div style={{ gridColumn: "1 / -1", display: "flex", gap: 12, flexWrap: "wrap", padding: "6px 10px", borderTop: "2px solid " + T.ink, fontSize: 11, fontWeight: 700 }}>
           <span>{player.nationality || "France"} · {player.age} ans · {PLAYER_STYLES[player.styleId]?.name}</span>
           <span>Côte {rating}</span>
-          <span>Bonheur {Math.round(player.happiness ?? 70)}</span>
-          <span>Popularité {Math.round(player.popularity ?? 20)}</span>
-          <span>Image {Math.round(player.image ?? 60)}</span>
           {(ss.titles || 0) > 0 && <span style={{ color: T.magenta }}>{ss.titles} titre{ss.titles > 1 ? "s" : ""}</span>}
         </div>
       </section>
@@ -249,19 +263,15 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         </div>
       )}
 
-      {/* DÉPÊCHES */}
-      {dispatches.length > 0 && (
-        <section aria-label="Dépêches" style={{ marginBottom: 14 }}>
-          <Rubric title="Dépêches" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {dispatches.map((d, i) => (
-              <div key={i} style={{ fontSize: 13, lineHeight: 1.35, color: T.fg }}>
-                <Tag>{d.rubric}</Tag>{d.text}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* MORAL ET RÉPUTATION : bonheur, popularité, image */}
+      <section aria-label="Moral et réputation" className="tm-fade-up" style={{ background: T.bg1, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, marginBottom: 14 }}>
+        <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, padding: "5px 10px", letterSpacing: 0.5 }}>Moral et réputation</div>
+        <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
+          <MoodGauge icon="heart" label="Bonheur" value={player.happiness ?? 70} color="#1f7a45" words={["Au fond du trou", "Morose", "Serein", "Aux anges"]} />
+          <MoodGauge icon="megaphone" label="Popularité" value={player.popularity ?? 20} color="#5b2d8e" words={["Inconnu", "Remarqué", "Apprécié", "Star"]} />
+          <MoodGauge icon="star" label="Image" value={player.image ?? 60} color="#c4572b" words={["Sulfureuse", "Fragile", "Correcte", "Exemplaire"]} />
+        </div>
+      </section>
 
       <button style={{ ...styles.btnPrimary, opacity: isAdvancingWeek ? 0.5 : 1 }} disabled={isAdvancingWeek} onClick={advanceWeek}>
         {isAdvancingWeek ? "Simulation en cours…" : "Semaine suivante →"}
