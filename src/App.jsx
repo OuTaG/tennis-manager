@@ -4489,19 +4489,27 @@ export default function TennisManager() {
               position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400,
               display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
             }}>
-              <div onClick={e => e.stopPropagation()} style={{
-                background: T.bg1, border: "1px solid " + T.greenBrd, borderRadius: 0,
-                padding: 20, maxWidth: 440, width: "100%", maxHeight: "80vh", overflowY: "auto",
+              <div className="tm-paper" onClick={e => e.stopPropagation()} style={{
+                border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, color: "#141414",
+                maxWidth: 440, width: "100%", maxHeight: "80vh", overflowY: "auto",
               }}>
-                <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 6 }}>Aide</div>
-                <div style={{ color: T.fg, fontSize: 18, fontWeight: 800, marginBottom: 12 }}>{PAGE_HELP[helpTab].title}</div>
+                {/* En-tête BD : case « i », étiquette et titre de la page */}
+                <div className="tm-halftone-cyan" style={{ borderBottom: "3px solid " + T.ink, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span className="tm-display" style={{ width: 34, height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", color: "#141414", border: "2.5px solid " + T.ink, fontSize: 20, transform: "rotate(-4deg)" }}>i</span>
+                  <div style={{ minWidth: 0 }}>
+                    <span style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase" }}>Aide</span>
+                    <div className="tm-display" style={{ color: "#ffffff", fontSize: 21, lineHeight: 1.05, marginTop: 3, textShadow: "2px 2px 0 " + T.ink }}>{PAGE_HELP[helpTab].title}</div>
+                  </div>
+                </div>
+                <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                 {PAGE_HELP[helpTab].items.map((it, i) => (
-                  <div key={i} style={{ marginBottom: 10 }}>
-                    <div style={{ color: T.fg, fontSize: 13, fontWeight: 700 }}>{it[0]}</div>
-                    <div style={{ color: T.fg3, fontSize: 12.5, lineHeight: 1.5, marginTop: 2 }}>{it[1]}</div>
+                  <div key={i} style={{ background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}>
+                    <div className="tm-display" style={{ background: i % 2 ? "#c9b6ea" : "#d6ef3c", borderBottom: "2px solid " + T.ink, fontSize: 13, padding: "3px 9px" }}>{it[0]}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.45, padding: "6px 9px 8px" }}>{withFlags(it[1])}</div>
                   </div>
                 ))}
-                <button style={{ ...styles.btnPrimary, marginTop: 8 }} onClick={() => setHelpTab(null)}>Compris</button>
+                <button style={{ ...styles.btnPrimary, marginTop: 4 }} onClick={() => setHelpTab(null)}>Compris</button>
+                </div>
               </div>
             </div>
           )}
