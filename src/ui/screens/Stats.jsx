@@ -23,19 +23,19 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
       <div style={styles.sectionTitle}>Performance</div>
 
       {/* Hero stats card */}
-      <div style={{ ...styles.atpCard }} className="tm-court">
+      <div className="tm-halftone-yellow" style={{ ...styles.atpCard, background: undefined }}>
         <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 0 }}>
           <div>
             <div className="tm-eyebrow">Classement</div>
-            <div className="tm-display" style={{ fontSize: 48, color: T.green, lineHeight: 1, letterSpacing: -1 }}>#{ranking}</div>
+            <div className="tm-display" style={{ fontSize: 48, color: "#141414", lineHeight: 1, letterSpacing: -1, textShadow: "3px 3px 0 #ffffff" }}>#{ranking}</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div className="tm-eyebrow">Côte</div>
-            <div className="tm-num" style={{ fontSize: 32, color: T.fg, fontWeight: 800, lineHeight: 1 }}>{rating}</div>
+            <div className="tm-display" style={{ fontSize: 30, color: "#141414", lineHeight: 1, background: "#ffffff", border: "2.5px solid " + T.ink, padding: "2px 8px" }}>{rating}</div>
           </div>
           <div style={{ textAlign: "right" }}>
             <div className="tm-eyebrow">Points</div>
-            <div className="tm-num" style={{ fontSize: 24, color: T.fg, fontWeight: 700, lineHeight: 1 }}>{totalPts.toLocaleString()}</div>
+            <div className="tm-display" style={{ fontSize: 24, color: "#141414", lineHeight: 1 }}>{totalPts.toLocaleString("fr-FR")}</div>
           </div>
         </div>
       </div>
@@ -48,16 +48,16 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
         const fmtMoney = money >= 1e6 ? (Math.round(money / 1e5) / 10) + " M€" : money >= 1000 ? (Math.round(money / 100) / 10) + " k€" : money + " €";
         const seasons = (player.careerSeasons || []).length + 1;
         const items = [
-          { icon: "trophy", v: player.titlesWon, l: "Titres", color: T.ball },
-          { icon: "star", v: player.careerBigWins || 0, l: "Vict. top 50", color: T.clay },
-          { icon: "trending", v: summary.bestRank < 9999 ? "#" + summary.bestRank : "—", l: "Meilleur rang", color: T.green },
-          { icon: "money", v: fmtMoney, l: "Gains", color: T.green },
-          { icon: "activity", v: played, l: "Matchs", color: T.blue },
-          { icon: "calendar", v: seasons, l: seasons > 1 ? "Saisons" : "Saison", color: T.fg3 },
+          { icon: "trophy", v: player.titlesWon, l: "Titres", color: "#e0a21b" },
+          { icon: "star", v: player.careerBigWins || 0, l: "Vict. top 50", color: "#c4572b" },
+          { icon: "trending", v: summary.bestRank < 9999 ? "#" + summary.bestRank : "—", l: "Meilleur rang", color: "#1f7a45" },
+          { icon: "money", v: fmtMoney, l: "Gains", color: "#2c6fd1" },
+          { icon: "activity", v: played, l: "Matchs", color: "#5b2d8e" },
+          { icon: "calendar", v: seasons, l: seasons > 1 ? "Saisons" : "Saison", color: "#141414" },
         ];
         return (
           <div style={{ ...styles.skillsCard }}>
-            <div style={{ color: T.fg, fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Carrière</div>
+            <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, margin: "-16px -16px 12px", padding: "5px 12px" }}>Carrière</div>
             {/* Bilan victoires / défaites */}
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
               <span className="tm-display" style={{ fontSize: 34, color: T.green, lineHeight: 1 }}>{player.careerWins}</span>
@@ -67,18 +67,18 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
               <span style={{ color: T.fg4, fontSize: 13 }}>défaites</span>
               <span className="tm-num" style={{ marginLeft: "auto", color: T.green, fontSize: 15, fontWeight: 600 }}>{winRate}%</span>
             </div>
-            <div style={{ height: 8, borderRadius: 4, background: T.bg3, overflow: "hidden", marginBottom: 16 }}>
-              <div style={{ width: winRate + "%", height: "100%", background: T.green, borderRadius: 4 }} />
+            <div style={{ height: 12, background: played > 0 ? "#c4302b" : "#ffffff", border: "2px solid " + T.ink, overflow: "hidden", marginBottom: 16 }}>
+              <div style={{ width: winRate + "%", height: "100%", background: "#1f7a45", borderRight: winRate > 0 && winRate < 100 ? "2px solid " + T.ink : "none" }} />
             </div>
             {/* Chiffres clés */}
             <div style={{ display: "flex", flexWrap: "wrap", rowGap: 14 }}>
               {items.map((it, i) => (
                 <div key={i} style={{ width: "50%", display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 3, background: T.bg2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Icon name={it.icon} size={17} color={it.color} />
+                  <div style={{ width: 34, height: 34, background: it.color, border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon name={it.icon} size={17} color="#ffffff" />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div className="tm-num" style={{ color: T.fg, fontSize: 17, fontWeight: 600, lineHeight: 1.1 }}>{it.v}</div>
+                    <div className="tm-display" style={{ color: T.fg, fontSize: 17, lineHeight: 1.1 }}>{it.v}</div>
                     <div style={{ color: T.fg4, fontSize: 12 }}>{it.l}</div>
                   </div>
                 </div>
@@ -90,8 +90,8 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Favourite surface */}
       {player.favoriteSurface && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.bg1, border: "1px solid " + T.brd, borderRadius: 3, padding: "12px 14px", marginBottom: 14 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 3, background: T.greenSub, border: "1px solid " + T.greenBrd, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "12px 14px", marginBottom: 14 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 0, background: T.greenSub, border: "1px solid " + T.greenBrd, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <SurfaceIcon name={player.favoriteSurface} />
           </div>
           <div style={{ minWidth: 0 }}>
@@ -127,7 +127,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Current skills */}
       <div style={styles.skillsCard}>
-        <div className="tm-eyebrow" style={{ marginBottom: 14 }}>Compétences actuelles</div>
+        <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, margin: "-16px -16px 14px", padding: "5px 12px" }}>Compétences actuelles</div>
         {Object.entries(player.stats).map(([k, v]) => {
           const color = v >= 75 ? T.green : v >= 55 ? T.amber : T.fg3;
           return (
@@ -149,7 +149,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
         <div style={styles.skillsCard}>
           <div className="tm-eyebrow" style={{ marginBottom: 12 }}>Saisons passées</div>
           {(player.careerSeasons || []).slice().reverse().map((s, i) => (
-            <div key={s.year} style={{ background: T.bg2, borderRadius: 3, padding: 12, marginBottom: i < (player.careerSeasons.length - 1) ? 8 : 0, border: "1px solid " + T.brd }}>
+            <div key={s.year} style={{ background: T.bg2, borderRadius: 0, padding: 12, marginBottom: i < (player.careerSeasons.length - 1) ? 8 : 0, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <div className="tm-display" style={{ color: T.fg, fontSize: 18, letterSpacing: 0.5 }}>SAISON {s.year}</div>
                 <div className="tm-num" style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>#{s.endOfYearRanking}</div>
@@ -167,7 +167,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Match history */}
       <div style={styles.skillsCard}>
-        <div className="tm-eyebrow" style={{ marginBottom: 12 }}>Historique récent</div>
+        <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, margin: "-16px -16px 14px", padding: "5px 12px" }}>Historique récent</div>
         {player.matchHistory.length === 0 && <div style={{ color: T.fg5, fontSize: 12, textAlign: "center", padding: 16 }}>Aucun match disputé</div>}
         {(() => {
           // Group consecutive matches of the same tournament (same week/year).
@@ -232,8 +232,8 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
               return (
                 <div key={r.name} style={{
                   marginBottom: 12, padding: 12,
-                  background: T.bg2, borderRadius: 3,
-                  border: "1px solid " + T.brd,
+                  background: T.bg2, borderRadius: 0,
+                  border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <div style={{ color: T.fg, fontWeight: 700, fontSize: 13 }}>{r.name}</div>

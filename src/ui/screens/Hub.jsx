@@ -4,7 +4,7 @@ import { ALL_TOURNAMENTS, tierLabel } from "../../engine/circuit.js";
 import { difficultyLevel, formatMultiplier, scoreMultiplier } from "../../engine/difficulty.js";
 import { buildFrontPage } from "../../engine/frontpage.js";
 import { Avatar } from "../avatar.jsx";
-import { Icon } from "../icons.jsx";
+import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
@@ -87,7 +87,12 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       {/* LE JOUEUR */}
       <section aria-label="Votre joueur" className="tm-fade-up" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", background: T.bg1, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, marginBottom: 14 }}>
         <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "6px 10px", borderBottom: "2.5px solid " + T.ink }}>
-          <span className="tm-display" style={{ fontSize: 17, lineHeight: 1.1, minWidth: 0, overflowWrap: "anywhere" }}>{player.name}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexWrap: "wrap" }}>
+            <span className="tm-display" style={{ fontSize: 17, lineHeight: 1.1, minWidth: 0, overflowWrap: "anywhere" }}>{player.name}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
+              {player.nationalityFlag && <FlagFromEmoji emoji={player.nationalityFlag} size={13} />}{player.age} ans
+            </span>
+          </span>
           <span style={{ background: T.magenta, color: "#ffffff", fontSize: 11, fontWeight: 800, padding: "2px 6px", transform: "rotate(-3deg)", whiteSpace: "nowrap", textTransform: "uppercase" }}>{level.name} {formatMultiplier(mul)}</span>
         </div>
         {[
@@ -102,7 +107,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
           </div>
         ))}
         <div style={{ gridColumn: "1 / -1", display: "flex", gap: 12, flexWrap: "wrap", padding: "6px 10px", borderTop: "2px solid " + T.ink, fontSize: 11, fontWeight: 700 }}>
-          <span>{player.nationality || "France"} · {player.age} ans · {PLAYER_STYLES[player.styleId]?.name}</span>
+          <span>{PLAYER_STYLES[player.styleId]?.name}</span>
           <span>Côte {rating}</span>
           {(ss.titles || 0) > 0 && <span style={{ color: T.magenta }}>{ss.titles} titre{ss.titles > 1 ? "s" : ""}</span>}
         </div>
@@ -217,8 +222,8 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
 
       {(player.sponsors || []).some(s => s.objective) && (
         <div style={{ background: T.bg1, border: "2.5px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, padding: 14, marginBottom: 16 }}>
-          <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 10 }}>
-            <Icon name="target" size={11} /> Objectifs sponsors
+          <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, margin: "-14px -14px 12px", padding: "5px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name="target" size={14} color={T.gold} /> Objectifs sponsors
           </div>
           {(player.sponsors || []).filter(s => s.objective).map((s, i, arr) => {
             const o = s.objective;
@@ -240,7 +245,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
             return (
               <div key={i} style={{ marginBottom: i < arr.length - 1 ? 12 : 0 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                  <span style={{ color: T.fg2, fontSize: 12, fontWeight: 700 }}>{s.brand}</span>
+                  <span className="tm-display" style={{ fontSize: 14 }}>{s.brand}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
                     {weeksLeft !== null && (
                       <span style={{ color: weeksLeft <= 4 ? T.amber : T.fg5, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>
@@ -254,8 +259,8 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
                   <span style={{ color: met ? T.green : T.fg4, fontSize: 11 }}>{met ? "✓ " : ""}{o.label}</span>
                   <span style={{ color: T.green, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", marginLeft: 8 }}>+{(s.objectiveReward || 0).toLocaleString()}€ / −{(s.objectivePenalty || 0).toLocaleString()}€</span>
                 </div>
-                <div style={{ height: 4, background: T.bg3, borderRadius: 2, overflow: "hidden" }}>
-                  <div style={{ width: (progress * 100).toFixed(0) + "%", height: "100%", background: met ? T.green : T.ball, transition: "width 0.3s" }} />
+                <div style={{ height: 12, background: "#ffffff", border: "2px solid " + T.ink, overflow: "hidden" }}>
+                  <div style={{ width: (progress * 100).toFixed(0) + "%", height: "100%", background: met ? "#1f7a45" : "#d6ef3c", backgroundImage: "radial-gradient(rgba(20,20,20,0.18) 1.2px, transparent 1.4px)", backgroundSize: "5px 5px", borderRight: progress > 0 && progress < 1 ? "2px solid " + T.ink : "none", transition: "width 0.3s" }} />
                 </div>
               </div>
             );

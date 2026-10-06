@@ -38,8 +38,8 @@ export function FinanceScreen({ player, acceptSponsorOffer, declineSponsorOffer,
       {/* Hero balance card */}
       <div className="tm-court" style={{
         background: T.bg1,
-        borderRadius: 3, padding: 24, marginBottom: 14,
-        border: "1px solid " + T.brd, position: "relative", overflow: "hidden",
+        borderRadius: 0, padding: 24, marginBottom: 14,
+        border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, position: "relative", overflow: "hidden",
       }}>
         <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: 200,
           background: "none",
@@ -56,11 +56,11 @@ export function FinanceScreen({ player, acceptSponsorOffer, declineSponsorOffer,
 
       {/* Earned / Spent */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
-        <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid " + T.brd }}>
+        <div style={{ background: T.bg1, borderRadius: 0, padding: 14, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
           <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 4 }}>↑ Gains</div>
           <div className="tm-num" style={{ color: T.fg, fontWeight: 800, fontSize: 18 }}>+{earned.toLocaleString()}€</div>
         </div>
-        <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid " + T.brd }}>
+        <div style={{ background: T.bg1, borderRadius: 0, padding: 14, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
           <div className="tm-eyebrow" style={{ color: T.red, marginBottom: 4 }}>↓ Dépenses</div>
           <div className="tm-num" style={{ color: T.fg, fontWeight: 800, fontSize: 18 }}>−{spent.toLocaleString()}€</div>
         </div>
@@ -82,9 +82,9 @@ export function FinanceScreen({ player, acceptSponsorOffer, declineSponsorOffer,
         })()}
         {sponsors.length === 0 ? (
           <div style={{
-            background: T.bg1, borderRadius: 3, padding: 18, textAlign: "center",
+            background: T.bg1, borderRadius: 0, padding: 18, textAlign: "center",
             color: T.fg5, fontSize: 12, fontStyle: "italic",
-            border: "1px dashed " + T.brd2,
+            border: "2px dashed " + T.ink,
           }}>Aucun contrat actif</div>
         ) : sponsors.map((s) => {
           const cat = s.cat || "other";
@@ -92,15 +92,15 @@ export function FinanceScreen({ player, acceptSponsorOffer, declineSponsorOffer,
           const catColor = cat === "equipment" ? "var(--tm-blue)" : T.ball;
           return (
             <div key={s.id} style={{
-              background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 8,
-              border: "1px solid " + T.brd, borderLeft: "3px solid " + catColor,
+              background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 8,
+              border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderLeft: "3px solid " + catColor,
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
                     <span style={{
                       fontSize: 9, fontWeight: 800, letterSpacing: 0.5, textTransform: "none",
-                      color: catColor, background: T.bg3, padding: "2px 6px", borderRadius: 4,
+                      color: catColor, background: T.bg3, padding: "2px 6px", borderRadius: 0,
                     }}>{catLabel}</span>
                   </div>
                   <div style={{ color: T.fg, fontSize: 14, fontWeight: 700 }}>{s.brand}</div>
@@ -127,8 +127,8 @@ export function FinanceScreen({ player, acceptSponsorOffer, declineSponsorOffer,
 
       {/* WEEKLY BALANCE */}
       <div style={{
-        background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 14,
-        border: "1px solid " + T.brd,
+        background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 14,
+        border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
       }}>
         <div className="tm-eyebrow" style={{ marginBottom: 12 }}>Bilan hebdomadaire</div>
         {[
@@ -166,7 +166,7 @@ export function FinanceScreen({ player, acceptSponsorOffer, declineSponsorOffer,
       </div>
 
       {topTournaments.length > 0 && (
-        <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 14, border: "1px solid " + T.brd }}>
+        <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 14, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
           <div className="tm-eyebrow" style={{ marginBottom: 12 }}><Icon name="trophy" size={11} /> Top tournois</div>
           {topTournaments.map((e, i) => {
             const tid = e.tid || tournamentIdByName(e.name);

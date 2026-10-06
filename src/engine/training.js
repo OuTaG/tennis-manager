@@ -5,20 +5,34 @@ import { ageTrainingMultiplier, difficultyFactors } from "./player.js";
 import { styledProgressionMultiplier } from "./progression.js";
 import { sumStaffEffect } from "./staff.js";
 
+// Facteurs d'efficacité communs à tous les entraînements (hors niveau de la
+// stat travaillée). total = produit ; 1 = efficacité normale.
+export function trainingEfficiency(player) {
+  const staff = 1 + Math.max(-0.3, sumStaffEffect(player.staff || [], "trainGain"));
+  const happ = player.happiness ?? 70;
+  const happiness = happ < 20 ? 0.5 : happ < 40 ? 0.85 : happ > 85 ? 1.10 : 1.0;
+  const energy = 0.6 + (player.energy / 250);
+  const age = ageTrainingMultiplier(player.age);
+  const difficulty = difficultyFactors(player).trainMul;
+  const absWeek = (player.year || 0) * 52 + (player.week || 0);
+  const boost = (player.trainBoost && absWeek < player.trainBoost.untilAbsWeek) ? player.trainBoost.mul : 1;
+  const challenge = (player.challenge && player.challenge.status === "active" && player.challenge.trainMul) || 1;
+  const parts = [
+    { key: "energy", label: "Énergie", mul: energy },
+    { key: "happiness", label: "Bonheur", mul: happiness },
+    { key: "age", label: "Âge", mul: age },
+    { key: "staff", label: "Staff", mul: staff },
+    { key: "difficulty", label: "Difficulté", mul: difficulty },
+    { key: "boost", label: "Bonus", mul: boost },
+    { key: "challenge", label: "Défi", mul: challenge },
+  ];
+  return { total: parts.reduce((a, p) => a * p.mul, 1), parts };
+}
+
 // Gain (points de stat) d'une séance réussie de base (programme ×1).
 export function trainingBaseGain(player, mod) {
-  const staffBonus = 1 + Math.max(-0.3, sumStaffEffect(player.staff || [], "trainGain"));
-  // Bonheur : très bas = motivation en berne, haut = concentration.
-  const happ = player.happiness ?? 70;
-  const happinessMul = happ < 20 ? 0.5 : happ < 40 ? 0.85 : happ > 85 ? 1.10 : 1.0;
-  const energyMul = 0.6 + (player.energy / 250);
-  const ageMul = ageTrainingMultiplier(player.age);
   const diminishMul = styledProgressionMultiplier(player.styleId, mod.stat, player.stats[mod.stat]);
-  const diffMul = difficultyFactors(player).trainMul;
-  const absWeek = (player.year || 0) * 52 + (player.week || 0);
-  const techBoostMul = (player.trainBoost && absWeek < player.trainBoost.untilAbsWeek) ? player.trainBoost.mul : 1;
-  const challengeMul = (player.challenge && player.challenge.status === "active" && player.challenge.trainMul) || 1;
-  return mod.baseGain * staffBonus * energyMul * diminishMul * ageMul * happinessMul * diffMul * techBoostMul * challengeMul;
+  return mod.baseGain * diminishMul * trainingEfficiency(player).total;
 }
 
 // Gain d'un programme réussi, arrondi au centième (la valeur affichée).

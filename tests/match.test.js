@@ -160,3 +160,35 @@ describe("point décisif en mini-jeu", () => {
     expect(r2.resumeFrom).toBe(r.points.length);
   });
 });
+
+describe("mini-jeu mental au tie-break", () => {
+  const stats = { serve: 60, forehand: 60, backhand: 60, stamina: 60, mental: 60, net: 60 };
+  const toTiebreak = () => {
+    const m = createInitialMatchData(false, 100, "Dur");
+    m.sets.push({ pGames: 6, oGames: 6, gameLog: [], completed: false, winner: null, tiebreak: null });
+    return m;
+  };
+
+  it("s'arrête sur une balle de set, au plus une fois, puis reprend", () => {
+    let found = null;
+    for (let seed = 1; seed < 60 && !found; seed++) {
+      seedRandom(seed);
+      const m = toTiebreak();
+      const r = advanceMatchOneGame(m, stats, stats, { allowTiebreakMental: true });
+      if (r.pending) found = { m, r };
+    }
+    expect(found).toBeTruthy();
+    const { m } = found;
+    const pg = m.pendingGame;
+    expect(pg.isTiebreak).toBe(true);
+    const decisive = (pg.pPts + 1 >= 7 && pg.pPts + 1 - pg.oPts >= 2) || (pg.oPts + 1 >= 7 && pg.oPts + 1 - pg.pPts >= 2);
+    expect(decisive).toBe(true);
+    m.pendingGame.miniGameWon = true;
+    const r2 = advanceMatchOneGame(m, stats, stats, { allowTiebreakMental: true });
+    expect(r2.pending).toBeFalsy();
+    expect(r2.isTiebreak).toBe(true);
+    expect(r2.points[pg.seq.length].winner).toBe("p");
+    expect(r2.resumeFrom).toBe(pg.seq.length);
+    expect(m.sets[m.sets.length - 1].completed).toBe(true);
+  });
+});

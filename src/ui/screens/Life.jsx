@@ -16,7 +16,7 @@ export function LifeScreen({ player, doLifeActivity }) {
     : 0;
 
   const lifeStat = (label, value, color, icon) => (
-    <div style={{ background: T.bg2, borderRadius: 3, padding: 12, border: "1px solid " + T.brd }}>
+    <div style={{ background: T.bg2, borderRadius: 0, padding: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Icon name={icon} size={14} color={color} />
@@ -24,8 +24,8 @@ export function LifeScreen({ player, doLifeActivity }) {
         </div>
         <span className="tm-num" style={{ color: color, fontSize: 15, fontWeight: 800 }}>{value}</span>
       </div>
-      <div style={{ height: 6, background: T.bg4, borderRadius: 3, overflow: "hidden" }}>
-        <div style={{ width: value + "%", height: "100%", background: color, borderRadius: 3, transition: "width .3s" }} />
+      <div style={{ height: 6, background: T.bg4, borderRadius: 0, overflow: "hidden" }}>
+        <div style={{ width: value + "%", height: "100%", background: color, borderRadius: 0, transition: "width .3s" }} />
       </div>
     </div>
   );
@@ -78,8 +78,8 @@ export function LifeScreen({ player, doLifeActivity }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: 3,
-                  background: T.bg3, border: "1px solid " + T.brd2,
+                  width: 36, height: 36, borderRadius: 0,
+                  background: T.bg3, border: "2px solid " + T.ink,
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}>
                   <Icon name={act.iconName} size={18} color={T.green} />

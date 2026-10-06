@@ -230,15 +230,25 @@ export function playOneGame(ctx, isPlayerServing, forceLoss = false, opts = {}) 
   return { playerWon, points };
 }
 
-export function playOneTiebreak(ctx, target, firstServerIsPlayer = true, forceLoss = false) {
-  let pPts = 0, oPts = 0;
-  const seq = [];
+// opts.mentalChance : sur chaque balle de set (pour l'un ou l'autre), chance
+//   de s'arrêter pour un mini-jeu mental → { pending: true, pPts, oPts, seq }.
+// opts.start = { pPts, oPts, seq, next } : reprendre un tie-break interrompu,
+//   next = vainqueur ("p" ou "o") du point joué en mini-jeu.
+export function playOneTiebreak(ctx, target, firstServerIsPlayer = true, forceLoss = false, opts = {}) {
+  let pPts = opts.start ? opts.start.pPts : 0, oPts = opts.start ? opts.start.oPts : 0;
+  const seq = opts.start ? [...opts.start.seq] : [];
+  let forced = opts.start ? opts.start.next : null;
   while (true) {
+    const decisive = (pPts + 1 >= target && pPts + 1 - oPts >= 2) || (oPts + 1 >= target && oPts + 1 - pPts >= 2);
+    if (!forced && decisive && !forceLoss && opts.mentalChance && random() < opts.mentalChance) {
+      return { pending: true, pPts, oPts, seq };
+    }
     // Server of this point: first server serves 1 point, then 2 each.
     const ptIdx = pPts + oPts;
     const playerServes = ((Math.floor((ptIdx + 1) / 2) % 2) === 0) === firstServerIsPlayer;
     const pWin = playerPointProb(ctx, playerServes);
-    let playerTakes = random() < (forceLoss ? 0.3 : pWin);
+    let playerTakes = forced ? forced === "p" : random() < (forceLoss ? 0.3 : pWin);
+    forced = null;
     // Thrown match: the player never gets the point that would win the tiebreak.
     if (forceLoss && playerTakes && pPts + 1 >= target && pPts + 1 - oPts >= 2) playerTakes = false;
     if (playerTakes) { pPts++; seq.push("p"); }
@@ -294,7 +304,21 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats, opts = {})
     // Server of the first TB point follows the normal serve rotation ; the
     // other player serves first in the next set (already set above).
     const tbFirstServer = isPlayerServing;
-    const tb = playOneTiebreak(buildMatchCtx(m, effPlayerStats, oppStats), tbTarget, tbFirstServer, !!m.matchFixThrown);
+    const tbCtx = buildMatchCtx(m, effPlayerStats, oppStats);
+    let tb, tbResumeFrom = 0;
+    if (resume && resume.isTiebreak) {
+      // Reprise après le mini-jeu mental : son point est joué, puis la suite.
+      tbResumeFrom = resume.seq.length;
+      tb = playOneTiebreak(tbCtx, tbTarget, tbFirstServer, !!m.matchFixThrown, { start: { pPts: resume.pPts, oPts: resume.oPts, seq: resume.seq, next: resume.miniGameWon ? "p" : "o" } });
+    } else {
+      // Au plus un mini-jeu mental par tie-break, 20 % par balle de set.
+      tb = playOneTiebreak(tbCtx, tbTarget, tbFirstServer, !!m.matchFixThrown, { mentalChance: opts.allowTiebreakMental ? 0.2 : 0 });
+      if (tb.pending) {
+        m.nextServerIsPlayer = isPlayerServing;
+        m.pendingGame = { isTiebreak: true, isPlayerServing, pPts: tb.pPts, oPts: tb.oPts, seq: tb.seq, target: tbTarget };
+        return { pending: true, gameType: "pending", isTiebreak: true, isPlayerServing, tbTarget, points: buildTiebreakPoints(tb.seq, tbFirstServer, tbCtx), score: { p: curSet.pGames, o: curSet.oGames }, setComplete: false };
+      }
+    }
     curSet.tiebreak = tb;
     // Momentum : le perdant du set (tie-break) accuse le coup.
     if (tb.playerWon) m.oppMomentum = clampMomentum((m.oppMomentum || 0) - 1);
@@ -308,7 +332,7 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats, opts = {})
     // Check if this tiebreak set ended the match
     const setsToWin = m.isGrandSlam ? 3 : 2;
     if (m.pSets === setsToWin || m.oSets === setsToWin) m.matchComplete = true;
-    return { gameType: tb.playerWon ? "tb_won" : "tb_lost", isPlayerServing: false, isTiebreak: true, points: tb.points, score: { p: curSet.pGames, o: curSet.oGames }, setComplete: true, setWonByPlayer: tb.playerWon, tbScore: (tb.playerWon ? tb.oPts : tb.pPts), tbTarget };
+    return { gameType: tb.playerWon ? "tb_won" : "tb_lost", isPlayerServing: false, isTiebreak: true, points: tb.points, resumeFrom: tbResumeFrom, score: { p: curSet.pGames, o: curSet.oGames }, setComplete: true, setWonByPlayer: tb.playerWon, tbScore: (tb.playerWon ? tb.oPts : tb.pPts), tbTarget };
   }
 
   // Normal game (éventuellement interrompu puis repris sur un point décisif)

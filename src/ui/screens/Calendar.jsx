@@ -85,7 +85,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
       {enrolled && (
         <div className="tm-fade-up" style={{
           background: T.greenSub, border: "1px solid " + T.greenBrd, borderLeft: "3px solid " + T.green,
-          borderRadius: 3, padding: 14, marginBottom: 14,
+          borderRadius: 0, padding: 14, marginBottom: 14,
         }}>
           <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 4 }}>Inscrit</div>
           <div style={{ color: T.fg, fontSize: 14, fontWeight: 700 }}>{ALL_TOURNAMENTS.find(t => t.id === enrolled.tournamentId)?.name}</div>

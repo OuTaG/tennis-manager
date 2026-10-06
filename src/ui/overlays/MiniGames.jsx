@@ -68,15 +68,17 @@ export function buildDuelSteps(r) {
   const lx = zoneX(r.serveZone);
   // 1. Le relanceur s'est placé là où il lit le service, le service part.
   steps.push({ ball: { x: SERVER_X, y: BOT_Y - 6 }, dur: 0, ret: zoneX(r.readZone), srv: SERVER_X, hideZones: true });
-  steps.push({ ball: { x: lx, y: LAND_Y }, dur: 430, ret: zoneX(r.shift), bounce: true });
+  // Le relanceur reste sur sa lecture pendant le service…
+  steps.push({ ball: { x: lx, y: LAND_Y }, dur: 430, bounce: true });
   if (r.kind === "ace") {
-    // La balle file derrière le relanceur, qui n'a fait qu'un pas : ace.
+    // …et ne se jette d'une case qu'au dernier moment : trop tard, ace.
     const k = (TOP_Y - 70 - LAND_Y) / (LAND_Y - BOT_Y);
-    steps.push({ ball: { x: lx + (lx - SERVER_X) * k, y: -40 }, dur: 380, burst: { text: "ACE !", at: { x: lx, y: 96 } } });
+    steps.push({ ball: { x: lx + (lx - SERVER_X) * k, y: -40 }, dur: 380, ret: zoneX(r.shift), burst: { text: "ACE !", at: { x: lx, y: 96 } } });
     return steps;
   }
-  // Le relanceur touche la balle.
-  steps.push({ ball: { x: lx, y: TOP_Y + 18 }, dur: 200 });
+  // …puis se décale au dernier moment (s'il n'était pas sur la bonne
+  // zone) et touche la balle.
+  steps.push({ ball: { x: lx, y: TOP_Y + 18 }, dur: 260, ret: zoneX(r.shift) });
   if (r.kind === "return_winner") {
     // Bien lu : retour gagnant à l'opposé du serveur. La balle rebondit
     // d'abord dans le terrain (côté serveur, loin de lui), puis file hors du cadre.
@@ -119,7 +121,7 @@ export function buildDuelSteps(r) {
 
 // kind : "serve_duel" | "return_duel" | "smash"
 // onDone(win, text, zone) : appelé quand le joueur clique « Continuer ».
-export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, onDone }) {
+export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, myMental, onDone }) {
   const [res, setRes] = useState(null);
   const [phase, setPhase] = useState("pick"); // pick → play → reveal
   const [ball, setBall] = useState(null);     // { x, y, dur }
@@ -130,9 +132,10 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
   const [burst, setBurst] = useState(null);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
-  const title = kind === "serve_duel" ? "Duel au service !" : kind === "return_duel" ? "Duel au retour !" : "Smash !";
+  const title = kind === "serve_duel" ? "Duel au service !" : kind === "return_duel" ? "Duel au retour !" : kind === "mental" ? "Sang-froid !" : "Smash !";
   const caption = kind === "return_duel" ? stake + " · " + oppName + " va servir. Où va-t-il frapper ?"
     : kind === "smash" ? stake + " · une balle haute flotte au-dessus du filet…"
+    : kind === "mental" ? stake + " · le public retient son souffle…"
     : stake;
   // Serveur en bas, relanceur en haut.
   const server = kind === "serve_duel" ? { avatar: myAvatar, label: "Vous" } : { avatar: oppAvatar, label: oppName };
@@ -169,7 +172,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
 
   const revealed = phase === "reveal";
   const figure = (who, x, y) => (
-    <div style={{ position: "absolute", left: pct(x, VW), top: pct(y, VH), width: 0, height: 0, zIndex: 3, transition: "left 0.32s cubic-bezier(.3,1.3,.6,1)" }}>
+    <div style={{ position: "absolute", left: pct(x, VW), top: pct(y, VH), width: 0, height: 0, zIndex: 3, transition: "left 0.24s cubic-bezier(.3,1.3,.6,1)" }}>
       <div style={{ position: "absolute", left: -21, top: -21, width: 42, height: 42, borderRadius: "50%", overflow: "hidden", border: "2.5px solid " + INK, background: "#ffffff", animation: phase === "pick" ? "tm-mg-bob 0.9s ease-in-out infinite" : "none" }}>
         {who.avatar ? <Avatar config={who.avatar} size={42} bare /> : null}
       </div>
@@ -182,7 +185,9 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
       <style>{MG_KEYFRAMES}</style>
       <div style={{ alignSelf: "center" }}><Sfx>{title}</Sfx></div>
       <Caption>{caption}</Caption>
-      {kind === "smash"
+      {kind === "mental"
+        ? <MentalGame mental={myMental} done={!!res} onEnd={(win, n) => { setRes({ win, zone: null, text: win ? n + " respirations sur 3 : vous restez de glace, point gagné." : n + " respiration" + (n > 1 ? "s" : "") + " sur 3 : crispé, le point vous échappe." }); setPhase("reveal"); }} />
+        : kind === "smash"
         ? <SmashGauge done={!!res} onHit={(precision) => { setRes({ ...smashResult(precision), zone: null }); setPhase("reveal"); }} />
         : (
           <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, maxHeight: "56vh", alignSelf: "center", background: GRASS, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, overflow: "hidden" }}>
@@ -231,7 +236,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
       )}
       {res && revealed && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "10px 12px", animation: "tm-mg-pop 0.3s ease-out both" }}>
-          <Sfx color={res.win ? BALL : LILAC}>{res.win ? "JEU !" : "ÉGALITÉ"}</Sfx>
+          <Sfx color={res.win ? BALL : LILAC}>{kind === "mental" ? (res.win ? "SANG-FROID !" : "CRISPÉ…") : res.win ? "JEU !" : "ÉGALITÉ"}</Sfx>
           <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>{res.text}</div>
         </div>
       )}
@@ -242,6 +247,72 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
         }}>Continuer ▶</button>
       )}
     </div>
+  );
+}
+
+// Mini-jeu mental (balle de set au tie-break) : le cœur bat, il faut
+// toucher trois fois quand il est au plus calme (cercle au plus petit,
+// dans l'anneau vert). Le mental du joueur élargit la marge. 2 sur 3 = gagné.
+function MentalGame({ mental = 60, done, onEnd }) {
+  const [t, setT] = useState(0);
+  const [taps, setTaps] = useState([]);
+  const tRef = useRef(0);
+  const rafRef = useRef(null);
+  const speed = useRef(1);
+  const tol = Math.max(0.1, Math.min(0.3, 0.18 + ((mental ?? 60) - 60) / 400));
+  useEffect(() => {
+    if (done) return undefined;
+    let last = null;
+    const step = (now) => {
+      if (last === null) last = now;
+      tRef.current += ((now - last) / 1000) * speed.current;
+      last = now;
+      setT(tRef.current);
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [done]);
+  // Phase 0 → 1 : 0 = cœur au plus calme (petit), 0,5 = au plus fort.
+  const phase = (x) => (x / 1.05) % 1;
+  const ph = phase(t);
+  const size = 0.35 + 0.65 * (0.5 - 0.5 * Math.cos(ph * 2 * Math.PI)); // 0,35 → 1
+  const tap = () => {
+    if (done || taps.length >= 3) return;
+    const d = Math.min(ph, 1 - ph); // distance au moment le plus calme
+    const good = d <= tol;
+    const next = [...taps, good];
+    setTaps(next);
+    speed.current *= 1.18; // le cœur s'emballe
+    if (next.length === 3) {
+      cancelAnimationFrame(rafRef.current);
+      const n = next.filter(Boolean).length;
+      onEnd(n >= 2, n);
+    }
+  };
+  const R = 70;
+  return (
+    <>
+      <div style={{ fontSize: 13, fontWeight: 700, color: T.fg }}>Touchez « Respirer » quand le cœur est au plus calme (dans l'anneau vert). Trois fois.</div>
+      <div onPointerDown={tap} style={{ position: "relative", height: 210, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, background: LILAC, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", touchAction: "manipulation", userSelect: "none", overflow: "hidden" }}>
+        <svg viewBox="-100 -100 200 200" width="200" height="200" aria-hidden="true">
+          <circle r={R * (0.35 + 0.65 * tol * 1.2)} fill="none" stroke={GRASS} strokeWidth={R * 0.65 * tol * 2.4} opacity="0.55" />
+          <circle r={R * size} fill="#c4302b" stroke={INK} strokeWidth="4" />
+          <path d="M-14 -4 C-14 -16 2 -16 0 -6 C-2 -16 14 -16 14 -4 C14 6 0 14 0 18 C0 14 -14 6 -14 -4 Z" fill="#ffffff" opacity="0.85" transform={"scale(" + (0.6 + size * 0.8) + ")"} />
+        </svg>
+        <div style={{ position: "absolute", top: 8, right: 10, display: "flex", gap: 6 }}>
+          {[0, 1, 2].map(i => (
+            <span key={i} style={{ width: 16, height: 16, borderRadius: "50%", border: "2.5px solid " + INK, background: i < taps.length ? (taps[i] ? BALL : "#ffffff") : "transparent" }} />
+          ))}
+        </div>
+      </div>
+      {!done && (
+        <button onClick={tap} style={{
+          minHeight: 56, border: "3px solid " + INK, background: BALL, color: INK, cursor: "pointer",
+          fontFamily: T.display, fontSize: 22, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
+        }}>Respirer</button>
+      )}
+    </>
   );
 }
 

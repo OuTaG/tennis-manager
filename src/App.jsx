@@ -30,6 +30,7 @@ import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKey
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
+import { WallGame } from "./ui/overlays/WallGame.jsx";
 
 // Couleur du bandeau de match selon la surface.
 const LIVE_SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2c6fd1", "Indoor": "#5b2d8e" };
@@ -96,6 +97,7 @@ export default function TennisManager() {
   // Pause du match : les jeux ne s'enchaînent plus tant qu'elle est active.
   const [matchPaused, setMatchPaused] = useState(false);
   const [tacticsOpen, setTacticsOpen] = useState(false);
+  const [wallTaps, setWallTaps] = useState(0); // secret des réglages
   // Ombres de défilement : fenêtre (pages de jeu), plan de jeu, aide, commentaires.
   const winEdges = useScrollEdges(null);
   const tacticsBoxRef = useRef(null);
@@ -129,7 +131,6 @@ export default function TennisManager() {
   const [livePoint, setLivePoint] = useState(null); // { p, o } — current game's running score shown in the scoreboard
   const livePointTimersRef = useRef([]);
   const pendingCommitRef = useRef(null); // function that commits the in-flight simulation immediately
-  const [notification, setNotification] = useState(null);
   const [activeTab, setActiveTab] = useState("hub");
   const [calFilters, setCalFilters] = useState({ surface: [], tier: [], region: "all" });
   const [atpPage, setAtpPage] = useState(1);
@@ -172,7 +173,7 @@ export default function TennisManager() {
       pointsLog: undefined,
     }));
   };
-  
+
   // Decompress back to full format when loading
   const decompactAtpDb = (atpDb) => {
     if (!atpDb) return atpDb;
@@ -234,7 +235,6 @@ export default function TennisManager() {
     obs.observe(document.body, { subtree: true, childList: true, characterData: true });
     return () => obs.disconnect();
   }, [activeCircuit]);
-
 
   // Save the game — debounced. Serialising `player + atpDb (~1200 entries) +
   // news` is heavy and JSON.stringify blocks the main thread. Writing on
@@ -322,7 +322,7 @@ export default function TennisManager() {
     setPlayer(p => ({ ...p, challenge: { ...p.challenge, status: res.status, result: res, resultSeen: false } }));
   }, [player, atpDb, screen]);
 
-  // Trophy detection: check on relevant player changes; notify on new unlocks.
+  // Trophy detection: check on relevant player changes; record new unlocks.
   useEffect(() => {
     if (!player) return;
     const prev = new Set(player.trophies || []);
@@ -333,18 +333,15 @@ export default function TennisManager() {
         trophies: [...(p.trophies || []), ...newly.map(t => t.id)],
         unseenTrophies: (p.unseenTrophies || 0) + newly.length,
       }));
-      newly.forEach((t, i) => {
-        setTimeout(() => notify("Trophée débloqué : " + t.name, "success"), i * 800);
-      });
     }
   }, [player?.careerWins, player?.titlesWon, player?.matchHistory?.length, player?.history?.length, player?.totalEarnings, player?.careerSeasons?.length, player?.sponsors?.length, player?.sponsorOffers?.length, player?.wildcardsUsed?.length, player?.viewedAtpPlayers?.length, player?.money, player?.stats]);
 
   const loadSave = (slotIdx) => {
     try {
       const raw = localStorage.getItem(saveKeyFor(slotIdx));
-      if (!raw) { notify("Aucune sauvegarde trouvée", "warn"); return; }
+      if (!raw) { return; }
       const data = JSON.parse(raw);
-      if (!data.player || !data.atpDb) { notify("Sauvegarde corrompue", "warn"); return; }
+      if (!data.player || !data.atpDb) { return; }
       // Decompress atpDb (Opt A+B)
       data.atpDb = decompactAtpDb(data.atpDb);
       setCircuit(data.player.circuit || "atp");
@@ -372,7 +369,7 @@ export default function TennisManager() {
       }
     } catch (e) {
       console.error(e);
-      notify("Erreur lors du chargement", "warn");
+
     }
   };
 
@@ -402,7 +399,7 @@ export default function TennisManager() {
       setScreen("menu");
     }
     refreshSlots();
-    notify("Carrière effacée", "info");
+
   };
 
   // Retour au menu principal : on sauvegarde tout de suite, puis on décharge
@@ -430,11 +427,6 @@ export default function TennisManager() {
     setCircuit("atp");
     refreshSlots();
     setScreen("menu");
-  };
-
-  const notify = (msg, type = "info") => {
-    setNotification({ msg, type });
-    setTimeout(() => setNotification(null), 3000);
   };
 
   // ── DÉFIS ───────────────────────────────────────────────────────────────
@@ -486,12 +478,12 @@ export default function TennisManager() {
   const repayDebt = (amount) => {
     const debt = player?.challenge?.debt || 0;
     const pay = Math.floor(Math.min(amount, debt, player?.money || 0));
-    if (pay <= 0) { notify("Pas assez d'argent pour rembourser", "warn"); return; }
+    if (pay <= 0) { return; }
     setPlayer(p => ({
       ...p, money: p.money - pay, totalSpent: (p.totalSpent || 0) + pay,
       challenge: { ...p.challenge, debt: Math.max(0, (p.challenge.debt || 0) - pay) },
     }));
-    notify("Remboursement de " + pay.toLocaleString() + " €", "success");
+
   };
 
   // ── AIDE À LA PREMIÈRE VISITE ────────────────────────────────────────────
@@ -542,7 +534,7 @@ export default function TennisManager() {
     if (p.injury) {
       const inj = { ...p.injury, weeksRemaining: p.injury.weeksRemaining - 1 };
       if (inj.weeksRemaining <= 0) {
-        notify("Vous êtes guéri de votre blessure !", "success");
+
         p.injury = null;
       } else {
         p.injury = inj;
@@ -581,9 +573,9 @@ export default function TennisManager() {
           else p.totalSpent = (p.totalSpent || 0) - amount;
           if (met) p.careerObjectivesMet = (p.careerObjectivesMet || 0) + 1;
           p._endedSponsorResults = [...(p._endedSponsorResults || []), { brand: s.brand, met, amount, objective: s.objective }];
-          notify("Fin du contrat " + s.brand + " : objectif " + (met ? "atteint, prime de " + amount.toLocaleString() + "€" : "manqué, pénalité de " + (-amount).toLocaleString() + "€"), met ? "success" : "warn");
+
         } else {
-          notify("Contrat sponsor terminé : " + s.brand, "info");
+
         }
       }
       // Agent bonus: extra % on sponsor revenue
@@ -694,7 +686,7 @@ export default function TennisManager() {
     }
     } catch (err) {
       console.error("[week] sponsor phase error:", err);
-      notify("Erreur lors de la phase sponsors, semaine poursuivie", "warn");
+
     }
 
     // Wildcard offers: if player has good recent perf but ranking limits them on
@@ -764,7 +756,7 @@ export default function TennisManager() {
                   tournamentYear: targetYear,
                   week: newWeek, year: newYear,
                 }];
-                notify("Wildcard proposée : " + t.name + " !", "success");
+
                 newOffersThisWeek++;
                 if (newOffersThisWeek >= 1 || (p.wildcardOffers || []).length >= 2) break outer;
               }
@@ -787,7 +779,7 @@ export default function TennisManager() {
         const payout = Math.round(inv.amount * out.mul);
         p.money += payout;
         if (payout > inv.amount) p.totalEarnings = (p.totalEarnings || 0) + (payout - inv.amount);
-        notify(out.msg + (payout > 0 ? " (+" + payout.toLocaleString() + "€)" : ""), payout >= inv.amount ? "success" : "warn");
+
       }
       p.pendingInvestments = still;
     }
@@ -830,11 +822,11 @@ export default function TennisManager() {
           p.money -= due;
           p.totalSpent = (p.totalSpent || 0) + due;
           p.challenge.debt = Math.max(0, p.challenge.debt - due);
-          notify("Échéance payée : " + due.toLocaleString() + " € (reste " + Math.round(p.challenge.debt).toLocaleString() + " €)", "info");
+
         } else {
           const pen = Math.round(p.challenge.debt * 0.1);
           p.challenge.debt += pen;
-          notify("Échéance impayée : pénalité de " + pen.toLocaleString() + " €", "warn");
+
         }
         p.challenge.nextDueAbs = absNow + 4;
       }
@@ -846,8 +838,6 @@ export default function TennisManager() {
           const k = keys[Math.floor(random() * keys.length)];
           const g = Math.round(0.12 * wins * 100) / 100;
           p.stats = { ...p.stats, [k]: Math.min(99, p.stats[k] + g) };
-          const labels = { serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" };
-          notify("Autodidacte : +" + g + " en " + labels[k], "success");
         }
       }
       // Événement propre au défi.
@@ -887,12 +877,12 @@ export default function TennisManager() {
       if (finals && !p.challenge?.failReason) {
         const raceRk = playerRaceRank(p, atpDb);
         if (newWeek === finals.week - 1 && raceRk <= 8) {
-          notify("Qualifié pour le " + finals.name + " la semaine prochaine (" + raceRk + "e de la Race) !", "success");
+
         }
         if (newWeek === finals.week && raceRk <= 8) {
           const blocked = (p.injury && !p.injury.canPlay) || (p.restUntilAbsWeek && newYear * 52 + newWeek < p.restUntilAbsWeek);
           if (blocked) {
-            notify("Qualifié pour le " + finals.name + " mais forfait : blessure ou repos.", "warn");
+
           } else {
             // Annule une autre inscription cette semaine (frais remboursés).
             if (p.enrollment && p.enrollment.tournamentId !== finals.id) {
@@ -903,7 +893,7 @@ export default function TennisManager() {
             p.location = finals.city;
             p.enrollment = { tournamentId: finals.id, week: finals.week, year: newYear, entryStatus: "direct" };
             setPlayerRaceRank(raceRk);
-            notify("Direction " + finals.city + " pour le " + finals.name + " : voyage offert par l'organisation.", "success");
+
           }
         }
       }
@@ -921,7 +911,7 @@ export default function TennisManager() {
       retirements = result.retirements || [];
     } catch (err) {
       console.error("[week] simulation error:", err);
-      notify("Erreur de simulation, semaine passée sans calculs ATP", "warn");
+
     }
     const tAfterSim = performance.now();
     console.log("[week] sim:", (tAfterSim - tSim).toFixed(1), "ms · articles:", articles.length);
@@ -977,7 +967,7 @@ export default function TennisManager() {
       if (encAbs < newYear * 52 + newWeek) {
         const missed = ALL_TOURNAMENTS.find(x => x.id === p.enrollment.tournamentId);
         p.money += missed?.entryFee || 0;
-        notify("Inscription expirée" + (missed ? " (" + missed.name + ")" : "") + " : frais remboursés.", "warn");
+
         p.enrollment = null;
       }
     }
@@ -988,7 +978,7 @@ export default function TennisManager() {
       if (t) {
         // Preventive rest: no tournament
         if (p.restUntilAbsWeek && newYear * 52 + newWeek < p.restUntilAbsWeek) {
-          notify("Repos préventif : " + t.name + " annulé, frais remboursés.", "warn");
+
           p.money += t.entryFee || 0;
           p.enrollment = null;
           setPlayer(p);
@@ -996,14 +986,14 @@ export default function TennisManager() {
         }
         // Injury too severe to play
         if (p.injury && !p.injury.canPlay) {
-          notify("Blessure : impossible de disputer " + t.name + ". Tournoi annulé.", "warn");
+
           p.enrollment = null;
           setPlayer(p);
           console.log("[week] total:", (performance.now() - tStart).toFixed(1), "ms");
           return;
         }
         if (p.location !== t.city) {
-          notify("Vous n'êtes pas à " + t.city + " ! Tournoi annulé.", "warn");
+
           p.enrollment = null;
           setPlayer(p);
           console.log("[week] total:", (performance.now() - tStart).toFixed(1), "ms");
@@ -1017,7 +1007,7 @@ export default function TennisManager() {
           launchTournament(t, p, newDb);
         } catch (err) {
           console.error("[week] tournament launch error:", err);
-          notify("Impossible de lancer " + t.name + " : inscription annulée, frais remboursés.", "warn");
+
           setPlayer(prev => ({ ...prev, money: prev.money + (t.entryFee || 0), enrollment: null }));
         }
         return;
@@ -1091,12 +1081,10 @@ export default function TennisManager() {
   const doTraining = (mod) => {
     const absNow = (player.year || 0) * 52 + (player.week || 0);
     if (player.restUntilAbsWeek && absNow < player.restUntilAbsWeek) {
-      const left = player.restUntilAbsWeek - absNow;
-      notify("Repos préventif : pas d'entraînement pendant encore " + left + " semaine" + (left > 1 ? "s" : ""), "warn");
       return;
     }
-    if (player.money < mod.cost) { notify("Pas assez d'argent", "warn"); return; }
-    if (player.energy < baseTrainingEnergy(mod) + 3) { notify("Énergie insuffisante", "warn"); return; }
+    if (player.money < mod.cost) { return; }
+    if (player.energy < baseTrainingEnergy(mod) + 3) { return; }
     setCardPick(mod);
   };
   // outcome : résultat du programme tiré à l'écran des fiches
@@ -1106,12 +1094,10 @@ export default function TennisManager() {
     {
       const absNow = (player.year || 0) * 52 + (player.week || 0);
       if (player.restUntilAbsWeek && absNow < player.restUntilAbsWeek) {
-        const left = player.restUntilAbsWeek - absNow;
-        notify("Repos préventif : pas d'entraînement pendant encore " + left + " semaine" + (left > 1 ? "s" : ""), "warn");
         return;
       }
     }
-    if (player.money < mod.cost) { notify("Pas assez d'argent", "warn"); return; }
+    if (player.money < mod.cost) { return; }
     // Stamina reduces energy cost: stat 50 → full cost, stat 90 → 60% cost
     const staminaReduction = Math.max(0.6, 1 - (player.stats.stamina - 50) / 100);
     // Staff malus: coachs intensifs (Carlos Vives, etc.) ajoutent un surcoût d'énergie
@@ -1119,7 +1105,7 @@ export default function TennisManager() {
     const extraEnergyFromStaff = staffTrainEnergyExtra(player.staff);
     // Même énergie quel que soit le programme choisi.
     const actualEnergyCost = Math.round(mod.energyCost * staminaReduction) + extraEnergyFromStaff;
-    if (player.energy < actualEnergyCost + 3) { notify("Énergie insuffisante", "warn"); return; }
+    if (player.energy < actualEnergyCost + 3) { return; }
     const cardGainMul = outcome ? outcome.gainMul : card.successMul;
 
     // Gain exact affiché sur la fiche du programme (raté = 0).
@@ -1160,21 +1146,21 @@ export default function TennisManager() {
     }));
     const failed = outcome && !outcome.success;
     if (aggravated) {
-      notify("Vous avez aggravé votre blessure ! Repos prolongé (" + updatedInjury.label + ").", "warn");
+
     } else if (failed) {
-      notify("Programme raté : pas de progrès cette fois.", "warn");
+
     } else if (player.injury && player.injury.weeksRemaining > 0) {
-      notify("+" + gain + " en " + mod.name + " (entraînement risqué malgré la blessure)", "success");
+
     } else if (gain < 0.05) {
-      notify("Entraînement effectué (stat trop élevée pour progresser)", "info");
+
     } else {
-      notify("+" + gain + " en " + mod.name + " !", "success");
+
     }
   };
 
   const doLifeActivity = (act) => {
-    if (player.money < act.cost) { notify("Pas assez d'argent", "warn"); return; }
-    if (act.energyCost > 0 && player.energy < act.energyCost + 2) { notify("Énergie insuffisante", "warn"); return; }
+    if (player.money < act.cost) { return; }
+    if (act.energyCost > 0 && player.energy < act.energyCost + 2) { return; }
     const absWeek = (player.year || 0) * 52 + (player.week || 0);
     // Cooldown check
     const lastUsed = (player.activityCooldowns || {})[act.id];
@@ -1182,7 +1168,7 @@ export default function TennisManager() {
       const since = absWeek - lastUsed;
       const remaining = (act.cooldown || 0) - since;
       if (remaining > 0) {
-        notify("Disponible dans " + remaining + " semaine" + (remaining > 1 ? "s" : ""), "warn");
+
         return;
       }
     }
@@ -1190,7 +1176,7 @@ export default function TennisManager() {
     const currentWeekKey = player.lifeActivitiesWeekKey || 0;
     const countThisWeek = currentWeekKey === absWeek ? (player.lifeActivitiesThisWeek || 0) : 0;
     if (countThisWeek >= 2) {
-      notify("Maximum 2 activités par semaine", "warn");
+
       return;
     }
     setPlayer(p => adjustLife({
@@ -1203,11 +1189,6 @@ export default function TennisManager() {
       lifeActivitiesWeekKey: absWeek,
       lifeActivitiesThisWeek: countThisWeek + 1,
     }, { happiness: act.happiness, popularity: act.popularity, image: act.image }));
-    const parts = [];
-    if (act.happiness) parts.push((act.happiness > 0 ? "+" : "") + act.happiness + " bonheur");
-    if (act.popularity) parts.push((act.popularity > 0 ? "+" : "") + act.popularity + " popularité");
-    if (act.image) parts.push((act.image > 0 ? "+" : "") + act.image + " image");
-    notify(act.name + " : " + parts.join(" · "), "success");
   };
 
   const resolveLifeEvent = (option) => {
@@ -1218,7 +1199,6 @@ export default function TennisManager() {
       let picked = option.outcomes[option.outcomes.length - 1];
       for (const o of option.outcomes) { if (r < o.chance) { picked = o; break; } r -= o.chance; }
       for (const [k, v] of Object.entries(picked.effects || {})) e[k] = (e[k] || 0) + v;
-      if (picked.msg) notify(picked.msg, (picked.effects?.image || 0) >= 0 ? "success" : "warn");
     }
     // Light training gain on one random stat (diminishing returns + age apply).
     let statGainApplied = null;
@@ -1228,23 +1208,18 @@ export default function TennisManager() {
       const cur = player.stats[k];
       const g = parseFloat((option.statGain * styledProgressionMultiplier(player.styleId, k, cur) * ageTrainingMultiplier(player.age)).toFixed(2));
       statGainApplied = { k, g };
-      const labels = { serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" };
-      notify("Séance en salle : +" + g + " en " + labels[k], "success");
     }
     const absNow = (player.year || 0) * 52 + (player.week || 0);
     const invest = option.investment
       ? { amount: option.investment.amount, plan: option.investment.plan, dueAbsWeek: absNow + option.investment.weeks }
       : null;
-    if (invest) notify("Investissement réalisé : résultat dans " + option.investment.weeks + " semaines.", "info");
     const restUntil = option.restWeeks ? absNow + option.restWeeks : null;
-    if (restUntil) notify("Repos préventif : ni entraînement ni tournoi pendant " + option.restWeeks + " semaines.", "info");
     let newInjury = null;
     if (option.injuryRisk && random() < option.injuryRisk * injuryRiskMul(player)) {
       newInjury = rollInjury();
-      notify(newInjury.label + " ! Indisponible " + newInjury.weeksRemaining + " semaine" + (newInjury.weeksRemaining > 1 ? "s" : "") + ".", "warn");
+
     }
     const boost = option.trainBoost;
-    if (boost) notify("Entraînement boosté de +" + Math.round((boost.mul - 1) * 100) + " % pendant " + boost.weeks + " semaines", "success");
     setPlayer(p => {
       let newPlayer = adjustLife({
         ...p,
@@ -1271,37 +1246,36 @@ export default function TennisManager() {
 
   // ── ENROLL TOURNAMENT ─────────────────────────────────────────────────────
   const enrollTournament = (t) => {
-    if (t.tier === "Finals") { notify("Le Masters se joue sur qualification : inscription automatique si vous êtes dans le top 8 de la Race.", "info"); return; }
+    if (t.tier === "Finals") { return; }
     if (player.restUntilAbsWeek && tournamentAbsWeek(t, player) < player.restUntilAbsWeek) {
-      notify("Repos préventif : aucun tournoi avant la fin de votre repos.", "warn");
+
       return;
     }
     // Block if injured and cannot play
     if (player.injury && !player.injury.canPlay) {
-      notify("Vous êtes trop blessé pour jouer (" + player.injury.label + ").", "warn");
+
       return;
     }
     // Block if already played any tournament this week (one tournament per week max)
     if (t.week === player.week && (player.playedThisWeek || []).length > 0) {
       if ((player.playedThisWeek || []).includes(t.id)) {
-        notify("Vous avez déjà disputé ce tournoi cette semaine.", "warn");
+
       } else {
-        notify("Vous avez déjà joué un tournoi cette semaine.", "warn");
+
       }
       return;
     }
     const ptsTotal = totalAtpPoints(player.atpPointsLog);
     const ranking = getPlayerRanking(ptsTotal, atpDb);
     const entry = getEntryStatus(t, ranking);
-    if (entry.status === "blocked") { notify(entry.reason, "warn"); return; }
+    if (entry.status === "blocked") { return; }
     if (t.week === player.week && player.location !== t.city) {
-      notify("Vous devez d'abord vous rendre à " + t.city, "warn");
+
       return;
     }
-    if (player.money < t.entryFee) { notify("Frais d'inscription insuffisants", "warn"); return; }
+    if (player.money < t.entryFee) { return; }
 
     const entryStatus = entry.protected ? "protected" : entry.status;
-    if (entry.protected) notify("Classement protégé utilisé pour " + t.name + ".", "info");
     setPlayer(p => ({
       ...p, money: p.money - t.entryFee,
       totalSpent: (p.totalSpent || 0) + t.entryFee,
@@ -1310,9 +1284,6 @@ export default function TennisManager() {
     }));
     if (t.week === player.week) {
       setTimeout(() => launchTournament(t, { ...player, money: player.money - t.entryFee, enrollment: { tournamentId: t.id, week: t.week, year: player.year, entryStatus } }, atpDb), 50);
-    } else {
-      const suffix = entry.status === "qualifying" ? " (qualifs)" : "";
-      notify("Inscrit au " + t.name + suffix + " (semaine " + t.week + ")", "success");
     }
   };
 
@@ -1329,9 +1300,6 @@ export default function TennisManager() {
         ...(p.enrollment?.entryStatus === "protected" && p.challenge ? { challenge: { ...p.challenge, protectedUses: (p.challenge.protectedUses || 0) + 1 } } : {}),
       };
     });
-    const t = player.enrollment ? ALL_TOURNAMENTS.find(x => x.id === player.enrollment.tournamentId) : null;
-    const refund = t?.entryFee || 0;
-    notify(refund > 0 ? "Inscription annulée (+" + refund + "€ remboursés)" : "Inscription annulée", "info");
   };
 
   // ── TIRAGE D'UN TABLEAU ───────────────────────────────────────────────────
@@ -1569,7 +1537,7 @@ export default function TennisManager() {
     const energyBefore = m.playerEnergy;
     // Point décisif : une fois sur deux, l'avantage du joueur se joue en mini-jeu.
     const allowMiniGame = !m.pendingGame && !m.matchFixThrown && random() < 0.5;
-    const result = advanceMatchOneGame(m, getEffectiveStats(player, { tournamentCity: ms.tournament?.city, opponentCountry: ms.opponent?.nat?.country, surface: ms.tournament?.surface }), ms.opponent.stats, { allowMiniGame });
+    const result = advanceMatchOneGame(m, getEffectiveStats(player, { tournamentCity: ms.tournament?.city, opponentCountry: ms.opponent?.nat?.country, surface: ms.tournament?.surface }), ms.opponent.stats, { allowMiniGame, allowTiebreakMental: !m.pendingGame && !m.matchFixThrown });
     const pendingMini = !!result.pending;
     // Apply staff energy-drain reduction (e.g. fitness coach).
     const drainCut = Math.max(0, sumStaffEffect(player.staff, "energyDrainCut"));
@@ -1666,7 +1634,8 @@ export default function TennisManager() {
     let fixOffered = ms.fixOffered || false;
     if (pendingMini) {
       // Avantage joueur : le point se joue en mini-jeu (gagné = jeu, perdu = égalité).
-      pendingDilemma = { id: "minigame", minigame: pickMatchMiniGame(result.isPlayerServing !== false), title: "Point décisif", desc: "" };
+      // Tie-break : balle de set jouée au mental ; sinon duel ou smash.
+      pendingDilemma = { id: "minigame", minigame: result.isTiebreak ? "mental" : pickMatchMiniGame(result.isPlayerServing !== false), title: "Point décisif", desc: "" };
     } else if (fixDue) {
       pendingDilemma = MATCH_FIX_DILEMMA;
       fixOffered = true;
@@ -1837,8 +1806,9 @@ export default function TennisManager() {
       if (zone !== null && zone !== undefined) m.serveZones = [...(m.serveZones || []), zone].slice(-8);
       // Le jeu interrompu reprend : gagné → jeu pour le joueur, perdu → égalité.
       if (m.pendingGame) m.pendingGame = { ...m.pendingGame, miniGameWon: !!win };
-      const title = kind === "serve_duel" ? "Duel au service" : kind === "return_duel" ? "Duel au retour" : "Smash";
-      const evts = [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text: text + (win ? " Jeu !" : " Retour à égalité.") }];
+      const title = kind === "serve_duel" ? "Duel au service" : kind === "return_duel" ? "Duel au retour" : kind === "mental" ? "Sang-froid" : "Smash";
+      const outcome = kind === "mental" ? (win ? " Point gagné !" : " Point perdu.") : (win ? " Jeu !" : " Retour à égalité.");
+      const evts = [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text: text + outcome }];
       // Smash raté : réception difficile, petit risque de blessure.
       if (kind === "smash" && !win && random() < SMASH_INJURY_RISK * injuryRiskMul(player)) {
         evts.unshift({ id: Date.now() + random() + 1, type: "injury", text: "Mauvaise réception après le smash… " + inflictMatchInjury(m) });
@@ -1850,15 +1820,21 @@ export default function TennisManager() {
         eventLog: [...evts, ...(ms.eventLog || [])].slice(0, 80),
       };
     });
-    // Le score s'affiche tout de suite : jeu gagné, ou retour à égalité.
-    setLivePoint(lp => ({ p: win ? "JEU" : "40", o: "40", server: lp ? lp.server : true }));
+    // Le score s'affiche tout de suite : jeu gagné, retour à égalité, ou
+    // nouveau score du tie-break.
+    const pgNow = matchState && matchState.matchData && matchState.matchData.pendingGame;
+    if (pgNow && pgNow.isTiebreak) {
+      setLivePoint(lp => ({ p: String(pgNow.pPts + (win ? 1 : 0)), o: String(pgNow.oPts + (win ? 0 : 1)), server: lp ? lp.server : true }));
+    } else {
+      setLivePoint(lp => ({ p: win ? "JEU" : "40", o: "40", server: lp ? lp.server : true }));
+    }
     if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
     // Jeu gagné : le tableau se met à jour aussitôt. Égalité : courte pause
     // pour se remettre dans le match, puis la fin du jeu se joue.
     autoTimerRef.current = setTimeout(() => {
       autoTimerRef.current = null;
       if (!matchPausedRef.current && playGameRef.current) playGameRef.current();
-    }, (win ? 250 : 1600) * speedFactor());
+    }, (pgNow && pgNow.isTiebreak ? 1400 : win ? 250 : 1600) * speedFactor());
   };
   const resolveDilemma = (option, dilemma) => {
     // ── Special handling: match-fixing proposal ──
@@ -2208,10 +2184,6 @@ export default function TennisManager() {
         },
         ...(isFinals ? { rr: rrNext } : {}),
       }));
-      const enteringMain = nextMode === "main" && ms.mode === "qualifying";
-      if (isFinals && nextRoundIdx === 3) notify("Qualifié pour les demi-finales !", "success");
-      else if (isFinals && !won) notify("Défaite en poule : tout reste possible", "warn");
-      else notify(enteringMain ? "Qualifié pour le tableau principal !" : "Victoire ! " + (nextMode === "qualifying" ? "Q" + (nextRoundIdx + 1) : fmt.mainRounds[nextRoundIdx]), "success");
     } else {
       // Tournament over for the player
       const isTitleWin = won && !isQualifying && roundIdx === fmt.mainRounds.length - 1;
@@ -2233,7 +2205,6 @@ export default function TennisManager() {
         const rawBonus = player.sponsors.reduce((a, s) => a + (s.titleBonus || 0), 0);
         const cap = Math.round(tourn.prize * 0.5);
         sponsorTitleBonus = Math.min(rawBonus, cap);
-        if (sponsorTitleBonus > 0) notify("Bonus sponsors pour ce titre : +" + sponsorTitleBonus.toLocaleString() + "€", "success");
       }
 
       const lifeDeltasFinal = computeMatchLifeDeltas(won, ms.opponentRank, isTitleWin, getPlayerRanking(totalAtpPoints(player.atpPointsLog), atpDb));
@@ -2413,9 +2384,9 @@ export default function TennisManager() {
   // ── TRAVEL ────────────────────────────────────────────────────────────────
   const travelTo = (cityName) => {
     if (!player) return;
-    if (cityName === player.location) { notify("Vous êtes déjà sur place", "info"); return; }
+    if (cityName === player.location) { return; }
     const cost = travelCostBetween(player.location, cityName);
-    if (player.money < cost) { notify("Budget insuffisant", "warn"); return; }
+    if (player.money < cost) { return; }
     const fromCity = player.location;
     // Energy drain scales with distance: 3 for short hops (<1000 km),
     // up to 8 for the longest intercontinental flights (~20000 km).
@@ -2430,25 +2401,25 @@ export default function TennisManager() {
       totalSpent: (p.totalSpent || 0) + cost,
       energy: Math.max(0, p.energy - energyCost)
     }));
-    notify("Vous voilà à " + cityName + " (-" + cost + "€, -" + energyCost + " énergie)", "success");
+
   };
 
   // ── HIRE / FIRE STAFF ────────────────────────────────────────────────────
   const hireStaff = (s) => {
-    if (challengeActive("seul")) { notify("Défi Seul au monde : aucun staff autorisé.", "warn"); return; }
-    if (hasGameOption(player, "no_staff")) { notify("Option Sans staff : aucun staff autorisé.", "warn"); return; }
-    if (player.staff.find(st => st.role === s.role)) { notify("Licenciez d'abord la personne actuelle", "warn"); return; }
-    if (player.money < s.cost * 4) { notify("Pas assez (1 mois requis)", "warn"); return; }
+    if (challengeActive("seul")) { return; }
+    if (hasGameOption(player, "no_staff")) { return; }
+    if (player.staff.find(st => st.role === s.role)) { return; }
+    if (player.money < s.cost * 4) { return; }
     setPlayer(p => ({
       ...p, staff: [...p.staff, s],
       money: p.money - s.cost * 4,
       totalSpent: (p.totalSpent || 0) + s.cost * 4,
     }));
-    notify(s.name + " rejoint l'équipe !", "success");
+
   };
   const fireStaff = (s) => {
     setPlayer(p => ({ ...p, staff: p.staff.filter(st => st.id !== s.id) }));
-    notify(s.name + " a quitté l'équipe", "info");
+
   };
 
   // ── SPONSORS ─────────────────────────────────────────────────────────────
@@ -2502,7 +2473,7 @@ export default function TennisManager() {
       const sponsors = [...(p.sponsors || []), buildContractFromOffer(p, offer, terms)];
       return { ...p, sponsorOffers: offers, sponsors };
     });
-    notify("Contrat signé avec " + offer.brand + " !", "success");
+
   };
   // Replace an existing sponsor by accepting a new offer of the same category.
   // Pays the cancellation penalty, then signs the new contract atomically.
@@ -2511,7 +2482,7 @@ export default function TennisManager() {
     if (!offer) return;
     const penalty = sponsorCancelCost(sponsorToCancel);
     if (player.money < penalty) {
-      notify("Fonds insuffisants pour la résiliation (" + penalty.toLocaleString() + "€)", "warn");
+
       return;
     }
     setPlayer(p => {
@@ -2526,12 +2497,12 @@ export default function TennisManager() {
         totalSpent: (p.totalSpent || 0) + penalty,
       };
     });
-    notify(sponsorToCancel.brand + " résilié (−" + penalty.toLocaleString() + "€), contrat signé avec " + offer.brand, "success");
+
     setSponsorReplaceModal(null);
   };
   const declineSponsorOffer = (offer) => {
     setPlayer(p => ({ ...p, sponsorOffers: (p.sponsorOffers || []).filter(o => o.id !== offer.id) }));
-    notify("Offre de " + offer.brand + " refusée", "info");
+
   };
   // Résiliation d'un contrat : indemnité de rupture (6 mois de salaire,
   // plafonnée au revenu restant) + pénalité d'objectif si l'objectif n'est pas
@@ -2543,7 +2514,7 @@ export default function TennisManager() {
   const cancelSponsor = (sponsor) => {
     const { total: penalty, objective: objPenalty } = sponsorCancelBreakdown(sponsor);
     if (player.money < penalty) {
-      notify("Fonds insuffisants pour payer la résiliation (" + penalty + "€)", "warn");
+
       return;
     }
     setPlayer(p => ({
@@ -2552,13 +2523,13 @@ export default function TennisManager() {
       money: p.money - penalty,
       totalSpent: (p.totalSpent || 0) + penalty,
     }));
-    notify("Contrat avec " + sponsor.brand + " résilié (−" + penalty.toLocaleString() + "€" + (objPenalty > 0 ? ", dont " + objPenalty.toLocaleString() + "€ d'objectif manqué" : "") + ")", "info");
+
   };
 
   // ── WILDCARDS ─────────────────────────────────────────────────────────────
   const acceptWildcard = (offer) => {
     if (player.restUntilAbsWeek && (offer.tournamentYear * 52 + offer.tournamentWeek) < player.restUntilAbsWeek) {
-      notify("Repos préventif : impossible de jouer ce tournoi.", "warn");
+
       return;
     }
     {
@@ -2569,16 +2540,16 @@ export default function TennisManager() {
           ...p,
           wildcardOffers: (p.wildcardOffers || []).filter(o => o.tournamentId !== offer.tournamentId || o.tournamentYear !== offer.tournamentYear),
         }));
-        notify("Vous avez déjà une entrée directe pour ce tournoi : wildcard inutile.", "info");
+
         return;
       }
     }
     if (player.enrollment) {
-      notify("Vous êtes déjà inscrit à un autre tournoi. Annulez d'abord.", "warn");
+
       return;
     }
     if (player.injury && !player.injury.canPlay) {
-      notify("Vous êtes trop blessé pour accepter.", "warn");
+
       return;
     }
     setPlayer(p => ({
@@ -2587,14 +2558,14 @@ export default function TennisManager() {
       wildcardsUsed: [...(p.wildcardsUsed || []), { tournamentId: offer.tournamentId, week: offer.tournamentWeek, year: offer.tournamentYear }],
       enrollment: { tournamentId: offer.tournamentId, week: offer.tournamentWeek, year: offer.tournamentYear, entryStatus: "wildcard" },
     }));
-    notify("Wildcard acceptée pour " + offer.tournamentName + " !", "success");
+
   };
   const declineWildcard = (offer) => {
     setPlayer(p => ({
       ...p,
       wildcardOffers: (p.wildcardOffers || []).filter(o => o.tournamentId !== offer.tournamentId || o.tournamentYear !== offer.tournamentYear),
     }));
-    notify("Wildcard refusée", "info");
+
   };
 
   // ── VOLUNTARY RETIREMENT ──────────────────────────────────────────────────
@@ -2626,13 +2597,13 @@ export default function TennisManager() {
       padding: 16, zIndex: 500,
     }} onClick={() => setConfirmDelete(null)}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: T.bg1, borderRadius: 3, padding: 22,
+        background: T.bg1, borderRadius: 0, padding: 22,
         border: "1px solid " + T.redBrd,
         maxWidth: 340, width: "100%",
         boxShadow: "0 10px 30px var(--tm-shadow)",
       }}>
         <div style={{
-          width: 44, height: 44, borderRadius: 3, marginBottom: 12,
+          width: 44, height: 44, borderRadius: 0, marginBottom: 12,
           background: T.redSub, display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <Icon name="trash" size={20} color={T.red} />
@@ -2667,9 +2638,6 @@ export default function TennisManager() {
         owned={hasPurchased("dlc_challenges")}
         goShop={() => { setMenuShop(true); setScreen("menu"); }}
       />
-      {notification && (
-        <div style={{ ...styles.notif, bottom: 24, borderLeftColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.blue }}>{notification.msg}</div>
-      )}
     </>
   );
   if (screen === "menu" && menuShop) return (
@@ -2679,19 +2647,13 @@ export default function TennisManager() {
           <Icon name="arrowLeft" size={14} /> Menu principal
         </button>
       </div>
-      <ShopScreen notify={notify} />
-      {notification && (
-        <div style={{ ...styles.notif, bottom: 24, borderLeftColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.blue }}>{notification.msg}</div>
-      )}
+      <ShopScreen />
     </div>
   );
 
   if (screen === "menu") return (
     <div style={styles.root}>
       {deleteSaveDialog}
-      {notification && (
-        <div style={{ ...styles.notif, bottom: 24, borderLeftColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.blue }}>{notification.msg}</div>
-      )}
       <div style={styles.menuBg} className="tm-grain">
         <WindowShades />
         <div style={styles.menuCard}>
@@ -2808,7 +2770,7 @@ export default function TennisManager() {
                 return (
                   <button key={c.id} data-nofem="" onClick={() => pick(c.id)} style={{
                     display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
-                    background: T.bg1, border: "1.5px solid " + c.accent, borderRadius: 3,
+                    background: T.bg1, border: "1.5px solid " + c.accent, borderRadius: 0,
                     padding: 14, cursor: "pointer", fontFamily: T.body,
                   }}>
                     <Avatar config={{ ...avatarInput, ...c.sample }} size={64} />
@@ -2839,8 +2801,8 @@ export default function TennisManager() {
             <div style={{ ...styles.menuCard, gap: 14, alignItems: "stretch", maxWidth: 380 }}>
               <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 1/2 · Identité</h2>
               <div style={{
-                background: T.bg1, borderRadius: 3, padding: "10px 12px",
-                border: "1px solid var(--tm-brd)",
+                background: T.bg1, borderRadius: 0, padding: "10px 12px",
+                border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
                 fontSize: 11.5, color: T.fg4, lineHeight: 1.5,
               }}>
                 Choisissez votre nom, votre nationalité et personnalisez votre avatar.
@@ -2855,7 +2817,7 @@ export default function TennisManager() {
                     title="Nom au hasard"
                     onClick={() => setNameInput(randomFullName(nationalityInput, circuitInput === "wta"))}
                     style={{
-                      flexShrink: 0, width: 46, borderRadius: 3, cursor: "pointer",
+                      flexShrink: 0, width: 46, borderRadius: 0, cursor: "pointer",
                       background: T.bg2, border: "1px solid " + T.greenBrd,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}
@@ -2892,8 +2854,8 @@ export default function TennisManager() {
               <div>
                 <label style={styles.label}>Avatar</label>
                 <div style={{
-                  background: T.bg1, borderRadius: 3, padding: 14,
-                  border: "1px solid var(--tm-brd)",
+                  background: T.bg1, borderRadius: 0, padding: 14,
+                  border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
                 }}>
                   <AvatarBuilder config={avatarInput} onChange={setAvatarInput} />
                 </div>
@@ -2921,8 +2883,8 @@ export default function TennisManager() {
           <div style={{ ...styles.menuCard, gap: 16, alignItems: "stretch", maxWidth: 380 }}>
             <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 2/2 · Profil</h2>
             <div style={{
-              background: T.bg1, borderRadius: 3, padding: "10px 12px",
-              border: "1px solid var(--tm-brd)",
+              background: T.bg1, borderRadius: 0, padding: "10px 12px",
+              border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
               fontSize: 11.5, color: T.fg4, lineHeight: 1.5,
               display: "flex", alignItems: "center", gap: 10,
             }}>
@@ -3029,7 +2991,7 @@ export default function TennisManager() {
                   return (
                     <label key={o.id} style={{
                       display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", minHeight: 44, boxSizing: "border-box",
-                      background: T.bg1, borderRadius: 3, cursor: "pointer",
+                      background: T.bg1, borderRadius: 0, cursor: "pointer",
                       border: "1.5px solid " + (on ? T.green : "var(--tm-brd)"),
                     }}>
                       <input type="checkbox" checked={on} onChange={() => setGameOptionsInput(list => on ? list.filter(x => x !== o.id) : [...list, o.id])} />
@@ -3042,7 +3004,7 @@ export default function TennisManager() {
                   );
                 })}
               </div>
-              <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 12px", borderRadius: 3, background: T.bg2 }}>
+              <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 12px", borderRadius: 0, background: T.bg2 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: T.fg3 }}>Multiplicateur de score</span>
                 <span className="tm-num" style={{ fontSize: 22, fontWeight: 800, color: T.green }}>{formatMultiplier(scoreMultiplier(difficultyInput, gameOptionsInput))}</span>
               </div>
@@ -3055,7 +3017,7 @@ export default function TennisManager() {
                 return (
                   <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                     <div style={{ width: 90, fontSize: 11, color: T.fg3 }}>{label}</div>
-                    <div style={{ flex: 1, height: 6, background: T.bg3, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ flex: 1, height: 6, background: T.bg3, borderRadius: 0, overflow: "hidden" }}>
                       <div style={{ width: v + "%", height: "100%", background: T.green }} />
                     </div>
                     <div className="tm-num" style={{ width: 28, textAlign: "right", fontSize: 11, color: T.fg }}>{v}</div>
@@ -3064,7 +3026,7 @@ export default function TennisManager() {
               })}
             </div>
 
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 12, border: "1px solid var(--tm-brd)", fontSize: 12, color: T.fg4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <div style={{ background: T.bg1, borderRadius: 0, padding: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, fontSize: 12, color: T.fg4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <Icon name="money" size={12} color={T.green} /> {startMoney(startCityInput, gameOptionsInput).toLocaleString("fr-FR")} €
               <span style={{ color: T.fg5 }}>·</span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -3146,14 +3108,14 @@ export default function TennisManager() {
             </div>
 
             {/* Legacy score */}
-            <div style={{ background: T.bg1, borderRadius: 3, padding: "20px 16px", marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center", boxShadow: "0 0 30px " + tier.color + "22" }}>
+            <div style={{ background: T.bg1, borderRadius: 0, padding: "20px 16px", marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center", boxShadow: "0 0 30px " + tier.color + "22" }}>
               <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 6 }}>Score de légende</div>
               <div style={{ color: tier.color, fontWeight: 900, fontSize: 46, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{legacy.toLocaleString()}</div>
-              <div style={{ display: "inline-block", marginTop: 10, padding: "4px 14px", borderRadius: 3, background: tier.color + "22", border: "1px solid " + tier.color + "66", color: tier.color, fontWeight: 800, fontSize: 13, letterSpacing: 0.2 }}>{tier.label}</div>
+              <div style={{ display: "inline-block", marginTop: 10, padding: "4px 14px", borderRadius: 0, background: tier.color + "22", border: "1px solid " + tier.color + "66", color: tier.color, fontWeight: 800, fontSize: 13, letterSpacing: 0.2 }}>{tier.label}</div>
             </div>
 
             {/* Score breakdown */}
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 12, border: "1px solid var(--tm-brd)" }}>
+            <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
               <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 10 }}>Détail du score</div>
               {breakdown.rows.map((r, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "4px 0", fontSize: 12.5, borderBottom: "1px solid var(--tm-bg1)" }}>
@@ -3175,7 +3137,7 @@ export default function TennisManager() {
               </div>
             </div>
 
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 12, border: "1px solid var(--tm-brd)", textAlign: "center" }}>
+            <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, textAlign: "center" }}>
               <div style={{ color: T.fg, fontSize: 13, lineHeight: 1.5, fontStyle: "italic" }}>
                 {isRetirement
                   ? `Après une longue carrière sur le circuit, ${player.name} décide de prendre une retraite bien méritée. Place à la nouvelle génération !`
@@ -3184,7 +3146,7 @@ export default function TennisManager() {
             </div>
 
             {/* Career records */}
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 12, border: "1px solid var(--tm-brd)" }}>
+            <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
               <div style={{ color: T.amber, fontWeight: 800, fontSize: 13, marginBottom: 12, textAlign: "center" }}><Icon name="chart" size={11} /> Bilan de carrière</div>
               {[
                 { l: "Âge final", v: player.age + " ans", c: T.fg },
@@ -3232,7 +3194,7 @@ export default function TennisManager() {
     return (
       <div style={styles.root}>
         {deleteSaveDialog}
-        <div style={{ ...styles.menuBg, padding: 24, alignItems: "flex-start", paddingTop: 40 }}>
+        <div style={{ ...styles.menuBg, padding: 24, flexDirection: "column", alignItems: "center", justifyContent: "flex-start", paddingTop: 40 }}>
           <WindowShades />
           <div style={{ ...styles.menuCard, maxWidth: 380, alignItems: "stretch", gap: 14 }}>
             <div style={{ textAlign: "center", marginBottom: 4 }}>
@@ -3242,7 +3204,7 @@ export default function TennisManager() {
             </div>
 
             {/* Pages d'aide */}
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid " + T.brd }}>
+            <div style={{ background: T.bg1, borderRadius: 0, padding: 14, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
               <div style={{ color: T.fg, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Pages d'aide</div>
               <div style={{ color: T.fg4, fontSize: 11, marginBottom: 10, lineHeight: 1.5 }}>
                 L'aide de chaque page s'ouvre à votre première visite, puis reste disponible via le bouton « i » en haut à droite. Vous pouvez la faire réapparaître automatiquement sur toutes les pages.
@@ -3279,7 +3241,7 @@ export default function TennisManager() {
             </div>
 
             {/* Danger zone */}
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid " + T.brd, marginTop: 8 }}>
+            <div style={{ background: T.bg1, borderRadius: 0, padding: 14, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginTop: 8 }}>
               <div style={{ color: T.red, fontWeight: 700, fontSize: 11, letterSpacing: 0.2, textTransform: "none", marginBottom: 8 }}>Zone sensible</div>
               <button
                 style={{ ...styles.btnSecondary, width: "100%", borderColor: T.red, color: T.red }}
@@ -3288,6 +3250,17 @@ export default function TennisManager() {
                 <Icon name="trash" size={12} /> Effacer cette carrière
               </button>
             </div>
+          </div>
+          {/* Petit secret : trois touches sur la balle ouvrent « Le mur ». */}
+          <div style={{ width: "100%", maxWidth: 380, margin: "18px auto 0" }}>
+            {wallTaps >= 3 ? <WallGame /> : (
+              <button aria-label="Balle" onClick={() => setWallTaps(n => n + 1)} style={{ display: "block", margin: "0 auto", background: "none", border: 0, padding: 6, cursor: "pointer", opacity: 0.55 + wallTaps * 0.15, transform: "rotate(" + (wallTaps * 25) + "deg)", transition: "transform 0.2s" }}>
+                <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+                  <circle cx="11" cy="11" r="9" fill="#d6ef3c" stroke="#141414" strokeWidth="2" />
+                  <path d="M3.5 7 Q11 11 3.5 15 M18.5 7 Q11 11 18.5 15" fill="none" stroke="#141414" strokeWidth="1.5" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -3360,7 +3333,7 @@ export default function TennisManager() {
               </div>
 
               {fr.debrief && (
-                <div style={{ background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
+                <div style={{ background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 16, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
                   <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: "none", letterSpacing: 0.5, fontStyle: "normal" }}><Icon name="mic" size={11} /> Débrief des commentateurs</div>
                   "{fr.debrief}"
                 </div>
@@ -3384,7 +3357,7 @@ export default function TennisManager() {
                   </div>
                 );
                 return (
-                  <div style={{ background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", textAlign: "left", display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <div style={{ background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 16, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, textAlign: "left", display: "flex", gap: 16, flexWrap: "wrap" }}>
                     {table(ms.rr.gLabel, g)}
                     {table(ms.rr.hLabel, h)}
                   </div>
@@ -3392,7 +3365,7 @@ export default function TennisManager() {
               })()}
 
               {pnm.nextOpp && (
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", textAlign: "left" }}>
+                <div style={{ background: T.bg0, borderRadius: 0, padding: 14, marginBottom: 16, border: "2px solid " + T.ink, textAlign: "left" }}>
                   <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, marginBottom: 8, textTransform: "none", letterSpacing: 0.5 }}>Prochain match</div>
                   <div style={{ color: T.fg, fontSize: 14, fontWeight: 700 }}>{nextRoundLabel}</div>
                   <div style={{ color: T.fg3, fontSize: 13, marginTop: 4 }}>
@@ -3455,9 +3428,9 @@ export default function TennisManager() {
               display: "flex", alignItems: "center", gap: 10,
             }}>
               <div style={{
-                width: 6, height: 22, borderRadius: 3,
+                width: 6, height: 22, borderRadius: 0,
                 background: "var(--tm-red)",
-                
+
                 animation: "pulse 2s infinite",
               }} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -3484,15 +3457,15 @@ export default function TennisManager() {
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
               <div style={{
-                width: 32, height: 32, borderRadius: 3, flexShrink: 0,
-                background: T.bg3, border: "1px solid " + T.brd2,
+                width: 32, height: 32, borderRadius: 0, flexShrink: 0,
+                background: T.bg3, border: "2px solid " + T.ink,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 14, marginTop: 4,
               }}><Icon name="document" size={22} color={T.fg3} /></div>
               <div style={{
                 background: T.bg2, borderRadius: "12px 12px 12px 2px",
                 padding: "10px 14px",
-                border: "1px solid " + T.brd2,
+                border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
                 color: T.fg, fontSize: 14, lineHeight: 1.5,
                 fontStyle: "italic", flex: 1,
                 position: "relative",
@@ -3516,7 +3489,7 @@ export default function TennisManager() {
                     width: 48, height: 48, borderRadius: 24,
                     overflow: "hidden",
                     border: "2px solid " + T.green,
-                    
+
                     flexShrink: 0,
                   }}>
                     <Avatar config={player.avatar} size={48} />
@@ -3542,7 +3515,7 @@ export default function TennisManager() {
                   onClick={() => answerQuestion(opt)}
                   style={{
                     background: T.bg2,
-                    border: "1px solid " + T.brd2,
+                    border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
                     borderRadius: "12px 12px 2px 12px",
                     padding: "12px 14px",
                     textAlign: "right", cursor: "pointer",
@@ -3559,7 +3532,7 @@ export default function TennisManager() {
             <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "20px 0 10px" }}>
               {questions.map((_, i) => (
                 <div key={i} style={{
-                  width: i === currentQ ? 20 : 6, height: 6, borderRadius: 3,
+                  width: i === currentQ ? 20 : 6, height: 6, borderRadius: 0,
                   background: i < currentQ ? T.green : i === currentQ ? T.green : T.bg4,
                   transition: "all 0.3s",
                 }} />
@@ -3590,7 +3563,7 @@ export default function TennisManager() {
               {fr.isTitleWin ? (
                 <div style={{
                   background: "linear-gradient(180deg, var(--tm-amberSub) 0%, rgba(15,23,42,0) 60%)",
-                  borderRadius: 3, padding: "24px 8px 8px", marginBottom: 8,
+                  borderRadius: 0, padding: "24px 8px 8px", marginBottom: 8,
                 }}>
                   <div style={{ animation: "pulse 2s infinite", filter: "none" }}><Icon name="trophy" size={72} color={T.amber} /></div>
                   <div style={{ color: T.amber, fontSize: 11, fontWeight: 900, letterSpacing: 0.2, marginTop: 4 }}>Champion</div>
@@ -3618,7 +3591,7 @@ export default function TennisManager() {
 
               {/* Tournament history (only for big titles with lore) */}
               {fr.isTitleWin && lore && (
-                <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
+                <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
                   <div style={{ color: T.amber, fontSize: 12, fontWeight: 900, letterSpacing: 0.2, marginBottom: 8, textTransform: "none" }}>Histoire du tournoi</div>
                   <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6, marginBottom: 12 }}>{lore.history}</div>
                   <div style={{ color: T.amber, fontSize: 11, fontWeight: 700, marginBottom: 6 }}><Icon name="trophy" size={11} /> Légendes du tournoi</div>
@@ -3627,7 +3600,7 @@ export default function TennisManager() {
                       • {legend}
                     </div>
                   ))}
-                  <div style={{ marginTop: 12, padding: 10, background: T.bg0, borderRadius: 3, border: "1px solid var(--tm-amber)" }}>
+                  <div style={{ marginTop: 12, padding: 10, background: T.bg0, borderRadius: 0, border: "1px solid var(--tm-amber)" }}>
                     <div style={{ color: T.amber, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>Vainqueur {player.year}</div>
                     <div style={{ color: T.fg, fontSize: 14, fontWeight: 800 }}><FlagFromEmoji emoji={player.nationalityFlag} size={12} /> {player.name}</div>
                     <div style={{ color: T.fg4, fontSize: 11, marginTop: 2 }}>Score final : {fr.finalScore}</div>
@@ -3637,7 +3610,7 @@ export default function TennisManager() {
 
               {/* Generic title celebration if no lore */}
               {fr.isTitleWin && !lore && (
-                <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
+                <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
                   <div style={{ color: T.amber, fontSize: 12, fontWeight: 900, letterSpacing: 0.2, marginBottom: 8 }}>Palmarès</div>
                   <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
                     Votre nom rejoint désormais la liste des vainqueurs de {tourn.name}. Une belle ligne ajoutée à votre carrière.
@@ -3646,14 +3619,14 @@ export default function TennisManager() {
               )}
 
               {fr.debrief && (
-                <div style={{ background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 16, border: "1px solid var(--tm-brd)", color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
+                <div style={{ background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 16, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
                   <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: "none", letterSpacing: 0.5, fontStyle: "normal" }}><Icon name="mic" size={11} /> Débrief des commentateurs</div>
                   "{fr.debrief}"
                 </div>
               )}
 
               {hasProg && (
-                <div style={{ background: T.bg1, borderRadius: 3, padding: 16, marginBottom: 16, border: "1px solid " + (Object.values(prog).some(v => v < 0) ? T.amber : T.green) }}>
+                <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 16, border: "1px solid " + (Object.values(prog).some(v => v < 0) ? T.amber : T.green) }}>
                   <div style={{ color: Object.values(prog).some(v => v < 0) ? T.amber : T.green, fontSize: 14, fontWeight: 800, marginBottom: 12 }}>
                     <Icon name="trending" size={11} /> Bilan du tournoi
                   </div>
@@ -3675,13 +3648,6 @@ export default function TennisManager() {
                 setMatchState(null);
                 // Medical diagnosis for an injury picked up during the tournament
                 if (player.injuryNoticePending) {
-                  const inj = player.injury;
-                  if (inj && inj.weeksRemaining > 0) {
-                    const wk = inj.weeksRemaining + " semaine" + (inj.weeksRemaining > 1 ? "s" : "");
-                    notify(inj.canPlay
-                      ? "Diagnostic médical : " + inj.label + ". Gêné pendant " + wk + " (−" + Math.round((inj.statPenalty || 0) * 100) + " % sur vos stats)."
-                      : "Diagnostic médical : " + inj.label + ". Indisponible " + wk + ".", "warn");
-                  }
                   setPlayer(p => ({ ...p, injuryNoticePending: false }));
                 }
                 // Sponsor phase that fell on the tournament week: open it now.
@@ -3873,7 +3839,6 @@ export default function TennisManager() {
               onSkip={rallyAnim.commit}
             />
           )}
-          {notification && <div style={{ ...styles.notif, background: notification.type === "success" ? T.bg2 : notification.type === "warn" ? T.bg2 : T.bg2, borderColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.brd2 }}>{withFlags(notification.msg)}</div>}
           <div style={{ ...styles.screen, height: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))", minHeight: 0, overflowY: "auto" }}>
             {/* Bandeau du tournoi, à la couleur de la surface (comme l'avant-match) */}
             <div style={{
@@ -3887,7 +3852,7 @@ export default function TennisManager() {
                   En direct · {tierLabel(tourn.tier)}
                 </span>
                 <div className="tm-display" style={{ fontSize: 21, lineHeight: 1.05, marginTop: 5, textShadow: "2px 2px 0 " + T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tourn.name}</div>
-                <span className="tm-lettering" style={{ display: "inline-block", marginTop: 4, background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 13 }}>{roundName}</span>
+                <span className="tm-lettering" style={{ display: "inline-block", marginTop: 4, background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "0 7px", fontSize: 13 }}>{roundName}</span>
               </div>
             </div>
             <style>{"@keyframes tm-live-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }"}</style>
@@ -3953,7 +3918,7 @@ export default function TennisManager() {
                     <span style={{
                       width: 14, height: 14, borderRadius: 7, flexShrink: 0,
                       background: isServing ? "#d6ef3c" : "transparent",
-                      border: isServing ? "2px solid " + T.ink : "1px dashed " + T.brd2,
+                      border: isServing ? "2px solid " + T.ink : "none",
                       boxShadow: "none",
                       position: "relative",
                       transition: "all 0.25s",
@@ -4083,7 +4048,7 @@ export default function TennisManager() {
                 {(() => {
                   const pg = m.pendingGame;
                   // Avantage joueur au moment du mini-jeu : AV contre 40.
-                  const pt = pg ? { p: pg.pp > pg.op ? "AV" : "40", o: pg.op > pg.pp ? "AV" : "40" } : null;
+                  const pt = !pg ? null : pg.isTiebreak ? { p: String(pg.pPts), o: String(pg.oPts) } : { p: pg.pp > pg.op ? "AV" : "40", o: pg.op > pg.pp ? "AV" : "40" };
                   return (
                     <div style={{ width: "100%", maxWidth: 400, background: "#ffffff", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, flexShrink: 0 }}>
                       {[{ name: player.name, isP: true }, { name: ms.opponent.name, isP: false }].map((row, ri) => (
@@ -4105,7 +4070,10 @@ export default function TennisManager() {
                   oppStats={ms.opponent.stats}
                   myStats={player.stats}
                   history={m.serveZones || []}
-                  stake={m.pendingGame && !m.pendingGame.isPlayerServing ? "Balle de break" : "Balle de jeu"}
+                  stake={m.pendingGame && m.pendingGame.isTiebreak
+                    ? (m.pendingGame.pPts + 1 >= m.pendingGame.target && m.pendingGame.pPts + 1 - m.pendingGame.oPts >= 2 ? "Balle de set pour vous" : "Balle de set à sauver")
+                    : m.pendingGame && !m.pendingGame.isPlayerServing ? "Balle de break" : "Balle de jeu"}
+                  myMental={player.stats.mental}
                   oppAvatar={avatarFromName(ms.opponent.name, player.circuit === "wta")}
                   myAvatar={player.avatar}
                   onDone={(win, text, zone) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone)}
@@ -4120,7 +4088,7 @@ export default function TennisManager() {
                   <div style={{ color: T.fg, fontWeight: 700, fontSize: 17, letterSpacing: 0.2 }}>{ms.pendingDilemma.title}</div>
                   <div style={{ color: T.fg3, fontSize: 13, margin: "8px 0 18px", lineHeight: 1.5 }}>{ms.pendingDilemma.desc.replace("{o}", ms.opponent.name)}</div>
                   {ms.pendingDilemma.isMatchFix && (
-                    <div style={{ margin: "-8px 0 16px", padding: "8px 10px", borderRadius: 3, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", color: T.red, fontSize: 11.5, lineHeight: 1.4 }}>
+                    <div style={{ margin: "-8px 0 16px", padding: "8px 10px", borderRadius: 0, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", color: T.red, fontSize: 11.5, lineHeight: 1.4 }}>
                       Truquer un match est passible d'une suspension de 10 à 12 semaines et ruine votre réputation si vous êtes démasqué.
                     </div>
                   )}
@@ -4131,8 +4099,8 @@ export default function TennisManager() {
                       onClick={() => resolveDilemma(opt, ms.pendingDilemma)}
                     >
                       <div style={{
-                        width: 34, height: 34, borderRadius: 3,
-                        background: T.bg3, border: "1px solid " + T.brd2,
+                        width: 34, height: 34, borderRadius: 0,
+                        background: T.bg3, border: "2px solid " + T.ink,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         flexShrink: 0,
                       }}>
@@ -4306,7 +4274,6 @@ export default function TennisManager() {
 
   return (
     <div style={styles.root}>
-      {notification && <div style={{ ...styles.notif, background: notification.type === "success" ? T.bg2 : notification.type === "warn" ? T.bg2 : T.bg2, borderColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.brd2 }}>{withFlags(notification.msg)}</div>}
       {isAdvancingWeek && (
         <div style={styles.notif}><Icon name="loader" size={11} /> Simulation en cours...</div>
       )}
@@ -4334,7 +4301,7 @@ export default function TennisManager() {
         <SponsorNegotiationOverlay
           data={{ ...sponsorNegotiation, onWalkAway: (offerId) => {
             setPlayer(p => ({ ...p, sponsorOffers: (p.sponsorOffers || []).filter(o => o.id !== offerId) }));
-            notify("Le sponsor a mis fin à la négociation", "warn");
+
           } }}
           player={player}
           ranking={ranking}
@@ -4417,7 +4384,7 @@ export default function TennisManager() {
               display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
             }}>
               <div ref={helpBoxRef} onClick={e => e.stopPropagation()} style={{
-                background: T.bg1, border: "1px solid " + T.greenBrd, borderRadius: 3,
+                background: T.bg1, border: "1px solid " + T.greenBrd, borderRadius: 0,
                 padding: 20, maxWidth: 440, width: "100%", maxHeight: "80vh", overflowY: "auto",
               }}>
                 <BoxShade boxRef={helpBoxRef} side="top" />
@@ -4452,7 +4419,7 @@ export default function TennisManager() {
             }
           }} />}
           {activeTab === "finance" && <FinanceScreen player={player} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
-          {activeTab === "shop" && <ShopScreen notify={notify} />}
+          {activeTab === "shop" && <ShopScreen />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>
         {!flightAnim && !sponsorNegotiation && (
@@ -4483,14 +4450,14 @@ export default function TennisManager() {
         const rankDelta = prev ? prev.endOfYearRanking - r.endOfYearRanking : null;
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 250, padding: 16 }}>
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 22, border: "1px solid " + T.amber, maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ background: T.bg1, borderRadius: 0, padding: 22, border: "1px solid " + T.amber, maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
               <div style={{ textAlign: "center", marginBottom: 16 }}>
                 <div><Icon name="flag" size={44} color={T.green} /></div>
                 <div style={{ color: T.amber, fontWeight: 900, fontSize: 22 }}>Bilan saison {r.year}</div>
                 <div style={{ color: T.fg4, fontSize: 12 }}>Bienvenue dans la saison {r.year + 1} !</div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 12, textAlign: "center", border: "1px solid " + T.brd }}>
+                <div style={{ background: T.bg0, borderRadius: 0, padding: 12, textAlign: "center", border: "2px solid " + T.ink }}>
                   <div style={{ color: T.fg4, fontSize: 11 }}>Classement final</div>
                   <div style={{ color: T.amber, fontWeight: 800, fontSize: 20 }}>#{r.endOfYearRanking}</div>
                   {rankDelta !== null && (
@@ -4499,12 +4466,12 @@ export default function TennisManager() {
                     </div>
                   )}
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 12, textAlign: "center", border: "1px solid " + T.brd }}>
+                <div style={{ background: T.bg0, borderRadius: 0, padding: 12, textAlign: "center", border: "2px solid " + T.ink }}>
                   <div style={{ color: T.fg4, fontSize: 11 }}>Points ATP</div>
                   <div style={{ color: T.green, fontWeight: 800, fontSize: 20 }}>{r.endOfYearPoints}</div>
                 </div>
               </div>
-              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12, border: "1px solid " + T.brd }}>
+              <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12, border: "2px solid " + T.ink }}>
                 <div style={{ display: "flex", justifyContent: "space-between", color: T.fg3, fontSize: 13, padding: "4px 0", borderBottom: "1px solid " + T.brd }}>
                   <span>Victoires</span><strong style={{ color: T.green }}>{r.wins}</strong>
                 </div>
@@ -4529,10 +4496,10 @@ export default function TennisManager() {
                 const breakdown = computeLegacyBreakdown(player);
                 return (
                   <>
-                    <div style={{ background: T.bg0, borderRadius: 3, padding: 14, marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center" }}>
+                    <div style={{ background: T.bg0, borderRadius: 0, padding: 14, marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center" }}>
                       <div style={{ color: T.fg4, fontSize: 10, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 4 }}>Score de légende</div>
                       <div style={{ color: tier.color, fontWeight: 900, fontSize: 30, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{r.legacyScore.toLocaleString()}</div>
-                      <div style={{ display: "inline-block", marginTop: 6, padding: "2px 10px", borderRadius: 3, background: tier.color + "22", border: "1px solid " + tier.color + "55", color: tier.color, fontWeight: 700, fontSize: 11, letterSpacing: 0.5 }}>{tier.label}</div>
+                      <div style={{ display: "inline-block", marginTop: 6, padding: "2px 10px", borderRadius: 0, background: tier.color + "22", border: "1px solid " + tier.color + "55", color: tier.color, fontWeight: 700, fontSize: 11, letterSpacing: 0.5 }}>{tier.label}</div>
                       {delta !== null && (
                         <div style={{ color: delta > 0 ? T.green : delta < 0 ? T.red : T.fg4, fontSize: 12, fontWeight: 700, marginTop: 8 }}>
                           {delta > 0 ? "↑ +" + delta.toLocaleString() : delta < 0 ? "↓ " + delta.toLocaleString() : "→ 0"} cette saison
@@ -4541,7 +4508,7 @@ export default function TennisManager() {
                     </div>
                     {/* Legacy score breakdown — same rows as the end-of-career
                         reveal, so the player can track how each component grows. */}
-                    <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12, border: "1px solid " + T.brd }}>
+                    <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12, border: "2px solid " + T.ink }}>
                       <div style={{ color: T.fg4, fontSize: 10, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 8 }}>Détail du score</div>
                       {breakdown.rows.map((row, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 0", borderBottom: i < breakdown.rows.length - 1 ? "1px dashed " + T.brd : "none" }}>
@@ -4579,11 +4546,11 @@ export default function TennisManager() {
         if (!def) return null;
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 3, padding: 20, border: "1px solid " + T.brd2, borderTop: "3px solid " + T.clay, maxWidth: 400, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 0, padding: 20, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderTop: "3px solid " + T.clay, maxWidth: 400, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
               <div className="tm-eyebrow" style={{ color: T.clay, marginBottom: 6 }}>Défi</div>
               <div style={{ color: T.fg, fontSize: 22, fontWeight: 700, fontFamily: T.display, marginBottom: 10 }}>{def.name}</div>
               <div style={{ color: T.fg2, fontSize: 13.5, lineHeight: 1.6, marginBottom: 14 }}>{def.context}</div>
-              <div style={{ background: T.bg2, border: "1px solid " + T.brd, borderRadius: 3, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: 12, marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.fg, fontWeight: 700 }}><Icon name="target" size={16} color={T.green} /> {def.objectiveLabel}</div>
                 <div style={{ color: T.fg4, fontSize: 12, marginTop: 4, marginLeft: 24 }}>{def.deadlineLabel}</div>
               </div>
@@ -4604,7 +4571,7 @@ export default function TennisManager() {
         const seen = { ...player, challenge: { ...player.challenge, resultSeen: true } };
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 3, padding: 22, border: "1px solid " + T.brd2, borderTop: "3px solid " + (ok ? T.green : T.red), maxWidth: 380, width: "100%", textAlign: "center" }}>
+            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 0, padding: 22, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderTop: "3px solid " + (ok ? T.green : T.red), maxWidth: 380, width: "100%", textAlign: "center" }}>
               <Icon name={ok ? "trophy" : "fail"} size={40} color={ok ? (MEDAL_INFO[res.medal] || {}).color || T.ball : T.red} />
               <div className="tm-eyebrow" style={{ marginTop: 10 }}>{def ? def.name : "Défi"}</div>
               <div style={{ color: T.fg, fontSize: 24, fontWeight: 700, fontFamily: T.display, margin: "4px 0 8px" }}>{ok ? "Défi réussi !" : "Défi échoué"}</div>
@@ -4615,7 +4582,7 @@ export default function TennisManager() {
               ) : (
                 <div style={{ color: T.fg3, fontSize: 13.5, lineHeight: 1.5, marginBottom: 12 }}>{res.reason}</div>
               )}
-              <div style={{ background: T.bg2, border: "1px solid " + T.brd, borderRadius: 3, padding: "8px 12px", marginBottom: 14, textAlign: "left" }}>
+              <div style={{ background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "8px 12px", marginBottom: 14, textAlign: "left" }}>
                 {(res.rows || []).map((r, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderBottom: "1px solid " + T.brd }}>
                     <span style={{ minWidth: 0 }}>
@@ -4651,8 +4618,8 @@ export default function TennisManager() {
             padding: 16,
           }}>
             <div className="tm-fade-up" style={{
-              background: T.bg1, borderRadius: 3, padding: 20,
-              border: "1px solid " + T.brd2, borderTop: "3px solid " + T.ball,
+              background: T.bg1, borderRadius: 0, padding: 20,
+              border: "2px solid " + T.ink, borderTop: "3px solid " + T.ball,
               maxWidth: 380, width: "100%",
               boxShadow: "0 10px 30px var(--tm-shadow)",
             }}>
@@ -4681,8 +4648,8 @@ export default function TennisManager() {
                 return (
                   <button key={i} onClick={() => resolveLifeEvent(opt)} style={{
                     width: "100%", padding: "12px 14px",
-                    background: T.bg2, border: "1px solid " + T.brd2,
-                    borderRadius: 3, color: T.fg, textAlign: "left",
+                    background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+                    borderRadius: 0, color: T.fg, textAlign: "left",
                     cursor: "pointer", marginBottom: 8, fontFamily: T.body,
                     fontSize: 13,
                   }}>
@@ -4691,7 +4658,7 @@ export default function TennisManager() {
                       {chips.map((c, j) => (
                         <span key={j} style={{
                           fontSize: 10, fontWeight: 700, padding: "2px 6px",
-                          borderRadius: 4, background: T.bg3, color: c.color,
+                          borderRadius: 0, background: T.bg3, color: c.color,
                           display: "inline-flex", alignItems: "center", gap: 3,
                         }}>
                           {c.label}
@@ -4783,7 +4750,7 @@ export default function TennisManager() {
               {claimableCount > 0 && (
                 <div style={{
                   margin: "12px 16px 0",
-                  padding: 12, borderRadius: 3,
+                  padding: 12, borderRadius: 0,
                   background: "linear-gradient(135deg, var(--tm-greenSub), var(--tm-amberSub))",
                   border: "1px solid " + T.green,
                   display: "flex", alignItems: "center", gap: 10,
@@ -4799,7 +4766,7 @@ export default function TennisManager() {
                   </div>
                   <button onClick={claimAll} style={{
                     background: T.green, color: T.bg0, border: "none",
-                    borderRadius: 3, padding: "8px 14px",
+                    borderRadius: 0, padding: "8px 14px",
                     fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: "none",
                     cursor: "pointer",
                   }}>Tout réclamer</button>
@@ -4829,7 +4796,7 @@ export default function TennisManager() {
                         return (
                           <div key={t.id} style={{
                             background: isUnlocked ? T.bg1 : T.bg2,
-                            borderRadius: 3, padding: 12, marginBottom: 8,
+                            borderRadius: 0, padding: 12, marginBottom: 8,
                             border: "1px solid " + (isUnlocked ? "var(--tm-amberSub)" : T.brd),
                             borderLeft: "3px solid " + (isUnlocked ? rarity.color : T.brd2),
                             opacity: isUnlocked ? 1 : 0.65,
@@ -4838,7 +4805,7 @@ export default function TennisManager() {
                             boxShadow: isUnlocked ? "0 2px 12px " + rarity.glow : "none",
                           }}>
                             <div style={{
-                              width: 40, height: 40, borderRadius: 3,
+                              width: 40, height: 40, borderRadius: 0,
                               background: isUnlocked ? "var(--tm-amberSub)" : T.bg3,
                               border: "1px solid " + (isUnlocked ? rarity.color : T.brd2),
                               display: "flex", alignItems: "center", justifyContent: "center",
@@ -4890,7 +4857,7 @@ export default function TennisManager() {
                                     onClick={(e) => { e.stopPropagation(); claimTrophy(t.id, reward); }}
                                     style={{
                                       background: T.green, color: T.bg0, border: "none",
-                                      borderRadius: 6, padding: "4px 8px",
+                                      borderRadius: 0, padding: "4px 8px",
                                       fontSize: 10, fontWeight: 800, letterSpacing: 0.3,
                                       cursor: "pointer", whiteSpace: "nowrap",
                                     }}
@@ -4927,7 +4894,7 @@ export default function TennisManager() {
             padding: 16, zIndex: 300,
           }} onClick={() => setConfirmCancelSponsor(null)}>
             <div onClick={e => e.stopPropagation()} style={{
-              background: T.bg1, borderRadius: 3, padding: 22,
+              background: T.bg1, borderRadius: 0, padding: 22,
               border: "1px solid " + T.red, borderTop: "3px solid " + T.red,
               maxWidth: 340, width: "100%",
               boxShadow: "0 10px 30px var(--tm-shadow)",
@@ -4966,7 +4933,7 @@ export default function TennisManager() {
             padding: 16, zIndex: 300,
           }} onClick={() => setSponsorReplaceModal(null)}>
             <div onClick={e => e.stopPropagation()} style={{
-              background: T.bg1, borderRadius: 3, padding: 22,
+              background: T.bg1, borderRadius: 0, padding: 22,
               border: "1px solid " + T.ball, borderTop: "3px solid " + T.ball,
               maxWidth: 400, width: "100%",
               boxShadow: "0 10px 30px var(--tm-shadow)",
@@ -4989,15 +4956,15 @@ export default function TennisManager() {
                     onClick={() => confirmSponsorReplacement(s)}
                     style={{
                       width: "100%", textAlign: "left",
-                      background: T.bg2, border: "1px solid " + T.brd2,
-                      borderRadius: 3, padding: 12, marginBottom: 8,
+                      background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+                      borderRadius: 0, padding: 12, marginBottom: 8,
                       cursor: canAfford ? "pointer" : "not-allowed",
                       opacity: canAfford ? 1 : 0.5,
                       display: "flex", alignItems: "center", gap: 10,
                     }}
                   >
                     <div style={{
-                      width: 28, height: 28, borderRadius: 3,
+                      width: 28, height: 28, borderRadius: 0,
                       background: T.red,
                       color: T.fg, fontWeight: 800, fontSize: 14,
                       display: "flex", alignItems: "center", justifyContent: "center",
@@ -5042,7 +5009,7 @@ export default function TennisManager() {
         const playerIsSeed = entry.status === "direct" && fmt.byeSeeds > 0 && ranking <= fmt.byeSeeds;
         return (
           <div style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400, padding: 16 }} onClick={() => setTournamentDetail(null)}>
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 20, border: "1px solid " + tierColor(t.tier), maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: T.bg1, borderRadius: 0, padding: 20, border: "1px solid " + tierColor(t.tier), maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ color: tierColor(t.tier), fontSize: 11, fontWeight: 800, letterSpacing: 0.2, textTransform: "none" }}>{tierLabel(t.tier)}</div>
@@ -5053,25 +5020,25 @@ export default function TennisManager() {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 0, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Surface</div>
                   <div style={{ color: T.fg, fontWeight: 700 }}><SurfaceIcon name={t.surface} /> {t.surface}</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 0, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Semaine</div>
                   <div style={{ color: T.fg, fontWeight: 700 }}>S{t.week}</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 0, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Prize money total</div>
                   <div style={{ color: T.green, fontWeight: 700 }}>{t.prize.toLocaleString()}€</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
+                <div style={{ background: T.bg0, borderRadius: 0, padding: 10 }}>
                   <div style={{ color: T.fg4, fontSize: 10 }}>Points (vainqueur)</div>
                   <div style={{ color: T.amber, fontWeight: 700 }}>{t.points} pts</div>
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 6 }}><Icon name="clipboard" size={11} /> Format</div>
                 <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
                   Tableau principal : <strong>{fmt.drawSize} joueurs</strong><br />
@@ -5086,7 +5053,7 @@ export default function TennisManager() {
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 6 }}><Icon name="target" size={11} /> Critères d'accès</div>
                 <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
                   Entrée directe : <strong>top {fmt.directCut}</strong> ATP<br />
@@ -5094,7 +5061,7 @@ export default function TennisManager() {
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
+              <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12 }}>
                 <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 6 }}><Icon name="user" size={12} /> Votre situation</div>
                 <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.7 }}>
                   Votre classement : <strong>#{ranking}</strong><br />
@@ -5126,37 +5093,41 @@ export default function TennisManager() {
         const statLabels = { serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" };
         return (
           <div style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16 }} onClick={() => setAtpPlayerDetail(null)}>
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 20, border: "1px solid var(--tm-green)", maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: T.green, fontSize: 11, fontWeight: 800, letterSpacing: 0.2, textTransform: "none" }}>Classement #{adjustedRank}</div>
-                  <div style={{ color: T.fg, fontSize: 22, fontWeight: 900, lineHeight: 1.2 }}><FlagFromEmoji emoji={p.nat.flag} /> {p.name}</div>
-                  <div style={{ color: T.fg4, fontSize: 13, marginTop: 4 }}>{p.nat.country}</div>
+            <div className="tm-paper" style={{ padding: 14, border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto", color: "#141414" }} onClick={e => e.stopPropagation()}>
+              {/* En-tête : portrait, rang, nom, pays, style */}
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
+                <div style={{ border: "3px solid " + T.ink, background: "#ffffff", boxShadow: "3px 3px 0 " + T.ink, flexShrink: 0, transform: "rotate(-2deg)" }}>
+                  <Avatar config={avatarFromName(p.name, player.circuit === "wta")} size={78} bare />
                 </div>
-                <button style={{ background: "none", border: "none", color: T.fg4, fontSize: 22, cursor: "pointer", padding: 4 }} onClick={() => setAtpPlayerDetail(null)}>✕</button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span className="tm-num" style={{ display: "inline-block", background: T.gold, border: "2px solid " + T.ink, fontSize: 12, fontWeight: 800, padding: "0 6px" }}>#{adjustedRank} mondial</span>
+                  <div className="tm-display" style={{ fontSize: 21, lineHeight: 1.05, marginTop: 5, overflowWrap: "anywhere" }}>{p.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, marginTop: 4 }}><FlagFromEmoji emoji={p.nat.flag} size={13} />{p.nat.country} · {styleInfo.name}</div>
+                </div>
+                <button aria-label="Fermer" style={{ background: "#ffffff", border: "2px solid " + T.ink, color: T.ink, fontSize: 16, fontWeight: 800, cursor: "pointer", width: 32, height: 32, flexShrink: 0 }} onClick={() => setAtpPlayerDetail(null)}>✕</button>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
-                  <div style={{ color: T.fg4, fontSize: 10 }}>Points ATP</div>
-                  <div style={{ color: T.amber, fontWeight: 700, fontSize: 16 }}>{p.points.toLocaleString()}</div>
+                <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Points ATP</div>
+                  <div style={{ color: T.amber, fontFamily: T.display, fontSize: 18 }}>{p.points.toLocaleString()}</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
-                  <div style={{ color: T.fg4, fontSize: 10 }}>Âge</div>
-                  <div style={{ color: T.fg, fontWeight: 700, fontSize: 16 }}>{p.age || "—"} ans</div>
+                <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Âge</div>
+                  <div style={{ color: T.fg, fontFamily: T.display, fontSize: 18 }}>{p.age || "—"} ans</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
-                  <div style={{ color: T.fg4, fontSize: 10 }}>Côte globale</div>
-                  <div style={{ color: T.fg, fontWeight: 700, fontSize: 16 }}>{getRating(p.stats)}</div>
+                <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Côte globale</div>
+                  <div style={{ color: T.fg, fontFamily: T.display, fontSize: 18 }}>{getRating(p.stats)}</div>
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 3, padding: 10 }}>
-                  <div style={{ color: T.fg4, fontSize: 10 }}>Win rate (saison)</div>
-                  <div style={{ color: T.green, fontWeight: 700, fontSize: 16 }}>{winRate}%</div>
+                <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Win rate (saison)</div>
+                  <div style={{ color: T.green, fontFamily: T.display, fontSize: 18 }}>{winRate}%</div>
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
-                <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 8 }}><Icon name="chart" size={11} /> Saison en cours</div>
+              <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: 12, marginBottom: 12 }}>
+                <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, margin: "-12px -12px 10px", padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}><Icon name="chart" size={11} /> Saison en cours</div>
                 <div style={{ display: "flex", justifyContent: "space-between", color: T.fg4, fontSize: 12, padding: "3px 0" }}>
                   <span>Victoires</span><strong style={{ color: T.green }}>{p.seasonWins}</strong>
                 </div>
@@ -5171,34 +5142,34 @@ export default function TennisManager() {
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
-                <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 8 }}><Icon name="target" size={11} /> Profil</div>
+              <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: 12, marginBottom: 12 }}>
+                <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, margin: "-12px -12px 10px", padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}><Icon name="target" size={11} /> Profil</div>
                 <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
-                  Point fort : <strong style={{ color: T.green }}>{profile.strength.label} ({Math.round(profile.strength.value)})</strong><br />
-                  Point faible : <strong style={{ color: T.red }}>{profile.weakness.label} ({Math.round(profile.weakness.value)})</strong>
+                  Point fort : <strong style={{ background: "#1f7a45", color: "#ffffff", padding: "0 5px" }}>{profile.strength.label} ({Math.round(profile.strength.value)})</strong><br />
+                  Point faible : <strong style={{ background: "#c4302b", color: "#ffffff", padding: "0 5px" }}>{profile.weakness.label} ({Math.round(profile.weakness.value)})</strong>
                 </div>
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
-                <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 8 }}><Icon name="trending" size={11} /> Compétences</div>
+              <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: 12, marginBottom: 12 }}>
+                <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, margin: "-12px -12px 10px", padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}><Icon name="trending" size={11} /> Compétences</div>
                 {Object.entries(p.stats).map(([k, v]) => (
                   <div key={k} style={{ marginBottom: 6 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
                       <span style={{ color: T.fg4 }}>{statLabels[k] || k}</span>
                       <span style={{ color: v >= 80 ? T.green : v >= 60 ? T.amber : T.fg4, fontWeight: 700 }}>{Math.round(v)}</span>
                     </div>
-                    <div style={{ height: 4, background: T.brd, borderRadius: 2, overflow: "hidden" }}>
-                      <div style={{ width: v + "%", height: "100%", background: v >= 80 ? T.green : v >= 60 ? T.amber : T.green }} />
+                    <div style={{ height: 10, background: "#ffffff", border: "2px solid " + T.ink, overflow: "hidden" }}>
+                      <div style={{ width: v + "%", height: "100%", background: v >= 80 ? "#1f7a45" : v >= 60 ? "#e0a21b" : "#5b2d8e" }} />
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ background: T.bg0, borderRadius: 3, padding: 12, marginBottom: 12 }}>
-                <div style={{ color: T.amber, fontSize: 12, fontWeight: 800, marginBottom: 8 }}>Derniers résultats</div>
+              <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: 12, marginBottom: 12 }}>
+                <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, margin: "-12px -12px 10px", padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}>Derniers résultats</div>
                 {p.recentResults && p.recentResults.length > 0 ? (
                   p.recentResults.slice(0, 6).map((r, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: i < Math.min(5, p.recentResults.length - 1) ? "1px solid var(--tm-bg2)" : "none", fontSize: 12 }}>
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: i < Math.min(5, p.recentResults.length - 1) ? "1.5px dashed " + T.ink : "none", fontSize: 12 }}>
                       <div style={{ flex: 1 }}>
                         <div
                           onClick={tournamentIdByName(r.tournament) ? () => setTournamentDetail(tournamentIdByName(r.tournament)) : undefined}

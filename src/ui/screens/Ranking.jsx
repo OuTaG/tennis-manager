@@ -70,7 +70,7 @@ export function RaceScreen({ atpDb, player, raceRank, setAtpPlayerDetail }) {
             cursor: isMe ? "default" : "pointer",
           }}
         >
-          <span className="tm-num" style={{ color: isMe ? T.green : qualified ? T.ball : T.fg3, fontWeight: 800, width: 40, fontSize: 14 }}>#{rank}</span>
+          <span className="tm-num" style={{ color: isMe ? T.green : qualified ? T.ball : T.fg3, fontWeight: 800, width: 54, flexShrink: 0, fontSize: 14 }}>#{rank}</span>
           <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <FlagFromEmoji emoji={isMe ? player.nationalityFlag : r.p.nat.flag} size={13} />
             <span style={{ color: T.fg, fontSize: 13, fontWeight: isMe ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -122,7 +122,7 @@ export function RaceScreen({ atpDb, player, raceRank, setAtpPlayerDetail }) {
         </div>
       )}
       <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", marginBottom: 4, color: T.fg5, fontSize: 9, fontWeight: 700 }}>
-        <span style={{ width: 40 }}>Rang</span>
+        <span style={{ width: 54, flexShrink: 0 }}>Rang</span>
         <span style={{ flex: 1 }}>Joueur</span>
         <span style={{ width: 70, textAlign: "right" }}>Points</span>
       </div>
@@ -201,7 +201,7 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
         marginBottom: 4, color: T.fg5, fontSize: 9, fontWeight: 700,
         letterSpacing: 0.2, textTransform: "none",
       }}>
-        <span style={{ width: 40 }}>Rang</span>
+        <span style={{ width: 54, flexShrink: 0 }}>Rang</span>
         <span style={{ flex: 1 }}>Joueur</span>
         <span style={{ width: 70, textAlign: "right" }}>Points</span>
       </div>
@@ -211,12 +211,12 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
           return (
             <div key={"me-" + row.rank} className="tm-fade-up" style={{
               background: T.greenSub,
-              borderRadius: 3, padding: "12px 14px", marginBottom: 4,
+              borderRadius: 0, padding: "12px 14px", marginBottom: 4,
               border: "1px solid " + T.greenBrd,
               borderLeft: "3px solid " + T.green,
               display: "flex", alignItems: "center",
             }}>
-              <span className="tm-num" style={{ color: T.green, fontWeight: 800, width: 40, fontSize: 14 }}>
+              <span className="tm-num" style={{ color: T.green, fontWeight: 800, width: 54, flexShrink: 0, fontSize: 14 }}>
                 #{row.rank}
               </span>
               <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -250,7 +250,7 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
           >
             <span className="tm-num" style={{
               color: isTop10 ? T.ball : isTop50 ? T.green : T.fg3,
-              fontWeight: 800, width: 40, fontSize: 14,
+              fontWeight: 800, width: 54, flexShrink: 0, fontSize: 14,
             }}>#{row.rank}</span>
             <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <span style={{ fontSize: 16 }}><FlagFromEmoji emoji={p.nat.flag} /></span>

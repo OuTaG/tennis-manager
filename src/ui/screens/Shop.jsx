@@ -5,7 +5,7 @@ import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
-export function ShopScreen({ notify }) {
+export function ShopScreen() {
   const [owned, setOwned] = useState(() => loadPurchases());
   const [pending, setPending] = useState(null); // article en cours de confirmation
   const purchaseItem = (item) => {
@@ -13,13 +13,13 @@ export function ShopScreen({ notify }) {
     try { localStorage.setItem(SHOP_STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
     setOwned(next);
     setPending(null);
-    notify && notify(item.type === "subscription" ? item.name + " activé" : item.name + " débloqué", "success");
+    
   };
   const cancelItem = (item) => {
     const next = owned.filter(id => id !== item.id);
     try { localStorage.setItem(SHOP_STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
     setOwned(next);
-    notify && notify(item.name + " résilié", "info");
+    
   };
   const categories = [...new Set(SHOP_ITEMS.map(i => i.category || "Options"))];
 
@@ -30,7 +30,7 @@ export function ShopScreen({ notify }) {
       {SHOP_ITEMS.length === 0 ? (
         <div style={{ ...styles.skillsCard, textAlign: "center", padding: "28px 18px" }}>
           <div style={{
-            width: 56, height: 56, borderRadius: 3, margin: "0 auto 12px",
+            width: 56, height: 56, borderRadius: 0, margin: "0 auto 12px",
             background: T.amberSub, border: "1px solid " + T.amberBrd,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
@@ -51,7 +51,7 @@ export function ShopScreen({ notify }) {
             return (
               <div key={item.id} style={{ ...styles.skillsCard, marginBottom: 8, padding: 14, opacity: soon ? 0.85 : 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 3, background: soon ? T.bg2 : T.amberSub, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 0, background: soon ? T.bg2 : T.amberSub, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Icon name={item.icon || "bag"} size={20} color={soon ? T.fg4 : T.amber} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
