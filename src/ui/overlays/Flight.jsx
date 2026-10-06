@@ -154,13 +154,6 @@ export function FlightOverlay({ from, to, onDone }) {
           <div className="tm-lettering" style={{ position: "absolute", left: 0, top: 0, background: "#d6ef3c", color: INK, borderRight: "2.5px solid " + INK, borderBottom: "2.5px solid " + INK, padding: "2px 8px", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
             {a.flag && <FlagFromEmoji emoji={a.flag} size={12} />}Départ de {from}…
           </div>
-          {/* Onomatopée */}
-          {t > 0.15 && !arrived && (
-            <div className="tm-display" style={{ position: "absolute", right: 10, top: 10, fontSize: 22, color: "#d6ef3c", WebkitTextStroke: "1.5px " + INK, transform: "rotate(-8deg)" }}>VROOOM !</div>
-          )}
-          {arrived && (
-            <div className="tm-display" style={{ position: "absolute", right: 10, top: 10, fontSize: 18, background: "#5b2d8e", color: "#ffffff", border: "2.5px solid " + INK, padding: "2px 8px", transform: "rotate(-6deg)" }}>Atterrissage !</div>
-          )}
         </div>
 
         {/* Récitatif d'arrivée */}

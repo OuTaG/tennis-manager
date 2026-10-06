@@ -94,9 +94,9 @@ const BROWS = {
   concentre: "M42 52 L55 52 M78 52 L65 52",
 };
 const MOUTH = {
-  determine: { d: "M51 81 Q60 85 69 80", fill: "none" },
-  sourire: { d: "M50 79 Q60 90 70 79 Z", fill: "#ffffff" },
-  concentre: { d: "M52 82 L68 82", fill: "none" },
+  determine: { d: "M51 83 Q60 87 69 82", fill: "none" },
+  sourire: { d: "M50 81 Q60 91 70 81 Z", fill: "#ffffff" },
+  concentre: { d: "M52 84 L68 84", fill: "none" },
 };
 
 // size : côté du carré affiché. bare : sans case de fond (portraits de la une).
@@ -144,8 +144,8 @@ export function Avatar({ config, size = 96, style, bare = false }) {
 
       {/* Barbe, moustache */}
       {a.facial === "barbe" && <path d="M36 66 Q38 94 60 98 Q82 94 84 66 Q82 84 72 86 Q60 93 48 86 Q38 84 36 66 Z" fill={a.hair} stroke={INK} strokeWidth="3" strokeLinejoin="round" />}
-      {a.facial === "bouc-moustache" && <path d="M51 87 Q60 85 69 87 Q68 97 60 98 Q52 97 51 87 Z" fill={a.hair} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />}
-      {(a.facial === "moustache" || a.facial === "bouc-moustache") && <path d="M48 77 Q54 72 60 75 Q66 72 72 77 Q66 79 60 77 Q54 79 48 77 Z" fill={a.hair} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />}
+      {a.facial === "bouc-moustache" && <path d="M51.5 91 Q60 89.6 68.5 91 Q67.5 98 60 98.5 Q52.5 98 51.5 91 Z" fill={a.hair} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />}
+      {(a.facial === "moustache" || a.facial === "bouc-moustache") && <path d="M51 77.4 Q55 74.6 60 75.9 Q65 74.6 69 77.4 Q64.5 78.6 60 77.6 Q55.5 78.6 51 77.4 Z" fill={a.hair} stroke={avatarTone(a.hair, -0.35)} strokeWidth="1" strokeLinejoin="round" />}
 
       {/* Visage */}
       <ellipse cx="49" cy="61" rx="5.5" ry="6.5" fill="#ffffff" stroke={INK} strokeWidth="2.5" />
@@ -154,7 +154,7 @@ export function Avatar({ config, size = 96, style, bare = false }) {
       <circle cx={pR} cy="62" r="2.9" fill={INK} />
       {a.female && <path d="M43 55 L40 52 M77 55 L80 52" stroke={INK} strokeWidth="2" strokeLinecap="round" />}
       <path d={BROWS[a.mood] || BROWS.determine} fill="none" stroke={INK} strokeWidth={a.female ? 3 : 4} strokeLinecap="round" />
-      <path d="M60 63 L57 73 L62 74" fill="none" stroke={INK} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M60 63 L57.5 72 L61.5 72.8" fill="none" stroke={INK} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d={mouth.d} fill={mouth.fill} stroke={INK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
       {/* Coiffure */}

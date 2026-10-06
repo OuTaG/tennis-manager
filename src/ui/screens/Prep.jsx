@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { TRAINING_MODULES } from "../../data/life.js";
 import { STAFF_LIST } from "../../data/staff.js";
-import { ageTrainingMultiplier, difficultyFactors } from "../../engine/player.js";
-import { styledProgressionMultiplier } from "../../engine/progression.js";
-import { staffTrainEnergyExtra, sumStaffEffect } from "../../engine/staff.js";
+import { challengeActive } from "../../engine/challenges.js";
+import { hasGameOption } from "../../engine/difficulty.js";
+import { staffTrainEnergyExtra } from "../../engine/staff.js";
+import { trainingBaseGain } from "../../engine/training.js";
 import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
@@ -30,19 +31,8 @@ export function TrainingScreen({ player, doTraining }) {
         const baseEnergyCost = Math.round(mod.energyCost * Math.max(0.6, 1 - (player.stats.stamina - 50) / 100));
         const staffEnergyExtra = staffTrainEnergyExtra(player.staff);
         const canDo = player.money >= mod.cost && player.energy >= baseEnergyCost + staffEnergyExtra + 3;
-        const energyMul = 0.6 + (player.energy / 250);
-        // Même courbe que l'entraînement réel : dépend du profil du style choisi.
-        const diminishMul = styledProgressionMultiplier(player.styleId, mod.stat, player.stats[mod.stat]);
-        // Mirror the real doTraining formula so the shown gain matches reality,
-        // including staff, happiness, age and difficulty multipliers.
-        const staffBonus = 1 + Math.max(-0.3, sumStaffEffect(player.staff, "trainGain"));
-        const happ = player.happiness ?? 70;
-        const happinessTrainMul = happ < 20 ? 0.5 : happ < 40 ? 0.85 : happ > 85 ? 1.10 : 1.0;
-        const ageMul = ageTrainingMultiplier(player.age);
-        const diffMul = difficultyFactors(player).trainMul;
-        const absWk = (player.year || 0) * 52 + (player.week || 0);
-        const techBoostMul = (player.trainBoost && absWk < player.trainBoost.untilAbsWeek) ? player.trainBoost.mul : 1;
-        const expGain = (mod.baseGain * staffBonus * energyMul * diminishMul * ageMul * happinessTrainMul * diffMul * techBoostMul).toFixed(2);
+        // Même calcul que la séance réelle (programme de routine).
+        const expGain = trainingBaseGain(player, mod).toFixed(2);
         const ceilingReached = player.stats[mod.stat] >= 92;
         const statValue = Math.round(player.stats[mod.stat]);
 
@@ -107,6 +97,9 @@ export function TrainingScreen({ player, doTraining }) {
 export function StaffScreen({ player, hireStaff, fireStaff }) {
   const roles = [...new Set(STAFF_LIST.map(s => s.role))];
   const totalCost = player.staff.reduce((a, s) => a + s.cost, 0);
+  // Option de partie « Sans staff » ou défi « Seul au monde » : la page reste
+  // consultable, mais personne ne peut être engagé.
+  const noStaff = hasGameOption(player, "no_staff") || challengeActive("seul");
 
   // Human-readable labels for each effect key
   const BONUS_LABELS = {
@@ -145,6 +138,25 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
     <div style={styles.tabContent}>
       <div style={styles.sectionTitle}>Staff</div>
 
+      {noStaff && (
+        <div aria-label="Mode sans staff" style={{
+          position: "fixed", left: 0, right: 0, top: "50%", zIndex: 5, pointerEvents: "none",
+          display: "flex", justifyContent: "center",
+        }}>
+          <div style={{
+            transform: "translateY(-50%) rotate(-16deg)", background: "#fffdf6",
+            border: "4px solid #c4302b", outline: "2px solid #c4302b", outlineOffset: 4,
+            boxShadow: "6px 6px 0 " + T.ink, padding: "10px 18px", textAlign: "center", color: "#c4302b",
+          }}>
+            <div className="tm-eyebrow" style={{ color: "#c4302b", fontSize: 12, letterSpacing: 3 }}>
+              {hasGameOption(player, "no_staff") ? "Option de partie" : "Défi Seul au monde"}
+            </div>
+            <div className="tm-display" style={{ fontSize: 40, lineHeight: 0.95, whiteSpace: "nowrap" }}>Mode<br />sans staff</div>
+            <div style={{ fontSize: 12, fontWeight: 800, marginTop: 4, color: T.ink }}>Aucune embauche possible</div>
+          </div>
+        </div>
+      )}
+
       <div style={{
         background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 16,
         border: "1px solid " + T.brd, display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -159,6 +171,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
         </div>
       </div>
 
+      <div style={noStaff ? { opacity: 0.45, filter: "grayscale(1)" } : undefined}>
       {roles.map(role => {
         const hired = player.staff.find(s => s.role === role);
         const options = STAFF_LIST.filter(s => s.role === role);
@@ -193,7 +206,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
               </div>
             ) : (
               options.map(s => {
-                const canAfford = player.money >= s.cost * 4;
+                const canAfford = !noStaff && player.money >= s.cost * 4;
                 return (
                   <div key={s.id} style={{
                     background: T.bg1, borderRadius: 3, padding: 14, marginBottom: 6,
@@ -218,7 +231,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
                         style={{ ...styles.btnSmall, opacity: canAfford ? 1 : 0.4, flexShrink: 0 }}
                         disabled={!canAfford}
                         onClick={() => hireStaff(s)}
-                      >Engager</button>
+                      >{noStaff ? "Interdit" : "Engager"}</button>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                       {renderEffects(s).map((it, i) => (
@@ -232,6 +245,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

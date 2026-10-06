@@ -56,11 +56,11 @@ export function miniGameEffect(win) {
 // ─── À L'ENTRAÎNEMENT ──────────────────────────────────────────────────────
 // Trois programmes, comme les programmes d'essais libres : chacun affiche sa
 // probabilité de réussite. Réussi, il rapporte son gain ; raté, rien.
-// Plus le programme est risqué, plus il rapporte et plus il fatigue.
+// Plus le programme est risqué, plus il rapporte. Tous coûtent la même énergie.
 export const TRAINING_CARDS = [
-  { id: "commune", rarity: "Routine", name: "Séance de routine", baseP: 0.85, successMul: 1, failMul: 0, energyMul: 1, desc: "Sûr, gain modeste." },
-  { id: "rare", rarity: "Intensif", name: "Séance intensive", baseP: 0.6, successMul: 2.2, failMul: 0, energyMul: 1.4, desc: "Gros gain, plus de fatigue." },
-  { id: "mystere", rarity: "Exploit", name: "Pari du coach", baseP: 0.3, successMul: 3.6, failMul: 0, energyMul: 1.8, desc: "Énorme gain, épuisant." },
+  { id: "commune", rarity: "Routine", name: "Séance de routine", baseP: 0.85, successMul: 1, failMul: 0, desc: "Sûr, gain modeste." },
+  { id: "rare", rarity: "Intensif", name: "Séance intensive", baseP: 0.6, successMul: 1.4, failMul: 0, desc: "Meilleur gain, plus incertain." },
+  { id: "mystere", rarity: "Exploit", name: "Pari du coach", baseP: 0.3, successMul: 2, failMul: 0, desc: "Gros gain, rarement réussi." },
 ];
 
 // Probabilité de réussite d'un programme, selon la forme du joueur :

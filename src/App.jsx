@@ -54,6 +54,7 @@ import { T, applyTheme } from "./ui/theme.js";
 import { getRngState, newSeed, random, setRngState, setSeed } from "./engine/rng.js";
 import { TACTIC_DEFS, coachAdvice, normalizeTactics } from "./engine/tactics.js";
 import { TRAINING_CARDS, ZONES, miniGameEffect, pickMatchMiniGame, trainingOdds } from "./engine/minigames.js";
+import { programmeGain, trainingBaseGain } from "./engine/training.js";
 import { MatchMiniGame, TrainingCards } from "./ui/overlays/MiniGames.jsx";
 import { DIFFICULTY_LEVELS, GAME_OPTIONS, formatMultiplier, hasGameOption, injuryRiskMul, scoreMultiplier } from "./engine/difficulty.js";
 
@@ -1110,33 +1111,13 @@ export default function TennisManager() {
     // Staff malus: coachs intensifs (Carlos Vives, etc.) ajoutent un surcoût d'énergie
     // (trainEnergyCost is stored as a malus, so sumStaffEffect returns it negative.)
     const extraEnergyFromStaff = staffTrainEnergyExtra(player.staff);
-    const actualEnergyCost = Math.round((Math.round(mod.energyCost * staminaReduction) + extraEnergyFromStaff) * card.energyMul);
+    // Même énergie quel que soit le programme choisi.
+    const actualEnergyCost = Math.round(mod.energyCost * staminaReduction) + extraEnergyFromStaff;
     if (player.energy < actualEnergyCost + 3) { notify("Énergie insuffisante", "warn"); return; }
     const cardGainMul = outcome ? outcome.gainMul : card.successMul;
 
-    // Staff bonus: somme des trainGain de TOUS les staff applicables (coachs en pratique).
-    // Net = trainGain bonuses - trainGain malus (sumStaffEffect le gère).
-    const staffTrainGain = Math.max(-0.3, sumStaffEffect(player.staff, "trainGain"));
-    const staffBonus = 1 + staffTrainGain;
-    // Happiness impacts training: very low = motivation in tatters, high = focus.
-    // Thresholds: <20 = ×0.5, <40 = ×0.85, 40-75 = ×1.0, >85 = ×1.10
-    const happ = player.happiness ?? 70;
-    let happinessTrainMul = 1.0;
-    if (happ < 20) happinessTrainMul = 0.5;
-    else if (happ < 40) happinessTrainMul = 0.85;
-    else if (happ > 85) happinessTrainMul = 1.10;
-    const energyMultiplier = 0.6 + (player.energy / 250);
-    const ageMul = ageTrainingMultiplier(player.age);
-    const currentStat = player.stats[mod.stat];
-    const diminishMul = styledProgressionMultiplier(player.styleId, mod.stat, currentStat);
-    const diffF = difficultyFactors(player);
-    const absWeekNow = (player.year || 0) * 52 + (player.week || 0);
-    const techBoostMul = (player.trainBoost && absWeekNow < player.trainBoost.untilAbsWeek) ? player.trainBoost.mul : 1;
-    const challengeTrainMul = (player.challenge && player.challenge.status === "active" && player.challenge.trainMul) || 1;
-    const expectedGain = mod.baseGain * staffBonus * energyMultiplier * diminishMul * ageMul * happinessTrainMul * diffF.trainMul * techBoostMul * challengeTrainMul;
-    // Random factor 0.75-1.25 around expected (tighter than before)
-    const variance = 0.75 + random() * 0.5;
-    const gain = parseFloat((expectedGain * variance * cardGainMul).toFixed(2));
+    // Gain exact affiché sur la fiche du programme (raté = 0).
+    const gain = parseFloat((trainingBaseGain(player, mod) * cardGainMul).toFixed(2));
     const newStats = { ...player.stats };
     newStats[mod.stat] = Math.min(99, newStats[mod.stat] + gain);
 
@@ -1173,7 +1154,7 @@ export default function TennisManager() {
       energy: Math.max(0, p.energy - actualEnergyCost),
       injury: updatedInjury,
     }));
-    if (outcome && !outcome.success) notify(card.name + " ratée : pas de progrès cette fois.", "warn");
+    if (outcome && !outcome.success) notify("Programme raté : pas de progrès cette fois.", "warn");
     if (aggravated) {
       notify("Vous avez aggravé votre blessure ! Repos prolongé (" + updatedInjury.label + ").", "warn");
     } else if (player.injury && player.injury.weeksRemaining > 0) {
@@ -2893,8 +2874,7 @@ export default function TennisManager() {
             }}>
               <Avatar config={avatarInput} size={40} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ color: T.fg, fontSize: 13, fontWeight: 700 }}>{nameInput}</div>
-                <div style={{ fontSize: 11 }}>Votre <strong style={{ color: T.fg }}>ville de départ</strong> est seulement votre point de départ sur le circuit.</div>
+                <div className="tm-display" style={{ color: T.fg, fontSize: 22, lineHeight: 1.1, overflowWrap: "anywhere" }}>{nameInput}</div>
               </div>
             </div>
 
@@ -2914,7 +2894,7 @@ export default function TennisManager() {
             <div>
               <label style={styles.label}>Surface de prédilection</label>
               <div style={{ color: T.fg4, fontSize: 11, marginTop: -4, marginBottom: 8 }}>
-                +{SURFACE_BONUS} à toutes vos stats en match sur cette surface. Le gazon compte peu de tournois, mais aussi peu de spécialistes.
+                +{SURFACE_BONUS} à toutes vos stats en match sur cette surface.
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
                 {SURFACES.map(sf => (
@@ -4221,8 +4201,10 @@ export default function TennisManager() {
       {cardPick && (
         <TrainingCards
           mod={cardPick}
-          costs={Object.fromEntries(TRAINING_CARDS.map(c => [c.id, Math.round(baseTrainingEnergy(cardPick) * c.energyMul)]))}
-          affordable={Object.fromEntries(TRAINING_CARDS.map(c => [c.id, player.energy >= Math.round(baseTrainingEnergy(cardPick) * c.energyMul) + 3]))}
+          energyCost={baseTrainingEnergy(cardPick)}
+          gains={Object.fromEntries(TRAINING_CARDS.map(c => [c.id, programmeGain(player, cardPick, c)]))}
+          noStaff={hasGameOption(player, "no_staff") || challengeActive("seul")}
+          statLabel={{ serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" }[cardPick.stat] || cardPick.name}
           odds={Object.fromEntries(TRAINING_CARDS.map(c => [c.id, trainingOdds(c, trainingOddsCtx)]))}
           oddsCtx={trainingOddsCtx}
           onPick={(id, outcome) => { const mod = cardPick; setCardPick(null); runTraining(mod, id, outcome); }}

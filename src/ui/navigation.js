@@ -69,8 +69,9 @@ export const PAGE_HELP = {
   ] },
   shop: { title: "Boutique", items: [
     ["Options", "Les options de la boutique sont liées à votre appareil : elles restent acquises même si vous recommencez une carrière."],
-    ["Abonnement", "L'abonnement Premium débloque la vitesse de match ×4 ; les autres avantages arrivent progressivement."],
-    ["Bientôt", "Les offres marquées « Bientôt » sont annoncées mais pas encore achetables."],
+    ["Gratuit", "Le circuit féminin et la vitesse de match ×4 sont gratuits pour tous, sans achat."],
+    ["Achats uniques", "Les Défis scénarisés et les Carrières multiples se paient une seule fois."],
+    ["Bientôt", "L'abonnement Premium et le Pass de saison sont annoncés mais pas encore achetables."],
   ] },
   social: { title: "Social", items: [
     ["Pour vous", "Les messages des fans et de la presse qui vous concernent. Vos réponses influencent votre bonheur, votre popularité et votre image."],
