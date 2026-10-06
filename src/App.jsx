@@ -3743,10 +3743,14 @@ export default function TennisManager() {
                 <div aria-hidden="true" style={{ position: "absolute", top: -10, bottom: -10, left: "50%", width: 4, marginLeft: -2, background: ink, transform: "rotate(10deg)" }} />
                 <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 0 }}>
                   {portrait(player.avatar, player.nationalityFlag, player.name, ranking, true)}
-                  <div style={{ width: 64, flexShrink: 0, height: 118, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg viewBox="0 0 100 100" width="64" height="64" aria-hidden="true">
-                      <polygon points="50,2 61,30 92,20 72,45 98,60 66,64 70,96 50,74 30,96 34,64 2,60 28,45 8,20 39,30" fill="#c4302b" stroke={ink} strokeWidth="4" strokeLinejoin="round" />
-                      <text x="50" y="61" textAnchor="middle" fontFamily={T.display} fontSize="30" fill="#ffffff" stroke={ink} strokeWidth="1.5">VS</text>
+                  {/* « VS » : étoile à pointes courtes, assez large pour que le
+                      lettrage respire à l'intérieur ; ombre d'encre décalée. */}
+                  <div style={{ width: 66, flexShrink: 0, height: 118, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg viewBox="-4 -4 112 112" width="70" height="70" aria-hidden="true" style={{ transform: "rotate(-8deg)" }}>
+                      <polygon points="50.0,2.0 59.8,13.3 74.0,8.4 76.9,23.1 91.6,26.0 86.7,40.2 98.0,50.0 86.7,59.8 91.6,74.0 76.9,76.9 74.0,91.6 59.8,86.7 50.0,98.0 40.2,86.7 26.0,91.6 23.1,76.9 8.4,74.0 13.3,59.8 2.0,50.0 13.3,40.2 8.4,26.0 23.1,23.1 26.0,8.4 40.2,13.3" fill={ink} transform="translate(4 4)" />
+                      <polygon points="50.0,2.0 59.8,13.3 74.0,8.4 76.9,23.1 91.6,26.0 86.7,40.2 98.0,50.0 86.7,59.8 91.6,74.0 76.9,76.9 74.0,91.6 59.8,86.7 50.0,98.0 40.2,86.7 26.0,91.6 23.1,76.9 8.4,74.0 13.3,59.8 2.0,50.0 13.3,40.2 8.4,26.0 23.1,23.1 26.0,8.4 40.2,13.3" fill="#c4302b" stroke={ink} strokeWidth="4" strokeLinejoin="round" />
+                      <circle cx="50" cy="50" r="27" fill="#ffffff" stroke={ink} strokeWidth="3" />
+                      <text x="50" y="50" dy="0.36em" textAnchor="middle" fontFamily={T.display} fontSize="25" letterSpacing="-0.5" fill="#141414">VS</text>
                     </svg>
                   </div>
                   {portrait(avatarFromName(ms.opponent.name, player.circuit === "wta"), ms.opponent.nat?.flag, ms.opponent.name, ms.opponentRank, false)}

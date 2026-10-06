@@ -27,8 +27,6 @@ function Caption({ children }) {
 }
 
 // ─── EN MATCH ─────────────────────────────────────────────────────────────
-// kind : "serve_duel" | "return_duel" | "smash"
-// onDone(win, text, zone) : appelé quand le joueur clique « Continuer ».
 // Étoile d'onomatopée qui « pop » à l'écran.
 function Burst({ x, y, text, color = BALL }) {
   return (
@@ -49,121 +47,179 @@ const MG_KEYFRAMES = `
 @keyframes tm-mg-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 `;
 
+// ─── Géométrie du court (vue de dessus, relanceur en haut) ─────────────────
+const VW = 360, VH = 420;
+const NET_Y = 210;
+const BOX = { x: 180, y: 112, w: 140, h: 98 }; // carré de service visé
+const ORDER = [2, 1, 0]; // de la ligne médiane au couloir : Au T, Corps, Extérieur
+const CELL = BOX.w / 3;
+const zoneX = (zi) => BOX.x + ORDER.indexOf(zi) * CELL + CELL / 2;
+const LAND_Y = 168;
+const TOP_Y = 70;      // relanceur
+const BOT_Y = 372;     // serveur
+const SERVER_X = 130;
+const pct = (v, total) => (v / total * 100) + "%";
+const rnd = (a, b) => a + Math.random() * (b - a); // cosmétique : trajectoires des échanges
+
+// Construit la suite des positions de la balle (et des joueurs) pour un duel.
+// r = résultat de resolveServeDuel (+ serveZone, readZone).
+function buildDuelSteps(r) {
+  const steps = [];
+  const lx = zoneX(r.serveZone);
+  // 1. Le relanceur s'est placé là où il lit le service, le service part.
+  steps.push({ ball: { x: SERVER_X, y: BOT_Y - 6 }, dur: 0, ret: zoneX(r.readZone), srv: SERVER_X, hideZones: true });
+  steps.push({ ball: { x: lx, y: LAND_Y }, dur: 430, ret: zoneX(r.shift), bounce: true });
+  if (r.kind === "ace") {
+    // La balle file derrière le relanceur, qui n'a fait qu'un pas : ace.
+    const k = (TOP_Y - 70 - LAND_Y) / (LAND_Y - BOT_Y);
+    steps.push({ ball: { x: lx + (lx - SERVER_X) * k, y: -40 }, dur: 380, burst: { text: "ACE !", at: { x: lx, y: 96 } } });
+    return steps;
+  }
+  // Le relanceur touche la balle.
+  steps.push({ ball: { x: lx, y: TOP_Y + 18 }, dur: 200 });
+  if (r.kind === "return_winner") {
+    // Bien lu : retour gagnant, à l'opposé du serveur, hors du cadre.
+    steps.push({ ball: { x: VW + 60, y: VH + 40 }, dur: 520, srv: SERVER_X - 20, burst: { text: "RETOUR GAGNANT !", at: { x: 250, y: 300 } } });
+    return steps;
+  }
+  // 2. Un point se joue : échanges, puis le dernier coup.
+  const rally = r.rally;
+  const finalByWinner = rally.end === "winner" || rally.end === "drop";
+  // Frappeur du dernier coup : 0 = relanceur, 1 = serveur (alternance R, S, R…).
+  const winnerIsServer = rally.serverWins;
+  const finalHitter = finalByWinner ? (winnerIsServer ? 1 : 0) : (winnerIsServer ? 0 : 1);
+  let shots = rally.rallies;
+  if (shots % 2 !== finalHitter) shots++;
+  let hitterTop = true; // le relanceur (en haut) frappe en premier
+  for (let i = 0; i < shots; i++) {
+    const x = rnd(70, 290);
+    if (hitterTop) steps.push({ ball: { x, y: BOT_Y - 14 }, dur: 430, srv: x });
+    else steps.push({ ball: { x, y: TOP_Y + 18 }, dur: 430, ret: x });
+    hitterTop = !hitterTop;
+  }
+  // Dernier coup, frappé par hitterTop ? relanceur : serveur.
+  const toBottom = hitterTop; // la balle part vers le bas si le relanceur frappe
+  const labels = { winner: "GAGNANT !", net: "FILET !", out: "FAUTE !", drop: "AMORTIE !" };
+  let end;
+  if (rally.end === "winner") end = { x: rnd(0, 1) < 0.5 ? -50 : VW + 50, y: toBottom ? VH + 40 : -40 };
+  else if (rally.end === "net") end = { x: rnd(90, 270), y: toBottom ? NET_Y - 8 : NET_Y + 8 };
+  else if (rally.end === "out") end = { x: rnd(0, 1) < 0.5 ? 8 : VW - 8, y: toBottom ? 330 : 90 };
+  else end = { x: rnd(110, 250), y: toBottom ? NET_Y + 22 : NET_Y - 22 };
+  const burstAt = { x: Math.min(290, Math.max(70, end.x)), y: toBottom ? 300 : 110 };
+  steps.push({ ball: end, dur: rally.end === "drop" ? 600 : 460, bounce: rally.end !== "winner", burst: { text: labels[rally.end], at: burstAt } });
+  return steps;
+}
+
 // kind : "serve_duel" | "return_duel" | "smash"
 // onDone(win, text, zone) : appelé quand le joueur clique « Continuer ».
-export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, onDone }) {
+export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, onDone }) {
   const [res, setRes] = useState(null);
-  const [phase, setPhase] = useState("pick"); // pick → flight → reveal
-  const [ballAt, setBallAt] = useState(null);
+  const [phase, setPhase] = useState("pick"); // pick → play → reveal
+  const [ball, setBall] = useState(null);     // { x, y, dur }
+  const [retX, setRetX] = useState(zoneX(1));
+  const [srvX, setSrvX] = useState(SERVER_X);
+  const [hideZones, setHideZones] = useState(false);
+  const [bounces, setBounces] = useState([]);
+  const [burst, setBurst] = useState(null);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const title = kind === "serve_duel" ? "Duel au service !" : kind === "return_duel" ? "Duel au retour !" : "Smash !";
   const caption = kind === "return_duel" ? stake + " · " + oppName + " va servir. Où va-t-il frapper ?"
     : kind === "smash" ? stake + " · une balle haute flotte au-dessus du filet…"
     : stake;
-
-  // Demi-court adverse vu depuis le serveur : fond de court en haut, filet en
-  // bas. Le carré de service visé (à droite de la ligne médiane) est découpé
-  // en trois zones, du T (contre la ligne médiane) au large (contre le couloir).
-  const VW = 360, VH = 250;
-  const BOX = { x: 180, y: 116, w: 164, h: 116 };
-  const ORDER = [2, 1, 0]; // Au T, Corps, Large (indices de ZONES)
-  const cellW = BOX.w / 3;
-  const pct = (v, total) => (v / total * 100) + "%";
-  const zoneX = (zi) => BOX.x + ORDER.indexOf(zi) * cellW + cellW / 2;
-  const zoneY = BOX.y + BOX.h / 2;
-  // Départ de la balle : votre service part d'en bas, le sien d'en haut.
-  const ballStart = kind === "serve_duel" ? { x: 110, y: 262 } : { x: 110, y: 46 };
-  // Le relanceur : l'adversaire au fond (duel au service), vous près du filet (duel au retour).
-  const rest = kind === "serve_duel" ? { x: 262, y: 58 } : { x: 262, y: 246 };
-  const moverX = res ? zoneX(kind === "serve_duel" ? res.shown : res.picked) : rest.x;
+  // Serveur en bas, relanceur en haut.
+  const server = kind === "serve_duel" ? { avatar: myAvatar, label: "Vous" } : { avatar: oppAvatar, label: oppName };
+  const returner = kind === "serve_duel" ? { avatar: oppAvatar, label: oppName } : { avatar: myAvatar, label: "Vous" };
 
   const pickZone = (i) => {
     if (res) return;
     let r;
     if (kind === "serve_duel") {
       const guess = opponentRead(history, oppStats);
-      r = { ...serveDuel(i, guess, myStats?.serve), zone: i, shown: guess, landing: i };
+      r = { ...serveDuel(i, guess), zone: i, serveZone: i, readZone: guess };
     } else {
-      const out = returnDuel(i, oppStats?.serve);
-      r = { ...out, zone: null, shown: out.target, picked: i, landing: out.target };
+      const out = returnDuel(i);
+      r = { ...out, zone: null, serveZone: out.target, readZone: i };
     }
     setRes(r);
-    setPhase("flight");
-    setBallAt(ballStart);
-    // La balle part à l'image suivante (pour que la transition joue).
-    timers.current.push(setTimeout(() => setBallAt({ x: zoneX(r.landing), y: zoneY }), 40));
-    timers.current.push(setTimeout(() => setPhase("reveal"), 760));
+    setPhase("play");
+    // Les propositions disparaissent, puis l'échange se joue étape par étape.
+    const steps = buildDuelSteps(r);
+    let t = 220;
+    steps.forEach((st, k) => {
+      timers.current.push(setTimeout(() => {
+        if (st.hideZones) setHideZones(true);
+        if (st.ret !== undefined) setRetX(st.ret);
+        if (st.srv !== undefined) setSrvX(st.srv);
+        setBall({ x: st.ball.x, y: st.ball.y, dur: st.dur });
+      }, t));
+      t += st.dur + (k === 0 ? 260 : 0);
+      if (st.bounce) timers.current.push(setTimeout(() => setBounces(b => [...b, { x: st.ball.x, y: st.ball.y, id: k }]), t));
+      if (st.burst) timers.current.push(setTimeout(() => setBurst(st.burst), t - 60));
+    });
+    timers.current.push(setTimeout(() => setPhase("reveal"), t + 450));
   };
 
   const revealed = phase === "reveal";
-  const burstText = !res ? "" : kind === "serve_duel"
-    ? (res.zone !== res.shown ? "ACE !" : res.win ? "PASSÉ !" : "RETOUR !")
-    : (res.picked === res.shown ? "BIEN LU !" : res.win ? "SAUVÉ !" : "TROP TARD");
-
-  const figure = (avatar, x, y, label) => (
-    <div style={{ position: "absolute", left: pct(x, VW), top: pct(y, VH), width: 0, height: 0, zIndex: 3, transition: "left 0.45s cubic-bezier(.3,1.4,.6,1)" }}>
-      <div style={{ position: "absolute", left: -22, top: -22, width: 44, height: 44, borderRadius: "50%", overflow: "hidden", border: "2.5px solid " + INK, background: "#ffffff", animation: phase === "pick" ? "tm-mg-bob 0.9s ease-in-out infinite" : "none" }}>
-        {avatar ? <Avatar config={avatar} size={44} bare /> : null}
+  const figure = (who, x, y) => (
+    <div style={{ position: "absolute", left: pct(x, VW), top: pct(y, VH), width: 0, height: 0, zIndex: 3, transition: "left 0.32s cubic-bezier(.3,1.3,.6,1)" }}>
+      <div style={{ position: "absolute", left: -21, top: -21, width: 42, height: 42, borderRadius: "50%", overflow: "hidden", border: "2.5px solid " + INK, background: "#ffffff", animation: phase === "pick" ? "tm-mg-bob 0.9s ease-in-out infinite" : "none" }}>
+        {who.avatar ? <Avatar config={who.avatar} size={42} bare /> : null}
       </div>
-      <div style={{ position: "absolute", left: -40, width: 80, top: 24, textAlign: "center", fontSize: 9.5, fontWeight: 800, color: "#ffffff", textShadow: "1px 1px 0 " + INK, whiteSpace: "nowrap" }}>{label}</div>
+      <div style={{ position: "absolute", left: -45, width: 90, top: y < NET_Y ? -38 : 23, textAlign: "center", fontSize: 9.5, fontWeight: 800, color: "#ffffff", textShadow: "1px 1px 0 " + INK, whiteSpace: "nowrap" }}>{who.label}</div>
     </div>
   );
 
   return (
-    <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 10 }}>
       <style>{MG_KEYFRAMES}</style>
       <div style={{ alignSelf: "center" }}><Sfx>{title}</Sfx></div>
       <Caption>{caption}</Caption>
       {kind === "smash"
         ? <SmashGauge done={!!res} onHit={(precision) => { setRes({ ...smashResult(precision), zone: null }); setPhase("reveal"); }} />
         : (
-          <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, background: GRASS, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, overflow: "hidden" }}>
-            <svg viewBox={"0 0 " + VW + " " + VH} width="100%" height="100%" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
+          <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, maxHeight: "56vh", alignSelf: "center", background: GRASS, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, overflow: "hidden" }}>
+            <svg viewBox={"0 0 " + VW + " " + VH} width="100%" height="100%" preserveAspectRatio="none" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
               <rect x={BOX.x} y={BOX.y} width={BOX.w} height={BOX.h} fill="#2f9a5c" />
-              <path d="M2 20 L358 20 M2 20 L2 232 M358 20 L358 232 M16 20 L16 232 M344 20 L344 232 M16 116 L344 116 M180 116 L180 232" fill="none" stroke="#ffffff" strokeWidth="4" />
-              <path d="M4 236 L356 236" stroke={INK} strokeWidth="8" />
-              <path d="M4 236 L356 236" stroke="#ffffff" strokeWidth="2" strokeDasharray="6 5" />
+              <path d="M16 16 L344 16 L344 404 L16 404 Z M40 16 L40 404 M320 16 L320 404 M40 112 L320 112 M40 308 L320 308 M180 112 L180 308" fill="none" stroke="#ffffff" strokeWidth="4" />
+              <path d={"M4 " + NET_Y + " L356 " + NET_Y} stroke={INK} strokeWidth="7" />
+              <path d={"M4 " + NET_Y + " L356 " + NET_Y} stroke="#ffffff" strokeWidth="2" strokeDasharray="6 5" />
             </svg>
+            {/* Les trois zones du carré visé, cliquables, qui s'effacent dès le choix */}
             {ORDER.map((zi, k) => {
-              const z = ZONES[zi];
-              const chosen = res && (res.zone === zi || res.picked === zi);
-              const shown = revealed && res.shown === zi;
+              const chosen = res && (res.zone === zi || (kind === "return_duel" && res.readZone === zi));
               return (
-                <button key={z} onClick={() => pickZone(zi)} disabled={!!res} style={{
+                <button key={ZONES[zi]} onClick={() => pickZone(zi)} disabled={!!res} style={{
                   position: "absolute", zIndex: 2,
-                  left: pct(BOX.x + k * cellW + 2.5, VW), width: pct(cellW - 5, VW),
+                  left: pct(BOX.x + k * CELL + 2.5, VW), width: pct(CELL - 5, VW),
                   top: pct(BOX.y + 4, VH), height: pct(BOX.h - 8, VH),
                   border: "2.5px solid " + INK, cursor: res ? "default" : "pointer", padding: 0,
-                  background: chosen ? BALL : shown ? LILAC : res ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.92)", color: INK,
-                  boxShadow: chosen ? "2px 2px 0 " + INK : "none", transition: "background 0.2s",
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
-                  fontFamily: T.display, fontSize: 11.5, letterSpacing: 0, lineHeight: 1, textTransform: "uppercase", overflow: "hidden",
-                }}>
-                  <span>{z}</span>
-                  {shown && <span style={{ fontFamily: T.body, fontSize: 8.5, fontWeight: 800, lineHeight: 1.1 }}>{kind === "serve_duel" ? "IL ATTENDAIT" : "IL A SERVI"}</span>}
-                </button>
+                  background: chosen ? BALL : "rgba(255,255,255,0.92)", color: INK,
+                  opacity: hideZones ? 0 : 1, pointerEvents: hideZones ? "none" : "auto",
+                  transition: "opacity 0.18s, background 0.15s",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: T.display, fontSize: 10.5, letterSpacing: 0, lineHeight: 1.05, textTransform: "uppercase", overflow: "hidden", textAlign: "center",
+                }}>{zi === 0 ? <span>Exté-<br />rieur</span> : ZONES[zi]}</button>
               );
             })}
-            {/* Les joueurs : l'adversaire en haut ; au retour, vous près du filet */}
-            {kind === "serve_duel"
-              ? figure(oppAvatar, moverX, rest.y, oppName)
-              : <>
-                  {figure(oppAvatar, 110, 46, oppName)}
-                  {figure(myAvatar, moverX, rest.y - 18, "Vous")}
-                </>}
-            {/* La balle, en cloche */}
-            {ballAt && (
-              <div style={{ position: "absolute", left: pct(ballAt.x, VW), top: pct(ballAt.y, VH), width: 0, height: 0, zIndex: 5, transition: "left 0.62s linear, top 0.62s cubic-bezier(.2,.7,.4,1)" }}>
-                <div style={{ position: "absolute", left: -8, top: -8, width: 16, height: 16, borderRadius: "50%", background: BALL, border: "2.5px solid " + INK, animation: "tm-mg-arc 0.64s ease-in-out both" }} />
+            {figure(returner, retX, TOP_Y)}
+            {figure(server, srvX, BOT_Y)}
+            {/* Traces de rebond */}
+            {bounces.map(b => (
+              <div key={b.id} style={{ position: "absolute", left: pct(b.x, VW), top: pct(b.y, VH), width: 14, height: 8, marginLeft: -7, marginTop: -4, borderRadius: "50%", border: "2px solid " + INK, background: "rgba(214,239,60,0.6)", zIndex: 1 }} />
+            ))}
+            {/* La balle */}
+            {ball && (
+              <div style={{ position: "absolute", left: pct(ball.x, VW), top: pct(ball.y, VH), width: 0, height: 0, zIndex: 5, transition: ball.dur ? "left " + ball.dur + "ms linear, top " + ball.dur + "ms linear" : "none" }}>
+                <div key={ball.x + ":" + ball.y} style={{ position: "absolute", left: -7, top: -7, width: 14, height: 14, borderRadius: "50%", background: BALL, border: "2.5px solid " + INK, animation: ball.dur ? "tm-mg-arc " + ball.dur + "ms ease-in-out both" : "none" }} />
               </div>
             )}
-            {revealed && res && <Burst x={pct(Math.min(290, Math.max(70, zoneX(res.landing))), VW)} y={pct(BOX.y - 6, VH)} text={burstText} color={res.win ? BALL : LILAC} />}
+            {burst && <Burst x={pct(burst.at.x, VW)} y={pct(burst.at.y, VH)} text={burst.text} color={res && res.win ? BALL : LILAC} />}
           </div>
         )}
       {!res && kind !== "smash" && (
         <div style={{ fontSize: 12.5, fontWeight: 700, color: T.fg }}>
-          {kind === "serve_duel" ? "Servez là où il ne vous attend pas." : "Devinez la zone : bonne lecture = retour gagnant."}
+          {kind === "serve_duel" ? "Servez là où il ne vous attend pas." : "Placez-vous là où il va servir."}
         </div>
       )}
       {res && revealed && (
