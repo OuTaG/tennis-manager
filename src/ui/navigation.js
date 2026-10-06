@@ -71,7 +71,8 @@ export const PAGE_HELP = {
   shop: { title: "Boutique", items: [
     ["Gratuit", "Le jeu est gratuit : circuits masculin et féminin, vitesse de match ×4. Aucun achat ne donne d'avantage en jeu."],
     ["En ligne", "Payé une seule fois. L'accès Classements ouvre les défis hebdomadaires et le classement mondial ; l'accès complet y ajoute les carrières coop. Le passage de l'un à l'autre coûte la différence."],
-    ["Options", "Défis scénarisés et Carrières multiples se paient une fois. Les achats sont liés à votre appareil : ils restent acquis si vous recommencez une carrière."],
+    ["Options", "Défis scénarisés, Personnalisation et Carrières multiples se paient une fois. Les achats sont liés à votre appareil : ils restent acquis si vous recommencez une carrière."],
+    ["Personnalisation", "Modifiez le nom, la nationalité et le portrait de tous les joueurs depuis le menu principal, dans 3 configurations. Au lancement d'une carrière, choisissez la base Standard ou l'une d'elles."],
     ["Bientôt", "Les offres marquées « Bientôt » sont annoncées mais pas encore achetables."],
   ] },
   social: { title: "Social", items: [

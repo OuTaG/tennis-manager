@@ -22,7 +22,9 @@ export function atpRatingForRank(i) {
   return Math.max(40, 70 - i * 0.025 + jitter(2));                           // inchangé au-delà du n°250
 }
 
-export function generateAtpDatabase() {
+// roster (facultatif) : base personnalisée (voir engine/roster.js) — mêmes
+// noms, nationalités et portraits à chaque carrière ; sinon base standard.
+export function generateAtpDatabase(roster = null) {
   const players = [];
   // The NAMES_REAL_TOP50 ages are accurate as of 2024 — game starts in 2026,
   // so we offset all real players by 2 years.
@@ -31,8 +33,8 @@ export function generateAtpDatabase() {
   const REAL_AGE_OFFSET = wta ? 0 : 2;
   const TOP50 = wta ? NAMES_REAL_WTA_TOP50 : NAMES_REAL_TOP50;
   for (let i = 0; i < 50; i++) {
-    const realPlayer = TOP50[i];
-    const nat = NAT_BY_CODE[realPlayer.code] || NATIONALITIES[0];
+    const realPlayer = roster ? roster[i] : TOP50[i];
+    const nat = roster ? roster[i].nat : (NAT_BY_CODE[realPlayer.code] || NATIONALITIES[0]);
     // Realistic points distribution: top 2 (Sinner/Alcaraz) much stronger than rest
     let points;
     if (wta) {
@@ -56,11 +58,13 @@ export function generateAtpDatabase() {
     else points = Math.round(1400 - (i - 30) * 25 + random() * 60);
     // Note de niveau calée sur le moteur de match (voir atpRatingForRank).
     const ratingBase = atpRatingForRank(i);
-    players.push(makeAtpPlayer(realPlayer.name, nat, points, ratingBase, undefined, realPlayer.age + REAL_AGE_OFFSET));
+    const age = (TOP50[i] && TOP50[i].age) + REAL_AGE_OFFSET;
+    players.push(makeAtpPlayer(realPlayer.name, nat, points, ratingBase, undefined, age));
+    if (roster && roster[i].avatar) players[players.length - 1].avatar = roster[i].avatar;
   }
   for (let i = 50; i < 1200; i++) {
-    const nat = pickNationality();
-    const name = generateName(nat);
+    const nat = roster ? roster[i].nat : pickNationality();
+    const name = roster ? roster[i].name : generateName(nat);
     let points;
     if (i < 100) points = Math.round(1100 - (i - 50) * 12 + random() * 50);
     else if (i < 250) points = Math.round(500 - (i - 100) * 1.8 + random() * 30);
@@ -69,6 +73,7 @@ export function generateAtpDatabase() {
     else points = Math.max(5, Math.round(40 - (i - 800) * 0.045 + random() * 6));
     const ratingBase = atpRatingForRank(i);
     players.push(makeAtpPlayer(name, nat, points, ratingBase));
+    if (roster && roster[i].avatar) players[players.length - 1].avatar = roster[i].avatar;
   }
   return players;
 }

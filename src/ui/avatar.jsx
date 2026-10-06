@@ -85,6 +85,13 @@ export function avatarFromName(name, female) {
   };
 }
 
+// Portrait d'un joueur de la base : celui choisi en mode Personnalisation
+// s'il existe, sinon le portrait tiré de son nom.
+export function aiAvatar(p, female) {
+  if (p && p.avatar) return { ...p.avatar, female: !!female };
+  return avatarFromName(p ? p.name : "", female);
+}
+
 // Compatibilité : coiffure affichée pour un avatar féminin.
 export function femaleHairStyle(fem, hs) {
   return normalizeAvatar({ female: fem, hairStyle: hs }).hairStyle;

@@ -1,6 +1,6 @@
 // Icônes : drapeaux, surfaces, pictogrammes dessinés et composant Icon.
 import {
-  Activity, AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Award, Ban, BarChart3, Brain, Briefcase, Building2, Calendar, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDot, ClipboardList, CloudRain, Dices, DollarSign, Droplet, Dumbbell, FileText, Flag as FlagIcon, Flame, Footprints, Frown, Goal, GraduationCap, Hand, Handshake, Heart, HeartPulse, History, Home, Info, Lightbulb, Loader2, Lock, MapPin, Megaphone, MessageCircle, Mic, Newspaper, Pill, Plane, Play, Plus, Rocket, ScrollText, Search, Settings, Shield, Smile, Sparkles, Square, Star, Target, Theater, Ticket, Trash2, TrendingDown, TrendingUp, Trophy, Turtle, Tv, User, Users, Wallet, Wrench, X, XCircle, Zap,
+  Activity, AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Award, Ban, BarChart3, Brain, Briefcase, Building2, Calendar, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDot, ClipboardList, CloudRain, Dices, DollarSign, Droplet, Dumbbell, FileText, Flag as FlagIcon, Flame, Footprints, Frown, Goal, GraduationCap, Hand, Handshake, Heart, HeartPulse, History, Home, Info, Lightbulb, Loader2, Lock, MapPin, Pencil, Megaphone, MessageCircle, Mic, Newspaper, Pill, Plane, Play, Plus, Rocket, ScrollText, Search, Settings, Shield, Smile, Sparkles, Square, Star, Target, Theater, Ticket, Trash2, TrendingDown, TrendingUp, Trophy, Turtle, Tv, User, Users, Wallet, Wrench, X, XCircle, Zap,
 } from "lucide-react";
 import { FLAG_DATA } from "../data/flags.js";
 import { T } from "./theme.js";
@@ -205,7 +205,7 @@ export function Icon({ name, size = 14, color = "currentColor", strokeWidth = 1.
     document: FileText, wallet: Wallet, money: DollarSign,
     arrowRight: ArrowRight, arrowLeft: ArrowLeft, chevronRight: ChevronRight,
     "chevron-right": ChevronRight, chevronLeft: ChevronLeft, arrowUp: ArrowUp, arrowDown: ArrowDown,
-    search: Search, users: Users, loader: Loader2, clipboard: ClipboardList,
+    search: Search, users: Users, loader: Loader2, clipboard: ClipboardList, edit: Pencil,
     user: User, party: Sparkles, activity: Activity, racquet: Activity,
     wrench: Wrench, award: Award, heart: Heart, down: TrendingDown,
     dot: CircleDot, square: Square, trash: Trash2, play: Play,
