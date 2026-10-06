@@ -36,7 +36,6 @@ import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
 import { SponsorNegotiationOverlay } from "./ui/overlays/Negotiation.jsx";
 import { RallyOverlay } from "./ui/overlays/Rally.jsx";
-import { TrainingOverlay } from "./ui/overlays/Training.jsx";
 import { CalendarScreen } from "./ui/screens/Calendar.jsx";
 import { ChallengePanel, ChallengesScreen } from "./ui/screens/Challenges.jsx";
 import { FinanceScreen } from "./ui/screens/Finance.jsx";
@@ -146,7 +145,6 @@ export default function TennisManager() {
   const [helpTab, setHelpTab] = useState(null); // tab id whose help is open
   const lastScreenByGroup = useRef({}); // dernier sous-écran ouvert par groupe de navigation
   const [flightAnim, setFlightAnim] = useState(null); // { from, to } during travel animation
-  const [trainAnim, setTrainAnim] = useState(null);   // { mod, gain } during a training animation
   const [sponsorNegotiation, setSponsorNegotiation] = useState(null); // { phase, year, results, objMoney }
   const [theme, setTheme] = useState(() => {
     if (typeof localStorage !== "undefined") {
@@ -494,12 +492,12 @@ export default function TennisManager() {
   // accessible à tout moment via le bouton « i » en haut à droite.
   useEffect(() => {
     if (screen !== "hub" || !player || !PAGE_HELP[activeTab]) return;
-    if (sponsorNegotiation || flightAnim || trainAnim || player.pendingSeasonRecap || player.pendingLifeEvent) return;
+    if (sponsorNegotiation || flightAnim || player.pendingSeasonRecap || player.pendingLifeEvent) return;
     const seen = player.seenHelp || [];
     if (seen.includes(activeTab)) return;
     setHelpTab(activeTab);
     setPlayer(p => ({ ...p, seenHelp: [...(p.seenHelp || []), activeTab] }));
-  }, [activeTab, screen, !!player, sponsorNegotiation, flightAnim, trainAnim, player?.pendingSeasonRecap, player?.pendingLifeEvent]);
+  }, [activeTab, screen, !!player, sponsorNegotiation, flightAnim, player?.pendingSeasonRecap, player?.pendingLifeEvent]);
 
   // ── WEEK ADVANCE ──────────────────────────────────────────────────────────
   const advanceWeek = () => {
@@ -1144,8 +1142,6 @@ export default function TennisManager() {
       }
     }
 
-    setTrainAnim({ mod, gain });
-
     setPlayer(p => ({
       ...p, stats: newStats,
       money: p.money - mod.cost,
@@ -1154,9 +1150,11 @@ export default function TennisManager() {
       energy: Math.max(0, p.energy - actualEnergyCost),
       injury: updatedInjury,
     }));
-    if (outcome && !outcome.success) notify("Programme raté : pas de progrès cette fois.", "warn");
+    const failed = outcome && !outcome.success;
     if (aggravated) {
       notify("Vous avez aggravé votre blessure ! Repos prolongé (" + updatedInjury.label + ").", "warn");
+    } else if (failed) {
+      notify("Programme raté : pas de progrès cette fois.", "warn");
     } else if (player.injury && player.injury.weeksRemaining > 0) {
       notify("+" + gain + " en " + mod.name + " (entraînement risqué malgré la blessure)", "success");
     } else if (gain < 0.05) {
@@ -4209,14 +4207,6 @@ export default function TennisManager() {
           oddsCtx={trainingOddsCtx}
           onPick={(id, outcome) => { const mod = cardPick; setCardPick(null); runTraining(mod, id, outcome); }}
           onClose={() => setCardPick(null)}
-        />
-      )}
-      {trainAnim && (
-        <TrainingOverlay
-          mod={trainAnim.mod}
-          gain={trainAnim.gain}
-          avatar={player?.avatar}
-          onDone={() => setTrainAnim(null)}
         />
       )}
       {sponsorNegotiation && (

@@ -68,10 +68,10 @@ export const PAGE_HELP = {
     ["Faillite", "Si votre argent passe sous zéro, votre carrière s'arrête."],
   ] },
   shop: { title: "Boutique", items: [
-    ["Options", "Les options de la boutique sont liées à votre appareil : elles restent acquises même si vous recommencez une carrière."],
-    ["Gratuit", "Le circuit féminin et la vitesse de match ×4 sont gratuits pour tous, sans achat."],
-    ["Achats uniques", "Les Défis scénarisés et les Carrières multiples se paient une seule fois."],
-    ["Bientôt", "L'abonnement Premium et le Pass de saison sont annoncés mais pas encore achetables."],
+    ["Gratuit", "Le jeu est gratuit : circuits masculin et féminin, vitesse de match ×4. Aucun achat ne donne d'avantage en jeu."],
+    ["En ligne", "Payé une seule fois. L'accès Classements ouvre les défis hebdomadaires et le classement mondial ; l'accès complet y ajoute les carrières coop. Le passage de l'un à l'autre coûte la différence."],
+    ["Options", "Défis scénarisés et Carrières multiples se paient une fois. Les achats sont liés à votre appareil : ils restent acquis si vous recommencez une carrière."],
+    ["Bientôt", "Les offres marquées « Bientôt » sont annoncées mais pas encore achetables."],
   ] },
   social: { title: "Social", items: [
     ["Pour vous", "Les messages des fans et de la presse qui vous concernent. Vos réponses influencent votre bonheur, votre popularité et votre image."],
