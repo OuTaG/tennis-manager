@@ -50,7 +50,7 @@ import { SOCIAL_HISTORY_WEEKS, SocialScreen } from "./ui/screens/Social.jsx";
 import { StatsScreen } from "./ui/screens/Stats.jsx";
 import { TravelScreen } from "./ui/screens/Travel.jsx";
 import { styles } from "./ui/styles.js";
-import { T, applyTheme } from "./ui/theme.js";
+import { T, applyCircuitAccent } from "./ui/theme.js";
 import { getRngState, newSeed, random, setRngState, setSeed } from "./engine/rng.js";
 import { TACTIC_DEFS, adviceStars, coachAdvice, normalizeTactics } from "./engine/tactics.js";
 import { TRAINING_CARDS, ZONES, miniGameEffect, pickMatchMiniGame, trainingOdds } from "./engine/minigames.js";
@@ -152,12 +152,6 @@ export default function TennisManager() {
   const lastScreenByGroup = useRef({}); // dernier sous-écran ouvert par groupe de navigation
   const [flightAnim, setFlightAnim] = useState(null); // { from, to } during travel animation
   const [sponsorNegotiation, setSponsorNegotiation] = useState(null); // { phase, year, results, objMoney }
-  const [theme, setTheme] = useState(() => {
-    if (typeof localStorage !== "undefined") {
-      try { return localStorage.getItem("tm-theme") === "dark" ? "dark" : "light"; } catch (e) {}
-    }
-    return "dark";
-  });
 
   // ── ATP DB COMPACTION FOR SAVE (Opt A+B) ──────────────────────────────────
   // recentResults: keep only 6 (not 10), and use short field names to reduce size
@@ -196,14 +190,14 @@ export default function TennisManager() {
   const SAVE_KEY = saveKeyFor(slot);
 
   // Load on mount
-  // Apply light/dark theme to the document and persist the choice.
   // Circuit affiché : celui choisi pendant la création, sinon celui de la
   // carrière chargée. Il pilote l'accent rose et l'accord au féminin.
   const activeCircuit = screen === "create" ? circuitInput : (player?.circuit || "atp");
   useEffect(() => {
-    applyTheme(theme, activeCircuit);
-    try { localStorage.setItem("tm-theme", theme); } catch (e) {}
-  }, [theme, activeCircuit]);
+    applyCircuitAccent(activeCircuit);
+    // Ancien réglage du mode sombre (supprimé) : on nettoie.
+    try { localStorage.removeItem("tm-theme"); } catch (e) {}
+  }, [activeCircuit]);
 
   // Carrière WTA : accorde au féminin tous les textes affichés.
   useEffect(() => {
@@ -1576,6 +1570,13 @@ export default function TennisManager() {
       if (drain > 0) m.playerEnergy = Math.min(100, m.playerEnergy + drain * drainCut);
     }
 
+    // Petit risque de blessure à chaque jeu, plus fort en fin de réservoir.
+    let injuryText = null;
+    if (!pendingMini && !m.matchComplete
+      && random() < GAME_INJURY_RISK * (m.playerEnergy < 30 ? 3 : 1) * injuryRiskMul(player)) {
+      injuryText = "Coup dur : " + inflictMatchInjury(m);
+    }
+
     // Build commentary
     const vars = {
       p: player.name,
@@ -1595,6 +1596,7 @@ export default function TennisManager() {
     // A game that closes a set is NOT commented on its own: the set comment
     // below says how the set was closed (hold, break, tie-break) instead.
     if (!result.setComplete && !pendingMini) newEvents.push(gameEvent);
+    if (injuryText) newEvents.push({ id: Date.now() + random() + 5, type: "lose_serve", text: injuryText });
 
     if (result.setComplete) {
       const winnerSets = result.setWonByPlayer ? m.pSets : m.oSets;
@@ -1712,7 +1714,12 @@ export default function TennisManager() {
     const commitNow = () => {
       livePointTimersRef.current.forEach(clearTimeout);
       livePointTimersRef.current = [];
-      setMatchState(committedState);
+      // Le plan de jeu a pu être changé pendant l'animation du jeu (pause
+      // tactique) : on garde le réglage le plus récent au lieu de celui
+      // capturé au début du jeu.
+      setMatchState(prev => (prev && prev.matchData && prev.matchData.tactics
+        ? { ...committedState, matchData: { ...committedState.matchData, tactics: prev.matchData.tactics } }
+        : committedState));
       setRallyAnim(null);
       setLivePoint(null);
       pendingCommitRef.current = null;
@@ -1788,6 +1795,30 @@ export default function TennisManager() {
       if (!matchPausedRef.current && playGameRef.current) playGameRef.current();
     }, 2600 * speedFactor());
   };
+  // Blessure en plein match (m est modifié) : le staff médical peut l'éviter,
+  // l'option « Corps fragile » double le risque en amont. Renvoie le message.
+  const inflictMatchInjury = (m) => {
+    const protect = Math.max(0, sumStaffEffect(player.staff, "injuryProtect"));
+    if (protect > 0 && random() < protect) {
+      m.persistEnergyDrainGames = 20;
+      m.persistentDebuff = Math.max(m.persistentDebuff || 0, 2);
+      return "Alerte physique, mais votre staff médical limite les dégâts.";
+    }
+    m.persistEnergyDrainGames = 99;
+    m.persistentDebuff = Math.max(m.persistentDebuff || 0, 5);
+    const inj = rollInjury();
+    setPlayer(p => {
+      if (p.injury && p.injury.weeksRemaining > inj.weeksRemaining) return p;
+      // Le diagnostic (durée d'indisponibilité) tombe après le tournoi.
+      return { ...p, injury: inj, injuryNoticePending: true };
+    });
+    return inj.label + " ! " + player.name + " est gêné pour la suite du match.";
+  };
+  // Risque de blessure : smash raté 5 %, et un petit risque à chaque jeu,
+  // triplé quand l'énergie passe sous 30.
+  const SMASH_INJURY_RISK = 0.05;
+  const GAME_INJURY_RISK = 0.0005;
+
   // Fin d'un mini-jeu de match : l'élan bouge, le résultat entre dans le fil.
   const resolveMiniGame = (kind, win, text, zone) => {
     setMatchState(ms => {
@@ -1798,11 +1829,16 @@ export default function TennisManager() {
       // Le jeu interrompu reprend : gagné → jeu pour le joueur, perdu → égalité.
       if (m.pendingGame) m.pendingGame = { ...m.pendingGame, miniGameWon: !!win };
       const title = kind === "serve_duel" ? "Duel au service" : kind === "return_duel" ? "Duel au retour" : "Smash";
+      const evts = [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text: text + (win ? " Jeu !" : " Retour à égalité.") }];
+      // Smash raté : réception difficile, petit risque de blessure.
+      if (kind === "smash" && !win && random() < SMASH_INJURY_RISK * injuryRiskMul(player)) {
+        evts.unshift({ id: Date.now() + random() + 1, type: "lose_serve", text: "Mauvaise réception après le smash… " + inflictMatchInjury(m) });
+      }
       return {
         ...ms,
         matchData: m,
         pendingDilemma: null,
-        eventLog: [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text: text + (win ? " Jeu !" : " Retour à égalité.") }, ...(ms.eventLog || [])].slice(0, 80),
+        eventLog: [...evts, ...(ms.eventLog || [])].slice(0, 80),
       };
     });
     resumeAfterDilemma();
@@ -3188,38 +3224,6 @@ export default function TennisManager() {
               <p style={{ color: T.fg4, fontSize: 12, margin: 0 }}>Paramètres de la partie en cours</p>
             </div>
 
-            {/* Appearance / theme */}
-            <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid " + T.brd }}>
-              <div style={{ color: T.fg, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Apparence</div>
-              <div style={{ color: T.fg4, fontSize: 11, marginBottom: 12, lineHeight: 1.5 }}>
-                Activez ou désactivez le mode sombre. Le réglage est mémorisé.
-              </div>
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  background: T.bg2, border: "1px solid " + T.brd2, borderRadius: 3,
-                  padding: "12px 14px", cursor: "pointer", fontFamily: T.body,
-                }}
-              >
-                <span style={{ color: T.fg, fontSize: 13, fontWeight: 700 }}>Mode sombre</span>
-                <span style={{
-                  position: "relative", width: 44, height: 24, borderRadius: 3, flexShrink: 0,
-                  background: theme === "dark" ? T.green : T.bg4,
-                  border: "1px solid " + (theme === "dark" ? T.green : T.brd2),
-                  transition: "background 0.2s, border-color 0.2s",
-                }}>
-                  <span style={{
-                    position: "absolute", top: 2, left: theme === "dark" ? 22 : 2,
-                    width: 18, height: 18, borderRadius: 3,
-                    background: "#fff",
-                    transition: "left 0.2s",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
-                  }} />
-                </span>
-              </button>
-            </div>
-
             {/* Pages d'aide */}
             <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid " + T.brd }}>
               <div style={{ color: T.fg, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Pages d'aide</div>
@@ -4009,6 +4013,8 @@ export default function TennisManager() {
                   myStats={player.stats}
                   history={m.serveZones || []}
                   stake={m.pendingGame && !m.pendingGame.isPlayerServing ? "Balle de break" : "Balle de jeu"}
+                  oppAvatar={avatarFromName(ms.opponent.name, player.circuit === "wta")}
+                  myAvatar={player.avatar}
                   onDone={(win, text, zone) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone)}
                 />
               </div>

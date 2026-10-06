@@ -1,6 +1,7 @@
 // Mini-jeux de choix (match et entraînement), en cases de BD.
 import { useEffect, useRef, useState } from "react";
 import { ZONES, TRAINING_CARDS, opponentRead, returnDuel, rollTraining, serveDuel, smashResult } from "../../engine/minigames.js";
+import { Avatar } from "../avatar.jsx";
 import { BoxShade } from "../scrollShade.jsx";
 import { T } from "../theme.js";
 
@@ -28,24 +29,38 @@ function Caption({ children }) {
 // ─── EN MATCH ─────────────────────────────────────────────────────────────
 // kind : "serve_duel" | "return_duel" | "smash"
 // onDone(win, text, zone) : appelé quand le joueur clique « Continuer ».
-export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, stake = "Balle de jeu", onDone }) {
+// Étoile d'onomatopée qui « pop » à l'écran.
+function Burst({ x, y, text, color = BALL }) {
+  return (
+    <div style={{ position: "absolute", left: x, top: y, width: 0, height: 0, zIndex: 4, pointerEvents: "none" }}>
+      <div style={{ position: "absolute", left: -62, top: -40, width: 124, height: 80, animation: "tm-mg-pop 0.35s ease-out both" }}>
+        <svg viewBox="0 0 124 80" width="124" height="80" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
+          <polygon points="62,2 74,20 98,8 92,30 122,34 98,46 112,70 84,60 72,78 58,62 34,76 36,54 4,52 28,38 12,14 42,22" fill={color} stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+        </svg>
+        <div className="tm-display" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, color: INK, transform: "rotate(-6deg)", whiteSpace: "nowrap" }}>{text}</div>
+      </div>
+    </div>
+  );
+}
+
+const MG_KEYFRAMES = `
+@keyframes tm-mg-arc { 0% { transform: scale(0.7); } 50% { transform: scale(1.7); } 100% { transform: scale(1); } }
+@keyframes tm-mg-pop { 0% { transform: scale(0) rotate(-20deg); } 70% { transform: scale(1.15) rotate(4deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes tm-mg-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+`;
+
+// kind : "serve_duel" | "return_duel" | "smash"
+// onDone(win, text, zone) : appelé quand le joueur clique « Continuer ».
+export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, onDone }) {
   const [res, setRes] = useState(null);
+  const [phase, setPhase] = useState("pick"); // pick → flight → reveal
+  const [ballAt, setBallAt] = useState(null);
+  const timers = useRef([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const title = kind === "serve_duel" ? "Duel au service !" : kind === "return_duel" ? "Duel au retour !" : "Smash !";
   const caption = kind === "return_duel" ? stake + " · " + oppName + " va servir. Où va-t-il frapper ?"
     : kind === "smash" ? stake + " · une balle haute flotte au-dessus du filet…"
     : stake;
-
-  const pickZone = (i) => {
-    if (res) return;
-    if (kind === "serve_duel") {
-      const guess = opponentRead(history, oppStats);
-      const r = serveDuel(i, guess, myStats?.serve);
-      setRes({ ...r, zone: i, shown: guess });
-    } else {
-      const r = returnDuel(i, oppStats?.serve);
-      setRes({ ...r, zone: null, shown: r.target, picked: i });
-    }
-  };
 
   // Demi-court adverse vu depuis le serveur : fond de court en haut, filet en
   // bas. Le carré de service visé (à droite de la ligne médiane) est découpé
@@ -53,39 +68,75 @@ export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, stake
   const VW = 360, VH = 250;
   const BOX = { x: 180, y: 116, w: 164, h: 116 };
   const ORDER = [2, 1, 0]; // Au T, Corps, Large (indices de ZONES)
+  const cellW = BOX.w / 3;
   const pct = (v, total) => (v / total * 100) + "%";
+  const zoneX = (zi) => BOX.x + ORDER.indexOf(zi) * cellW + cellW / 2;
+  const zoneY = BOX.y + BOX.h / 2;
+  // Départ de la balle : votre service part d'en bas, le sien d'en haut.
+  const ballStart = kind === "serve_duel" ? { x: 110, y: 262 } : { x: 110, y: 46 };
+  // Le relanceur : l'adversaire au fond (duel au service), vous près du filet (duel au retour).
+  const rest = kind === "serve_duel" ? { x: 262, y: 58 } : { x: 262, y: 246 };
+  const moverX = res ? zoneX(kind === "serve_duel" ? res.shown : res.picked) : rest.x;
+
+  const pickZone = (i) => {
+    if (res) return;
+    let r;
+    if (kind === "serve_duel") {
+      const guess = opponentRead(history, oppStats);
+      r = { ...serveDuel(i, guess, myStats?.serve), zone: i, shown: guess, landing: i };
+    } else {
+      const out = returnDuel(i, oppStats?.serve);
+      r = { ...out, zone: null, shown: out.target, picked: i, landing: out.target };
+    }
+    setRes(r);
+    setPhase("flight");
+    setBallAt(ballStart);
+    // La balle part à l'image suivante (pour que la transition joue).
+    timers.current.push(setTimeout(() => setBallAt({ x: zoneX(r.landing), y: zoneY }), 40));
+    timers.current.push(setTimeout(() => setPhase("reveal"), 760));
+  };
+
+  const revealed = phase === "reveal";
+  const burstText = !res ? "" : kind === "serve_duel"
+    ? (res.zone !== res.shown ? "ACE !" : res.win ? "PASSÉ !" : "RETOUR !")
+    : (res.picked === res.shown ? "BIEN LU !" : res.win ? "SAUVÉ !" : "TROP TARD");
+
+  const figure = (avatar, x, y, label) => (
+    <div style={{ position: "absolute", left: pct(x, VW), top: pct(y, VH), width: 0, height: 0, zIndex: 3, transition: "left 0.45s cubic-bezier(.3,1.4,.6,1)" }}>
+      <div style={{ position: "absolute", left: -22, top: -22, width: 44, height: 44, borderRadius: "50%", overflow: "hidden", border: "2.5px solid " + INK, background: "#ffffff", animation: phase === "pick" ? "tm-mg-bob 0.9s ease-in-out infinite" : "none" }}>
+        {avatar ? <Avatar config={avatar} size={44} bare /> : null}
+      </div>
+      <div style={{ position: "absolute", left: -40, width: 80, top: 24, textAlign: "center", fontSize: 9.5, fontWeight: 800, color: "#ffffff", textShadow: "1px 1px 0 " + INK, whiteSpace: "nowrap" }}>{label}</div>
+    </div>
+  );
 
   return (
     <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 10 }}>
+      <style>{MG_KEYFRAMES}</style>
       <div style={{ alignSelf: "center" }}><Sfx>{title}</Sfx></div>
       <Caption>{caption}</Caption>
       {kind === "smash"
-        ? <SmashGauge done={!!res} onHit={(precision) => setRes({ ...smashResult(precision), zone: null })} />
+        ? <SmashGauge done={!!res} onHit={(precision) => { setRes({ ...smashResult(precision), zone: null }); setPhase("reveal"); }} />
         : (
-          <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, background: GRASS, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK }}>
+          <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, background: GRASS, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, overflow: "hidden" }}>
             <svg viewBox={"0 0 " + VW + " " + VH} width="100%" height="100%" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
-              {/* Carré visé, éclairci */}
               <rect x={BOX.x} y={BOX.y} width={BOX.w} height={BOX.h} fill="#2f9a5c" />
-              {/* Lignes : couloirs, fond, ligne de service, ligne médiane */}
               <path d="M2 20 L358 20 M2 20 L2 232 M358 20 L358 232 M16 20 L16 232 M344 20 L344 232 M16 116 L344 116 M180 116 L180 232" fill="none" stroke="#ffffff" strokeWidth="4" />
-              {/* Filet */}
               <path d="M4 236 L356 236" stroke={INK} strokeWidth="8" />
               <path d="M4 236 L356 236" stroke="#ffffff" strokeWidth="2" strokeDasharray="6 5" />
-              <text x="98" y="180" textAnchor="middle" fill="#ffffff" opacity="0.55" fontFamily={T.body} fontWeight="800" fontSize="13">{kind === "serve_duel" ? oppName : "Vous"}</text>
             </svg>
             {ORDER.map((zi, k) => {
               const z = ZONES[zi];
               const chosen = res && (res.zone === zi || res.picked === zi);
-              const shown = res && res.shown === zi;
-              const cellW = BOX.w / 3;
+              const shown = revealed && res.shown === zi;
               return (
                 <button key={z} onClick={() => pickZone(zi)} disabled={!!res} style={{
-                  position: "absolute",
+                  position: "absolute", zIndex: 2,
                   left: pct(BOX.x + k * cellW + 2.5, VW), width: pct(cellW - 5, VW),
                   top: pct(BOX.y + 4, VH), height: pct(BOX.h - 8, VH),
                   border: "2.5px solid " + INK, cursor: res ? "default" : "pointer", padding: 0,
-                  background: chosen ? BALL : shown ? LILAC : "rgba(255,255,255,0.92)", color: INK,
-                  boxShadow: chosen ? "2px 2px 0 " + INK : "none",
+                  background: chosen ? BALL : shown ? LILAC : res ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.92)", color: INK,
+                  boxShadow: chosen ? "2px 2px 0 " + INK : "none", transition: "background 0.2s",
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
                   fontFamily: T.display, fontSize: 11.5, letterSpacing: 0, lineHeight: 1, textTransform: "uppercase", overflow: "hidden",
                 }}>
@@ -94,6 +145,20 @@ export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, stake
                 </button>
               );
             })}
+            {/* Les joueurs : l'adversaire en haut ; au retour, vous près du filet */}
+            {kind === "serve_duel"
+              ? figure(oppAvatar, moverX, rest.y, oppName)
+              : <>
+                  {figure(oppAvatar, 110, 46, oppName)}
+                  {figure(myAvatar, moverX, rest.y - 18, "Vous")}
+                </>}
+            {/* La balle, en cloche */}
+            {ballAt && (
+              <div style={{ position: "absolute", left: pct(ballAt.x, VW), top: pct(ballAt.y, VH), width: 0, height: 0, zIndex: 5, transition: "left 0.62s linear, top 0.62s cubic-bezier(.2,.7,.4,1)" }}>
+                <div style={{ position: "absolute", left: -8, top: -8, width: 16, height: 16, borderRadius: "50%", background: BALL, border: "2.5px solid " + INK, animation: "tm-mg-arc 0.64s ease-in-out both" }} />
+              </div>
+            )}
+            {revealed && res && <Burst x={pct(Math.min(290, Math.max(70, zoneX(res.landing))), VW)} y={pct(BOX.y - 6, VH)} text={burstText} color={res.win ? BALL : LILAC} />}
           </div>
         )}
       {!res && kind !== "smash" && (
@@ -101,13 +166,13 @@ export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, stake
           {kind === "serve_duel" ? "Servez là où il ne vous attend pas." : "Devinez la zone : bonne lecture = retour gagnant."}
         </div>
       )}
-      {res && (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "10px 12px" }}>
+      {res && revealed && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "10px 12px", animation: "tm-mg-pop 0.3s ease-out both" }}>
           <Sfx color={res.win ? BALL : LILAC}>{res.win ? "JEU !" : "ÉGALITÉ"}</Sfx>
           <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>{res.text}</div>
         </div>
       )}
-      {res && (
+      {res && revealed && (
         <button onClick={() => onDone(res.win, res.text, res.zone)} style={{
           minHeight: 52, border: "3px solid " + INK, background: PURPLE, color: "#ffffff", cursor: "pointer",
           fontFamily: T.display, fontSize: 19, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
@@ -129,7 +194,7 @@ function SmashGauge({ done, onHit }) {
     let start = null;
     const step = (now) => {
       if (start === null) start = now;
-      const t = ((now - start) / 900) % 2; // aller en 0,9 s, retour en 0,9 s
+      const t = ((now - start) / 720) % 2; // aller en 0,72 s, retour en 0,72 s
       const p = t < 1 ? t : 2 - t;
       posRef.current = p;
       setPos(p);
