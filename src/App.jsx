@@ -100,6 +100,7 @@ export default function TennisManager() {
   const [matchPaused, setMatchPaused] = useState(false);
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [wallTaps, setWallTaps] = useState(0); // secret des réglages
+  const [travelWarning, setTravelWarning] = useState(null); // tournoi de la semaine prochaine, joueur pas sur place
   // Ombres de défilement : fenêtre (pages de jeu), plan de jeu, aide, commentaires.
   const winEdges = useScrollEdges(null);
   const tacticsBoxRef = useRef(null);
@@ -503,6 +504,20 @@ export default function TennisManager() {
   }, [activeTab, screen, !!player, sponsorNegotiation, flightAnim, player?.pendingSeasonRecap, player?.pendingLifeEvent]);
 
   // ── WEEK ADVANCE ──────────────────────────────────────────────────────────
+  // « Semaine suivante » : si le tournoi où l'on est inscrit commence la
+  // semaine prochaine dans une autre ville, on demande confirmation (sinon
+  // c'est un forfait, frais d'inscription perdus).
+  const requestAdvanceWeek = () => {
+    const e = player && player.enrollment;
+    const nextWeek = player ? (player.week === 52 ? 1 : player.week + 1) : null;
+    const t = e && e.week === nextWeek ? ALL_TOURNAMENTS.find(x => x.id === e.tournamentId) : null;
+    const absNext = player ? (player.week === 52 ? player.year + 1 : player.year) * 52 + nextWeek : 0;
+    const resting = player && player.restUntilAbsWeek && absNext < player.restUntilAbsWeek;
+    const injured = player && player.injury && !player.injury.canPlay;
+    if (t && player.location !== t.city && !resting && !injured) { setTravelWarning(t); return; }
+    advanceWeek();
+  };
+
   const advanceWeek = () => {
     if (!player || isAdvancingWeek) return;
     const tStart = performance.now();
@@ -4438,6 +4453,28 @@ export default function TennisManager() {
           </div>
         )}
         <div style={{ ...styles.content, paddingBottom: 110 }}>
+          {travelWarning && (
+            <div onClick={() => setTravelWarning(null)} style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+              <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 400, width: "100%" }}>
+                <div className="tm-display" style={{ background: "#c4302b", color: "#ffffff", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink }}>Êtes-vous sûr ?</div>
+                <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
+                    Le {travelWarning.name} commence la semaine prochaine à {travelWarning.city}… et vous êtes encore à {player.location} !
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>
+                    Si vous avancez sans voyager, vous déclarez forfait{travelWarning.entryFee ? " et perdez les " + travelWarning.entryFee.toLocaleString("fr-FR") + " € d'inscription" : ""}.
+                  </div>
+                  <button style={styles.btnPrimary} onClick={() => { setTravelWarning(null); setActiveTab("travel"); }}>
+                    Voyager à {travelWarning.city}
+                  </button>
+                  <button style={{ ...styles.btnSecondary, borderColor: "#c4302b", color: "#c4302b" }} onClick={() => { setTravelWarning(null); advanceWeek(); }}>
+                    Avancer quand même (forfait)
+                  </button>
+                  <button style={styles.btnSecondary} onClick={() => setTravelWarning(null)}>Annuler</button>
+                </div>
+              </div>
+            </div>
+          )}
           {helpTab && PAGE_HELP[helpTab] && (
             <div onClick={() => setHelpTab(null)} style={{
               position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400,
@@ -4462,7 +4499,7 @@ export default function TennisManager() {
             </div>
           )}
           {activeTab === "hub" && player.challenge && <ChallengePanel player={player} atpDb={atpDb} repayDebt={repayDebt} />}
-          {activeTab === "hub" && <HubScreen player={player} news={news} advanceWeek={advanceWeek} rating={rating} ranking={ranking} totalPts={totalPts} cancelEnrollment={cancelEnrollment} isAdvancingWeek={isAdvancingWeek} acceptWildcard={acceptWildcard} declineWildcard={declineWildcard} retire={retire} setTournamentDetail={setTournamentDetail} />}
+          {activeTab === "hub" && <HubScreen player={player} news={news} advanceWeek={requestAdvanceWeek} rating={rating} ranking={ranking} totalPts={totalPts} cancelEnrollment={cancelEnrollment} isAdvancingWeek={isAdvancingWeek} acceptWildcard={acceptWildcard} declineWildcard={declineWildcard} retire={retire} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "calendar" && <CalendarScreen player={player} ranking={ranking} calFilters={calFilters} setCalFilters={setCalFilters} enrollTournament={enrollTournament} cancelEnrollment={cancelEnrollment} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "travel" && <TravelScreen player={player} travelTo={travelTo} />}
           {activeTab === "prep" && <PrepScreen player={player} doTraining={doTraining} hireStaff={hireStaff} fireStaff={fireStaff} />}
