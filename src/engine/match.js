@@ -33,6 +33,15 @@ export function rollDailyForm() {
   return Math.max(-2.5 * DAILY_FORM_SD, Math.min(2.5 * DAILY_FORM_SD, gaussian() * DAILY_FORM_SD));
 }
 // Bonus situationnel commun (énergie + momentum + forme du jour), en points de note.
+// Pause entre deux sets : chaque joueur récupère 3 à 5 d'énergie.
+export const SET_BREAK_RECOVERY = [3, 5];
+function setBreakRecovery(m) {
+  if (m.matchComplete) return;
+  const [lo, hi] = SET_BREAK_RECOVERY;
+  m.playerEnergy = Math.min(100, m.playerEnergy + lo + Math.floor(random() * (hi - lo + 1)));
+  m.oppEnergy = Math.min(100, m.oppEnergy + lo + Math.floor(random() * (hi - lo + 1)));
+}
+
 export function situationalBonus(energy, momentum, form) {
   return (energy - 70) * 0.08 + clampMomentum(momentum || 0) * MOMENTUM_WEIGHT + (form || 0);
 }
@@ -332,6 +341,7 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats, opts = {})
     // Check if this tiebreak set ended the match
     const setsToWin = m.isGrandSlam ? 3 : 2;
     if (m.pSets === setsToWin || m.oSets === setsToWin) m.matchComplete = true;
+    setBreakRecovery(m);
     return { gameType: tb.playerWon ? "tb_won" : "tb_lost", isPlayerServing: false, isTiebreak: true, points: tb.points, resumeFrom: tbResumeFrom, score: { p: curSet.pGames, o: curSet.oGames }, setComplete: true, setWonByPlayer: tb.playerWon, tbScore: (tb.playerWon ? tb.oPts : tb.pPts), tbTarget };
   }
 
@@ -451,6 +461,7 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats, opts = {})
   // Check match complete
   const setsToWin = m.isGrandSlam ? 3 : 2;
   if (m.pSets === setsToWin || m.oSets === setsToWin) m.matchComplete = true;
+  if (setComplete) setBreakRecovery(m);
 
   return { gameType, commentType, isPlayerServing, points: gamePoints, resumeFrom, score: { p: curSet.pGames, o: curSet.oGames }, setComplete, setWonByPlayer, isInjuryNote: false };
 }
