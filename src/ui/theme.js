@@ -1,4 +1,4 @@
-// Thème : couleurs (clair/sombre, accent WTA), polices, styles globaux.
+// Thème : couleurs (palette unique, accent WTA), polices, styles globaux.
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 // ─── DESIGN SYSTEM TOKENS ─────────────────────────────────────────────────────
@@ -9,8 +9,8 @@
 // (Les noms de jetons cyan/magenta/gold sont historiques : cyan = gazon,
 // magenta = violet club, gold = jaune balle.)
 export const T = {
-  // Backgrounds (deepest to highest) — resolved via CSS variables so the whole
-  // app can switch between dark and light themes by toggling a root class.
+  // Backgrounds (deepest to highest) — resolved via CSS variables so the
+  // accent can switch between the men's and women's circuits.
   bg0:  "var(--tm-bg0)",
   bg1:  "var(--tm-bg1)",
   bg2:  "var(--tm-bg2)",
@@ -68,67 +68,38 @@ export const T = {
   barRed:  "var(--tm-red)",
 };
 
-// Palette values per theme. The keys map to the --tm-* CSS variables above.
-export const THEME_PALETTES = {
-  // « Session de nuit » : fond nuit, encre craie, mêmes couleurs de club.
-  dark: {
-    bg0: "#121512", bg1: "#1b1f1b", bg2: "#232823", bg3: "#2c322c", bg4: "#3a413a",
-    brd: "rgba(244,242,233,0.28)", brd2: "rgba(244,242,233,0.55)", brd3: "rgba(244,242,233,0.85)",
-    fg: "#f4f2e9", fg2: "#e2dfd2", fg3: "#c3bfae", fg4: "#a39f8e", fg5: "#84806f",
-    green: "#4cc47c", greenHi: "#64d390", greenDk: "#2c8a52",
-    greenSub: "rgba(76,196,124,0.16)", greenBrd: "rgba(76,196,124,0.50)",
-    ball: "#d6ef3c",
-    red: "#ff6b5e", redSub: "rgba(255,107,94,0.16)", redBrd: "rgba(255,107,94,0.50)",
-    amber: "#f0c43a", amberSub: "rgba(240,196,58,0.16)", amberBrd: "rgba(240,196,58,0.50)",
-    blue: "#b79cf0", blueSub: "rgba(183,156,240,0.16)", blueBrd: "rgba(183,156,240,0.50)",
-    clay: "#ff8a52",
-    onAccent: "#121512",
-    ink: "#f4f2e9", paper: "#121512", gold: "#d6ef3c",
-    cyan: "#2a9a5a", magenta: "#8a5fd0", lilac: "#c9b6ea", dot: "rgba(244,242,233,0.09)",
-    shadow: "rgba(0,0,0,0.45)",
-    overlay: "rgba(8,10,8,0.74)",
-  },
-  // « Wimbledon pop » : papier craie, encre, vert gazon, violet club,
-  // jaune balle, lilas.
-  light: {
-    bg0: "#f4f2e9", bg1: "#ffffff", bg2: "#ebe8da", bg3: "#dedac8", bg4: "#cbc6af",
-    brd: "rgba(20,20,20,0.30)", brd2: "rgba(20,20,20,0.62)", brd3: "#141414",
-    fg: "#141414", fg2: "#24241f", fg3: "#3c3c34", fg4: "#5a5a50", fg5: "#7a7a6e",
-    green: "#1f7a45", greenHi: "#258f51", greenDk: "#135232",
-    greenSub: "rgba(31,122,69,0.12)", greenBrd: "rgba(31,122,69,0.50)",
-    ball: "#6e7d00",
-    red: "#c4302b", redSub: "rgba(196,48,43,0.10)", redBrd: "rgba(196,48,43,0.45)",
-    amber: "#946200", amberSub: "rgba(148,98,0,0.12)", amberBrd: "rgba(148,98,0,0.45)",
-    blue: "#5b2d8e", blueSub: "rgba(91,45,142,0.10)", blueBrd: "rgba(91,45,142,0.45)",
-    clay: "#c4572b",
-    onAccent: "#ffffff",
-    ink: "#141414", paper: "#f4f2e9", gold: "#d6ef3c",
-    cyan: "#1f7a45", magenta: "#5b2d8e", lilac: "#c9b6ea", dot: "rgba(20,20,20,0.11)",
-    shadow: "rgba(20,20,20,0.20)",
-    overlay: "rgba(20,20,20,0.55)",
-  },
+// Valeurs de la palette « Wimbledon pop » : papier craie, encre, vert
+// gazon, violet club, jaune balle, lilas. Les clés donnent les variables
+// CSS --tm-* ci-dessus.
+export const PALETTE = {
+  bg0: "#f4f2e9", bg1: "#ffffff", bg2: "#ebe8da", bg3: "#dedac8", bg4: "#cbc6af",
+  brd: "rgba(20,20,20,0.30)", brd2: "rgba(20,20,20,0.62)", brd3: "#141414",
+  fg: "#141414", fg2: "#24241f", fg3: "#3c3c34", fg4: "#5a5a50", fg5: "#7a7a6e",
+  green: "#1f7a45", greenHi: "#258f51", greenDk: "#135232",
+  greenSub: "rgba(31,122,69,0.12)", greenBrd: "rgba(31,122,69,0.50)",
+  ball: "#6e7d00",
+  red: "#c4302b", redSub: "rgba(196,48,43,0.10)", redBrd: "rgba(196,48,43,0.45)",
+  amber: "#946200", amberSub: "rgba(148,98,0,0.12)", amberBrd: "rgba(148,98,0,0.45)",
+  blue: "#5b2d8e", blueSub: "rgba(91,45,142,0.10)", blueBrd: "rgba(91,45,142,0.45)",
+  clay: "#c4572b",
+  onAccent: "#ffffff",
+  ink: "#141414", paper: "#f4f2e9", gold: "#d6ef3c",
+  cyan: "#1f7a45", magenta: "#5b2d8e", lilac: "#c9b6ea", dot: "rgba(20,20,20,0.11)",
+  shadow: "rgba(20,20,20,0.20)",
+  overlay: "rgba(20,20,20,0.55)",
 };
 
 // Circuit WTA : le vert d'accent devient rose (l'ocre et le reste ne bougent pas).
-export const WTA_ACCENT = {
-  light: { green: "#a3267c", greenHi: "#b8318d", greenDk: "#731a57", greenSub: "rgba(163,38,124,0.10)", greenBrd: "rgba(163,38,124,0.45)" },
-  dark:  { green: "#ff7fb0", greenHi: "#ff9cc2", greenDk: "#c2557f", greenSub: "rgba(255,127,176,0.16)", greenBrd: "rgba(255,127,176,0.50)" },
-};
+export const WTA_ACCENT = { green: "#a3267c", greenHi: "#b8318d", greenDk: "#731a57", greenSub: "rgba(163,38,124,0.10)", greenBrd: "rgba(163,38,124,0.45)" };
 
-export function buildThemeVars(mode) {
-  const p = THEME_PALETTES[mode] || THEME_PALETTES.dark;
-  return Object.keys(p).map(k => "--tm-" + k + ":" + p[k] + ";").join("");
-}
+const cssVars = (p) => Object.keys(p).map(k => "--tm-" + k + ":" + p[k] + ";").join("");
 
-// Apply a theme by writing the CSS variables onto :root (and a data attribute).
-export function applyTheme(mode, circuit) {
+// Applique l'accent du circuit en écrivant les variables CSS sur :root.
+export function applyCircuitAccent(circuit) {
   if (typeof document === "undefined") return;
-  const m = mode === "light" ? "light" : "dark";
-  const p = circuit === "wta" ? { ...THEME_PALETTES[m], ...WTA_ACCENT[m] } : THEME_PALETTES[m];
+  const p = circuit === "wta" ? { ...PALETTE, ...WTA_ACCENT } : PALETTE;
   const root = document.documentElement;
   Object.keys(p).forEach(k => root.style.setProperty("--tm-" + k, p[k]));
-  root.setAttribute("data-tm-theme", m);
-  document.body.style.background = p.bg0;
 }
 
 // Inject Google Fonts + global CSS once
@@ -141,8 +112,7 @@ if (typeof document !== "undefined" && !document.getElementById("tm-global-style
   const tag = document.createElement("style");
   tag.id = "tm-global-styles";
   tag.innerHTML = `
-    :root { ${buildThemeVars("light")} }
-    :root[data-tm-theme="dark"] { ${buildThemeVars("dark")} }
+    :root { ${cssVars(PALETTE)} }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; padding: 0; background: ${T.bg0}; }
     body {

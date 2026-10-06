@@ -33,3 +33,16 @@ describe("la une", () => {
     expect(d).toEqual([{ rubric: "Retraite", text: "Fin d'une carrière" }, { rubric: "Résultats", text: "Titre à Rome" }]);
   });
 });
+
+describe("tour joué en toutes lettres", () => {
+  it("dit « au premier tour », « en quarts de finale »…", async () => {
+    const { roundPhrase } = await import("../src/engine/frontpage.js");
+    expect(roundPhrase("1er tour")).toBe("au premier tour");
+    expect(roundPhrase("2e tour")).toBe("au deuxième tour");
+    expect(roundPhrase("8es de finale")).toBe("en huitièmes de finale");
+    expect(roundPhrase("Quarts")).toBe("en quarts de finale");
+    expect(roundPhrase("Demies")).toBe("en demi-finale");
+    expect(roundPhrase("Finale")).toBe("en finale");
+    expect(roundPhrase("Qualif. 1")).toBe("au premier tour des qualifications");
+  });
+});

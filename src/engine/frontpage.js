@@ -2,6 +2,25 @@
 // Fonctions pures : elles lisent l'état du joueur et le fil d'actualité.
 import { tierLabel } from "./circuit.js";
 
+// Tour joué → complément correct : « au premier tour », « en quarts de finale »…
+const ROUND_PHRASES = {
+  "1er tour": "au premier tour", "2e tour": "au deuxième tour", "3e tour": "au troisième tour",
+  "8es de finale": "en huitièmes de finale", "Quarts": "en quarts de finale",
+  "Demies": "en demi-finale", "Demi-finale": "en demi-finale", "Finale": "en finale",
+};
+const ORDINALS = ["premier", "deuxième", "troisième", "quatrième"];
+export function roundPhrase(round) {
+  if (!round) return "";
+  if (ROUND_PHRASES[round]) return ROUND_PHRASES[round];
+  const q = /^Qualif\. (\d+)$/.exec(round);
+  if (q) return "au " + (ORDINALS[q[1] - 1] || q[1] + "e") + " tour des qualifications";
+  if (/^Poules/.test(round)) return "en phase de poules";
+  const t = /^Tour (\d+)$/.exec(round);
+  if (t) return "au " + (ORDINALS[t[1] - 1] || t[1] + "e") + " tour";
+  return "en " + round.toLowerCase();
+}
+
+
 const lastName = (name) => (name || "").trim().split(/\s+/).pop() || name || "";
 const absWeek = (y, w) => (y || 0) * 52 + (w || 0);
 
@@ -62,7 +81,7 @@ function frontStory({ player, ranking, enrolled }) {
       return {
         kicker: kicker || "Exploit",
         title: ln + " fait tomber le n° " + last.opponentRank,
-        deck: "Victoire sur " + last.opponent + " (" + last.score + ") au " + last.tournament + ", " + (last.playedRound || "").toLowerCase() + ".",
+        deck: "Victoire sur " + last.opponent + " (" + last.score + ") " + roundPhrase(last.playedRound) + " du " + last.tournament + ".",
         tone: "green",
         caption: (last.city || "Sur le court") + ", coup de tonnerre…",
         quotes: ["Le n° " + last.opponentRank + " ? Il faudra compter avec moi.", "Je n'ai peur de personne."],
@@ -72,7 +91,7 @@ function frontStory({ player, ranking, enrolled }) {
       return {
         kicker: kicker || "Résultat",
         title: "Fin de parcours" + where,
-        deck: name + " s'incline face à " + last.opponent + " (" + last.score + ") en " + (last.playedRound || "").toLowerCase() + ".",
+        deck: name + " s'incline face à " + last.opponent + " (" + last.score + ") " + roundPhrase(last.playedRound) + ".",
         tone: "clay",
         caption: (last.city || "Au vestiaire") + ", dans les vestiaires…",
         quotes: ["On apprend plus des défaites.", "Je reviendrai."],
