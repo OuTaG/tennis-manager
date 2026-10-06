@@ -64,6 +64,27 @@ export function normalizeAvatar(config) {
   };
 }
 
+// Portrait d'un joueur de l'ordinateur, toujours le même pour un même nom
+// (hachage du nom → choix dans les options). Purement visuel.
+export function avatarFromName(name, female) {
+  let h = 2166136261;
+  for (const ch of String(name || "")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  const pick = (arr) => { const v = arr[h % arr.length]; h = Math.imul(h ^ (h >>> 13), 2654435761) >>> 0; return v; };
+  const fem = !!female;
+  const styles = fem ? ["queue", "chignon", "carre", "long", "court", "boucles"] : ["court", "pics", "boucles", "meche", "rase", "chauve", "long"];
+  return {
+    female: fem,
+    skin: pick(AVATAR_OPTIONS.skin),
+    hair: pick(AVATAR_OPTIONS.hair.slice(0, 6)),
+    hairStyle: pick(styles),
+    accessory: pick(["aucun", "aucun", "bandeau", "casquette", "visiere", "bandana"]),
+    accessoryColor: pick(AVATAR_OPTIONS.accessoryColor),
+    shirt: pick(AVATAR_OPTIONS.shirt),
+    facial: fem ? "aucun" : pick(["aucun", "aucun", "aucun", "barbe", "moustache", "bouc-moustache"]),
+    mood: pick(["determine", "concentre", "determine"]),
+  };
+}
+
 // Compatibilité : coiffure affichée pour un avatar féminin.
 export function femaleHairStyle(fem, hs) {
   return normalizeAvatar({ female: fem, hairStyle: hs }).hairStyle;

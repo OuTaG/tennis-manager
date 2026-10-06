@@ -29,7 +29,7 @@ import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
 import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
-import { AVATAR_OPTIONS, Avatar, AvatarBuilder, femaleHairStyle } from "./ui/avatar.jsx";
+import { AVATAR_OPTIONS, Avatar, AvatarBuilder, avatarFromName, femaleHairStyle } from "./ui/avatar.jsx";
 import { rankingName } from "./ui/format.js";
 import { FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
@@ -3677,104 +3677,103 @@ export default function TennisManager() {
 
     if (ms.phase === "prematch") {
       const oppProfile = getPlayerProfile(ms.opponent.stats);
+      // Affiche de match façon BD : bandeau à la couleur de la surface,
+      // face-à-face des deux portraits, fiche de scouting, forme du jour.
+      const SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2c6fd1", "Indoor": "#5b2d8e" };
+      const surfBg = SURF_BG[tourn.surface] || T.ink;
+      const ink = T.ink;
+      const panel = { background: T.bg1, border: "3px solid " + ink, boxShadow: "4px 4px 0 " + ink };
+      const bandTitle = (txt) => (
+        <div className="tm-display" style={{ background: ink, color: "#ffffff", fontSize: 15, padding: "5px 10px", letterSpacing: 0.5 }}>{txt}</div>
+      );
+      const formBar = (label, val) => (
+        <div style={{ display: "grid", gridTemplateColumns: "58px minmax(0, 1fr) 44px", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 800, textTransform: "uppercase" }}>{label}</span>
+          <div style={{ height: 14, border: "2.5px solid " + ink, background: "#ffffff" }}>
+            <div style={{ height: "100%", width: Math.round(val) + "%", background: val > 60 ? "#1f7a45" : val > 30 ? "#e0a21b" : "#c4302b", borderRight: val > 0 && val < 100 ? "2.5px solid " + ink : "none" }} />
+          </div>
+          <span className="tm-num" style={{ fontSize: 13, fontWeight: 800, textAlign: "right" }}>{Math.round(val)}%</span>
+        </div>
+      );
+      const portrait = (avatar, flag, name, rank, me) => (
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+          <div style={{ border: "3px solid " + ink, background: me ? T.gold : "#ffffff", boxShadow: "3px 3px 0 " + ink, overflow: "hidden" }}>
+            <Avatar config={avatar} size={104} bare />
+          </div>
+          <div className="tm-display" style={{ fontSize: 15, lineHeight: 1.05, textAlign: "center", color: "#141414", overflowWrap: "anywhere" }}>{name}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {flagEmojiToCode(flag) && <FlagFromEmoji emoji={flag} size={14} />}
+            <span className="tm-num" style={{ fontSize: 13, fontWeight: 800, background: me ? T.blue : "#ffffff", color: me ? "#ffffff" : "#141414", border: "2px solid " + ink, padding: "0 6px" }}>#{rank}</span>
+          </div>
+        </div>
+      );
       return (
         <div style={styles.root}>
-          <div style={styles.screen}>
-            <div style={{
-              background: T.bg1, padding: "16px 18px",
-              borderBottom: "1px solid " + T.brd,
-              textAlign: "center",
-            }}>
-              <div className="tm-eyebrow" style={{ color: tierColor(tourn.tier), marginBottom: 4 }}>{tierLabel(tourn.tier)} · {tourn.surface}</div>
-              <div className="tm-display" style={{ color: T.fg, fontSize: 24, lineHeight: 1.1, letterSpacing: 0.5 }}>{tourn.name}</div>
-              <div style={{ color: T.fg3, fontSize: 12, marginTop: 4, fontWeight: 600 }}>{roundName}</div>
-            </div>
-            <div style={{
-              ...styles.vsCard,
-              background: T.bg0,
-              border: "1px solid " + T.brd,
-            }} className="tm-court">
-              <div style={styles.vsPlayer}>
-                <div style={{
-                  width: 52, height: 52, borderRadius: 3,
-                  background: T.greenSub, border: "1px solid " + T.greenBrd,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 28, marginBottom: 6,
-                }}>{flagEmojiToCode(player.nationalityFlag)
-                  ? <FlagFromEmoji emoji={player.nationalityFlag} size={24} />
-                  : <Icon name="user" size={22} />}</div>
-                <div style={styles.vsName}>{player.name}</div>
-                <div style={styles.vsRating}>#{ranking}</div>
-              </div>
-              <div style={styles.vsVs}>vs</div>
-              <div style={styles.vsPlayer}>
-                <div style={{
-                  width: 52, height: 52, borderRadius: 3,
-                  background: T.bg3, border: "1px solid " + T.brd2,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 28, marginBottom: 6,
-                }}>{flagEmojiToCode(ms.opponent.nat?.flag)
-                  ? <FlagFromEmoji emoji={ms.opponent.nat?.flag} size={24} />
-                  : <Icon name="user" size={22} />}</div>
-                <div style={styles.vsName}>{ms.opponent.name}</div>
-                <div style={{ ...styles.vsRating, color: T.fg3 }}>#{ms.opponentRank}</div>
-              </div>
+          <div style={{ ...styles.screen, paddingBottom: 0 }}>
+            {/* Bandeau du tournoi */}
+            <div style={{ background: surfBg, color: "#ffffff", padding: "14px 16px 12px", borderBottom: "3px solid " + ink, backgroundImage: "radial-gradient(rgba(255,255,255,0.16) 1.4px, transparent 1.6px)", backgroundSize: "7px 7px" }}>
+              <span style={{ display: "inline-block", background: T.gold, color: "#141414", border: "2px solid " + ink, fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", padding: "1px 7px" }}>{tierLabel(tourn.tier)} · {tourn.surface}</span>
+              <div className="tm-display" style={{ fontSize: 28, lineHeight: 1.02, marginTop: 6, textShadow: "2px 2px 0 " + ink }}>{tourn.name}</div>
+              <span className="tm-lettering" style={{ display: "inline-block", marginTop: 6, background: "#ffffff", color: "#141414", border: "2px solid " + ink, padding: "1px 8px", fontSize: 14 }}>{roundName}</span>
             </div>
 
-            {/* Opponent scouting card */}
-            <div style={{ ...styles.section, paddingBottom: 8 }}>
-              <div style={styles.sectionTitle}><Icon name="search" size={11} /> Scouting adverse</div>
-              <div style={{ background: T.bg1, borderRadius: 3, padding: 14, border: "1px solid var(--tm-brd)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems: "center" }}>
-                  <span style={{ color: T.fg4, fontSize: 12 }}>Style de jeu</span>
-                  <span style={{ color: T.fg, fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Icon name={PLAYER_STYLES[ms.opponent.style]?.iconName} size={14} color={T.green} />
-                    {PLAYER_STYLES[ms.opponent.style]?.name}
-                  </span>
+            <div style={{ padding: "14px 16px 0", display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Face-à-face */}
+              <div className="tm-halftone-lilac" style={{ border: panel.border, boxShadow: panel.boxShadow, position: "relative", display: "flex", alignItems: "flex-start", gap: 6, padding: "14px 10px 12px" }}>
+                {portrait(player.avatar, player.nationalityFlag, player.name, ranking, true)}
+                {portrait(avatarFromName(ms.opponent.name, player.circuit === "wta"), ms.opponent.nat?.flag, ms.opponent.name, ms.opponentRank, false)}
+                <svg viewBox="0 0 100 100" width="62" height="62" aria-hidden="true" style={{ position: "absolute", left: "50%", top: 40, marginLeft: -31 }}>
+                  <polygon points="50,2 61,30 92,20 72,45 98,60 66,64 70,96 50,74 30,96 34,64 2,60 28,45 8,20 39,30" fill={T.gold} stroke={ink} strokeWidth="4" strokeLinejoin="round" />
+                  <text x="50" y="60" textAnchor="middle" fontFamily={T.display} fontSize="30" fill="#141414">VS</text>
+                </svg>
+              </div>
+
+              {/* Scouting */}
+              <div style={panel}>
+                {bandTitle("Scouting adverse")}
+                <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>Style de jeu</span>
+                    <span style={{ fontWeight: 800, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Icon name={PLAYER_STYLES[ms.opponent.style]?.iconName} size={15} color={T.fg} />
+                      {PLAYER_STYLES[ms.opponent.style]?.name}
+                    </span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div style={{ background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + ink, padding: "6px 8px" }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>Point fort</div>
+                      <div style={{ fontWeight: 800, fontSize: 14 }}>{oppProfile.strength.label} <span className="tm-num">{Math.round(oppProfile.strength.value)}</span></div>
+                    </div>
+                    <div style={{ background: "#c4302b", color: "#ffffff", border: "2.5px solid " + ink, padding: "6px 8px" }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4 }}><Icon name="target" size={11} color="#ffffff" /> Point faible</div>
+                      <div style={{ fontWeight: 800, fontSize: 14 }}>{oppProfile.weakness.label} <span className="tm-num">{Math.round(oppProfile.weakness.value)}</span></div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>Cote globale</span>
+                    <span className="tm-display" style={{ fontSize: 20, background: T.gold, color: "#141414", border: "2.5px solid " + ink, padding: "0 8px" }}>{getRating(ms.opponent.stats)}</span>
+                  </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                  <span style={{ color: T.fg4, fontSize: 12 }}>Point fort</span>
-                  <span style={{ color: T.green, fontWeight: 700, fontSize: 13 }}>{oppProfile.strength.label} ({Math.round(oppProfile.strength.value)})</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                  <span style={{ color: T.fg4, fontSize: 12 }}><Icon name="target" size={11} /> Point faible</span>
-                  <span style={{ color: T.red, fontWeight: 700, fontSize: 13 }}>{oppProfile.weakness.label} ({Math.round(oppProfile.weakness.value)})</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: T.fg4, fontSize: 12 }}>Côte globale</span>
-                  <span style={{ color: T.amber, fontWeight: 700, fontSize: 13 }}>{getRating(ms.opponent.stats)}</span>
+              </div>
+
+              {/* Forme du jour et format */}
+              <div style={panel}>
+                {bandTitle("Forme du jour")}
+                <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  {formBar("Vous", player.energy)}
+                  {formBar("Adv.", m.oppEnergy)}
+                  {player.energy < 40 && <div style={{ color: "#c4302b", fontSize: 12, fontWeight: 800 }}><Icon name="warning" size={12} /> Énergie faible : performance réduite</div>}
+                  {m.oppEnergy < 50 && <div style={{ color: "#1f7a45", fontSize: 12, fontWeight: 800 }}><Icon name="lightbulb" size={12} /> Adversaire fatigué par ses précédents matchs</div>}
+                  <div style={{ borderTop: "2px solid " + ink, paddingTop: 8, fontSize: 12.5, fontWeight: 800 }}>
+                    {ms.isGrandSlam ? "3 sets gagnants · tie-break à 10 pts au 5e set"
+                      : ms.tournament?.tier === "GrandSlam" ? "2 sets gagnants · tie-break à 10 pts au 3e set"
+                      : "2 sets gagnants · tie-break à 7 pts à 6-6"}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div style={{ padding: "0 16px 12px" }}>
-              <div style={{ ...styles.energyBar, marginBottom: 8 }}>
-                <div style={styles.energyLabel}><Icon name="energy" size={11} /> Vous</div>
-                <div style={styles.energyTrack}>
-                  <div style={{ ...styles.energyFill, width: player.energy + "%", background: player.energy > 60 ? T.green : player.energy > 30 ? T.amber : T.red }} />
-                </div>
-                <div style={styles.energyVal}>{player.energy}%</div>
-              </div>
-              <div style={{ ...styles.energyBar, marginBottom: 4 }}>
-                <div style={styles.energyLabel}><Icon name="energy" size={11} /> Adv.</div>
-                <div style={styles.energyTrack}>
-                  <div style={{ ...styles.energyFill, width: Math.round(m.oppEnergy) + "%", background: m.oppEnergy > 60 ? T.green : m.oppEnergy > 30 ? T.amber : T.red }} />
-                </div>
-                <div style={styles.energyVal}>{Math.round(m.oppEnergy)}%</div>
-              </div>
-              {player.energy < 40 && <div style={{ color: T.red, fontSize: 11, textAlign: "center", marginTop: 6 }}><Icon name="warning" size={11} /> Énergie faible — performance réduite</div>}
-              {m.oppEnergy < 50 && <div style={{ color: T.green, fontSize: 11, textAlign: "center", marginTop: 4 }}><Icon name="lightbulb" size={11} /> Adversaire fatigué par ses précédents matchs</div>}
-            </div>
-
-            <div style={{ ...styles.section, paddingTop: 0 }}>
-              <div style={styles.sectionTitle}>Format</div>
-              <div style={{ color: T.fg, fontSize: 13 }}>
-                {ms.isGrandSlam ? "3 sets gagnants · Tie-break à 10pts (5e set)"
-                  : ms.tournament?.tier === "GrandSlam" ? "2 sets gagnants · Tie-break à 10pts (3e set)"
-                  : "2 sets gagnants · Tie-break à 7pts à 6-6"}
-              </div>
-            </div>
-            <button style={{ ...styles.btnPrimary, margin: "auto 16px 24px" }} onClick={() => {
+            <button style={{ ...styles.btnPrimary, width: "auto", alignSelf: "stretch", margin: "18px 16px 24px" }} onClick={() => {
               setPausedBoth(false);
               pausedResumeRef.current = null;
               setMatchState(prev => ({ ...prev, phase: "live" }));
@@ -4106,7 +4105,9 @@ export default function TennisManager() {
                   >Tactique</button>
                   {tacticsOpen && (() => {
                     const tac = normalizeTactics(m.tactics);
-                    const advice = coachAdvice(player.stats, ms.opponent.stats, tourn.surface);
+                    // Conseil seulement si un coach est engagé (jamais en mode sans staff).
+                    const hasCoach = (player.staff || []).some(st => st.role === "Coach");
+                    const advice = hasCoach ? coachAdvice(player.stats, ms.opponent.stats, tourn.surface) : { key: null, value: null };
                     const setTac = (key, value) => {
                       const next = { ...tac, [key]: value };
                       setMatchState(prev => prev ? ({ ...prev, matchData: { ...prev.matchData, tactics: next } }) : prev);
@@ -4122,10 +4123,10 @@ export default function TennisManager() {
                           <span className="tm-display" style={{ fontSize: 22 }}>Plan de jeu</span>
                           <span className="tm-eyebrow" style={{ color: T.fg }}>Contre {ms.opponent.name}</span>
                         </div>
-                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        {hasCoach && <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                           <div className="tm-lettering" style={{ flex: 1, background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, borderRadius: "50% / 40%", padding: "9px 14px", fontSize: 15, textAlign: "center" }}>« {advice.text} »</div>
                           <div className="tm-eyebrow" style={{ color: T.fg, textAlign: "right", paddingTop: 8 }}>Votre<br />coach</div>
-                        </div>
+                        </div>}
                         {TACTIC_DEFS.map(d => (
                           <div key={d.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, fontWeight: 800 }}>
@@ -4150,7 +4151,7 @@ export default function TennisManager() {
                             </div>
                           </div>
                         ))}
-                        <div style={{ fontSize: 11.5, color: T.fg3, fontWeight: 600 }}>★ = conseil du coach. Les effets dépendent de votre profil, de celui de l'adversaire et de la surface.</div>
+                        <div style={{ fontSize: 11.5, color: T.fg3, fontWeight: 600 }}>{hasCoach ? "★ = conseil du coach. " : ""}Les effets dépendent de votre profil, de celui de l'adversaire et de la surface.</div>
                         <button
                           style={{ ...styles.btnPrimary, marginTop: "auto", background: T.green }}
                           onClick={() => { setTacticsOpen(false); if (!running) togglePause(); }}
@@ -4255,20 +4256,23 @@ export default function TennisManager() {
               ))}
             </div>
           </div>
-          {/* Ligne du joueur, entre deux traits d'encre */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, borderTop: "2.5px solid " + T.ink, borderBottom: "2.5px solid " + T.ink, padding: "4px 0", minWidth: 0 }}>
-            <div style={{ width: 30, height: 30, flexShrink: 0, overflow: "hidden" }}>
-              {player.avatar ? <Avatar config={player.avatar} size={30} /> : <Icon name="racquet" size={18} color={T.fg} />}
+          {/* Bandeau du joueur sur deux étages, entre deux traits d'encre :
+              nom complet et classement en haut, situation de la semaine en bas. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, borderTop: "2.5px solid " + T.ink, borderBottom: "2.5px solid " + T.ink, padding: "6px 0", minWidth: 0 }}>
+            <div style={{ width: 42, height: 42, flexShrink: 0, overflow: "hidden", border: "2px solid " + T.ink }}>
+              {player.avatar ? <Avatar config={player.avatar} size={38} /> : <Icon name="racquet" size={20} color={T.fg} />}
             </div>
-            <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 6, whiteSpace: "nowrap", overflow: "hidden" }}>
-              <span style={{ fontWeight: 800, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", textTransform: "uppercase" }}>{player.name}</span>
-              <span className="tm-num" style={{ fontSize: 12, fontWeight: 800, color: T.blue }}>#{ranking}</span>
-            </div>
-            <div className="tm-num" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              <span>S{player.week}</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><FlagFromEmoji emoji={CITIES[player.location]?.flag} size={9} />{player.location}</span>
-              <span style={{ color: player.money >= 0 ? T.fg : T.red }}>{Math.round(player.money).toLocaleString("fr-FR")} €</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 2, color: player.energy > 60 ? T.green : player.energy > 30 ? T.amber : T.red }}><Icon name="energy" size={12} />{Math.round(player.energy)}</span>
+            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                <span style={{ flex: 1, minWidth: 0, fontWeight: 800, fontSize: 14, lineHeight: 1.15, textTransform: "uppercase", overflowWrap: "anywhere" }}>{player.name}</span>
+                <span className="tm-num" style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: "#ffffff", background: T.blue, border: "2px solid " + T.ink, padding: "0 5px" }}>#{ranking}</span>
+              </div>
+              <div className="tm-num" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap", minWidth: 0 }}>
+                <span>Sem. {player.week}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}><FlagFromEmoji emoji={CITIES[player.location]?.flag} size={9} />{player.location}</span>
+                <span style={{ color: player.money >= 0 ? T.fg : T.red }}>{Math.round(player.money).toLocaleString("fr-FR")} €</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 2, color: player.energy > 60 ? T.green : player.energy > 30 ? T.amber : T.red }}><Icon name="energy" size={12} />{Math.round(player.energy)}</span>
+              </div>
             </div>
           </div>
         </div>
