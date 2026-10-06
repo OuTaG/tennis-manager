@@ -277,9 +277,11 @@ function MentalGame({ mental = 60, done, onEnd }) {
   const phase = (x) => (x / 1.05) % 1;
   const ph = phase(t);
   const size = 0.35 + 0.65 * (0.5 - 0.5 * Math.cos(ph * 2 * Math.PI)); // 0,35 → 1
-  const tap = () => {
+  const tap = (e) => {
+    if (e) e.preventDefault();
     if (done || taps.length >= 3) return;
-    const d = Math.min(ph, 1 - ph); // distance au moment le plus calme
+    const phNow = phase(tRef.current);
+    const d = Math.min(phNow, 1 - phNow); // distance au moment le plus calme
     const good = d <= tol;
     const next = [...taps, good];
     setTaps(next);
@@ -307,9 +309,10 @@ function MentalGame({ mental = 60, done, onEnd }) {
         </div>
       </div>
       {!done && (
-        <button onClick={tap} style={{
+        <button onPointerDown={tap} style={{
           minHeight: 56, border: "3px solid " + INK, background: BALL, color: INK, cursor: "pointer",
           fontFamily: T.display, fontSize: 22, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
+          touchAction: "manipulation", userSelect: "none", WebkitUserSelect: "none", WebkitTapHighlightColor: "transparent",
         }}>Respirer</button>
       )}
     </>
@@ -319,28 +322,36 @@ function MentalGame({ mental = 60, done, onEnd }) {
 // Jauge de timing : l'aiguille fait des allers-retours, il faut frapper
 // quand elle traverse la zone verte.
 const GREEN_CENTER = 0.5, GREEN_HALF = 0.08, NEAR_HALF = 0.18;
+// Réactivité (mobile) : l'aiguille est déplacée directement dans le DOM
+// (transform, sans re-rendu React à chaque image) et la frappe part au
+// contact du doigt (pointerdown), pas au relâchement. La position est
+// recalculée à l'instant exact de la frappe à partir de l'horloge.
 function SmashGauge({ done, onHit }) {
-  const [pos, setPos] = useState(0);
-  const posRef = useRef(0);
+  const startRef = useRef(null);
   const rafRef = useRef(null);
+  const needleRef = useRef(null);
+  const posAt = (now) => {
+    const t = ((now - startRef.current) / 560) % 2; // aller en 0,56 s, retour en 0,56 s
+    return t < 1 ? t : 2 - t;
+  };
   useEffect(() => {
     if (done) return undefined;
-    let start = null;
+    startRef.current = null;
     const step = (now) => {
-      if (start === null) start = now;
-      const t = ((now - start) / 560) % 2; // aller en 0,56 s, retour en 0,56 s
-      const p = t < 1 ? t : 2 - t;
-      posRef.current = p;
-      setPos(p);
+      if (startRef.current === null) startRef.current = now;
+      if (needleRef.current) needleRef.current.style.transform = "translateX(" + (posAt(now) * 100) + "%)";
       rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
   }, [done]);
-  const hit = () => {
-    if (done) return;
+  const hit = (e) => {
+    if (e) e.preventDefault();
+    if (done || startRef.current === null) return;
     cancelAnimationFrame(rafRef.current);
-    const d = Math.abs(posRef.current - GREEN_CENTER);
+    const pos = posAt(performance.now());
+    if (needleRef.current) needleRef.current.style.transform = "translateX(" + (pos * 100) + "%)";
+    const d = Math.abs(pos - GREEN_CENTER);
     const precision = d <= GREEN_HALF ? 0.6 + 0.4 * (1 - d / GREEN_HALF) : d <= NEAR_HALF ? 0.25 + 0.35 * (1 - (d - GREEN_HALF) / (NEAR_HALF - GREEN_HALF)) : 0;
     onHit(precision);
   };
@@ -350,12 +361,15 @@ function SmashGauge({ done, onHit }) {
       <div style={{ position: "relative", height: 52, border: "3px solid " + INK, background: LILAC, boxShadow: "4px 4px 0 " + INK, overflow: "hidden" }}>
         <div style={{ position: "absolute", top: 0, bottom: 0, left: ((GREEN_CENTER - NEAR_HALF) * 100) + "%", width: (NEAR_HALF * 200) + "%", background: "#ffffff" }} />
         <div style={{ position: "absolute", top: 0, bottom: 0, left: ((GREEN_CENTER - GREEN_HALF) * 100) + "%", width: (GREEN_HALF * 200) + "%", background: GRASS, borderLeft: "2.5px solid " + INK, borderRight: "2.5px solid " + INK }} />
-        <div style={{ position: "absolute", top: -2, bottom: -2, width: 7, marginLeft: -3, left: (pos * 100) + "%", background: INK }} />
+        <div ref={needleRef} style={{ position: "absolute", top: -2, bottom: -2, left: 0, width: "100%", willChange: "transform", pointerEvents: "none" }}>
+          <div style={{ position: "absolute", top: 0, bottom: 0, left: -3, width: 7, background: INK }} />
+        </div>
       </div>
       {!done && (
-        <button onClick={hit} style={{
+        <button onPointerDown={hit} style={{
           minHeight: 56, border: "3px solid " + INK, background: BALL, color: INK, cursor: "pointer",
           fontFamily: T.display, fontSize: 22, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
+          touchAction: "manipulation", userSelect: "none", WebkitUserSelect: "none", WebkitTapHighlightColor: "transparent",
         }}>Frapper !</button>
       )}
     </>

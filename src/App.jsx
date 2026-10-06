@@ -4086,14 +4086,28 @@ export default function TennisManager() {
                     </div>
                   );
                 }
+                // Blessure en match : case BD rouge tramée avec onomatopée.
+                if (b.type === "injury") {
+                  return (
+                    <div key={b.id} style={{ ...styles.eventItem, background: "#c4302b", backgroundImage: "radial-gradient(rgba(20,20,20,0.22) 1.3px, transparent 1.5px)", backgroundSize: "6px 6px", opacity: fade, position: "relative", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, color: "#ffffff", padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ width: 34, height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2.5px solid " + T.ink, transform: "rotate(-4deg)" }}>
+                        <Icon name="bandage" size={19} color="#c4302b" />
+                      </span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <span className="tm-display" style={{ display: "inline-block", fontSize: 20, lineHeight: 1, color: "#d6ef3c", WebkitTextStroke: "1.2px " + T.ink, textShadow: "2px 2px 0 " + T.ink, transform: "rotate(-3deg)", marginBottom: 4 }}>AÏE !</span>
+                        <div style={{ fontSize: 13.5, fontWeight: 800, textShadow: "1px 1px 0 " + T.ink }}>{withFlags(b.text)}</div>
+                      </div>
+                    </div>
+                  );
+                }
                 const good = ["break_clean", "break_grind", "rebreak", "tb_won", "set_won", "hold_easy", "hold_tough"].includes(b.type);
-                const bad = ["lose_serve", "opp_rebreak", "tb_lost", "set_lost", "injury"].includes(b.type);
+                const bad = ["lose_serve", "opp_rebreak", "tb_lost", "set_lost"].includes(b.type);
                 const big = b.type === "set_won" || b.type === "set_lost";
                 const tag = b.type === "set_won" ? "SET !" : b.type === "set_lost" ? "SET PERDU"
                   : ["break_clean", "break_grind", "rebreak"].includes(b.type) ? "BREAK !"
                   : ["lose_serve", "opp_rebreak"].includes(b.type) ? "BREAKÉ"
                   : b.type === "tb_won" ? "TIE-BREAK !" : b.type === "tb_lost" ? "TIE-BREAK"
-                  : b.type === "injury" ? "AÏE !" : null;
+                  : null;
                 const band = good ? "#1f7a45" : bad ? "#c4302b" : T.bg4;
                 return (
                   <div key={b.id} style={{
