@@ -1537,7 +1537,7 @@ export default function TennisManager() {
     const energyBefore = m.playerEnergy;
     // Point décisif : une fois sur deux, l'avantage du joueur se joue en mini-jeu.
     const allowMiniGame = !m.pendingGame && !m.matchFixThrown && random() < 0.5;
-    const result = advanceMatchOneGame(m, getEffectiveStats(player, { tournamentCity: ms.tournament?.city, opponentCountry: ms.opponent?.nat?.country, surface: ms.tournament?.surface }), ms.opponent.stats, { allowMiniGame });
+    const result = advanceMatchOneGame(m, getEffectiveStats(player, { tournamentCity: ms.tournament?.city, opponentCountry: ms.opponent?.nat?.country, surface: ms.tournament?.surface }), ms.opponent.stats, { allowMiniGame, allowTiebreakMental: !m.pendingGame && !m.matchFixThrown });
     const pendingMini = !!result.pending;
     // Apply staff energy-drain reduction (e.g. fitness coach).
     const drainCut = Math.max(0, sumStaffEffect(player.staff, "energyDrainCut"));
@@ -1634,7 +1634,8 @@ export default function TennisManager() {
     let fixOffered = ms.fixOffered || false;
     if (pendingMini) {
       // Avantage joueur : le point se joue en mini-jeu (gagné = jeu, perdu = égalité).
-      pendingDilemma = { id: "minigame", minigame: pickMatchMiniGame(result.isPlayerServing !== false), title: "Point décisif", desc: "" };
+      // Tie-break : balle de set jouée au mental ; sinon duel ou smash.
+      pendingDilemma = { id: "minigame", minigame: result.isTiebreak ? "mental" : pickMatchMiniGame(result.isPlayerServing !== false), title: "Point décisif", desc: "" };
     } else if (fixDue) {
       pendingDilemma = MATCH_FIX_DILEMMA;
       fixOffered = true;
@@ -1805,8 +1806,9 @@ export default function TennisManager() {
       if (zone !== null && zone !== undefined) m.serveZones = [...(m.serveZones || []), zone].slice(-8);
       // Le jeu interrompu reprend : gagné → jeu pour le joueur, perdu → égalité.
       if (m.pendingGame) m.pendingGame = { ...m.pendingGame, miniGameWon: !!win };
-      const title = kind === "serve_duel" ? "Duel au service" : kind === "return_duel" ? "Duel au retour" : "Smash";
-      const evts = [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text: text + (win ? " Jeu !" : " Retour à égalité.") }];
+      const title = kind === "serve_duel" ? "Duel au service" : kind === "return_duel" ? "Duel au retour" : kind === "mental" ? "Sang-froid" : "Smash";
+      const outcome = kind === "mental" ? (win ? " Point gagné !" : " Point perdu.") : (win ? " Jeu !" : " Retour à égalité.");
+      const evts = [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text: text + outcome }];
       // Smash raté : réception difficile, petit risque de blessure.
       if (kind === "smash" && !win && random() < SMASH_INJURY_RISK * injuryRiskMul(player)) {
         evts.unshift({ id: Date.now() + random() + 1, type: "injury", text: "Mauvaise réception après le smash… " + inflictMatchInjury(m) });
@@ -1818,15 +1820,21 @@ export default function TennisManager() {
         eventLog: [...evts, ...(ms.eventLog || [])].slice(0, 80),
       };
     });
-    // Le score s'affiche tout de suite : jeu gagné, ou retour à égalité.
-    setLivePoint(lp => ({ p: win ? "JEU" : "40", o: "40", server: lp ? lp.server : true }));
+    // Le score s'affiche tout de suite : jeu gagné, retour à égalité, ou
+    // nouveau score du tie-break.
+    const pgNow = matchState && matchState.matchData && matchState.matchData.pendingGame;
+    if (pgNow && pgNow.isTiebreak) {
+      setLivePoint(lp => ({ p: String(pgNow.pPts + (win ? 1 : 0)), o: String(pgNow.oPts + (win ? 0 : 1)), server: lp ? lp.server : true }));
+    } else {
+      setLivePoint(lp => ({ p: win ? "JEU" : "40", o: "40", server: lp ? lp.server : true }));
+    }
     if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
     // Jeu gagné : le tableau se met à jour aussitôt. Égalité : courte pause
     // pour se remettre dans le match, puis la fin du jeu se joue.
     autoTimerRef.current = setTimeout(() => {
       autoTimerRef.current = null;
       if (!matchPausedRef.current && playGameRef.current) playGameRef.current();
-    }, (win ? 250 : 1600) * speedFactor());
+    }, (pgNow && pgNow.isTiebreak ? 1400 : win ? 250 : 1600) * speedFactor());
   };
   const resolveDilemma = (option, dilemma) => {
     // ── Special handling: match-fixing proposal ──
@@ -4040,7 +4048,7 @@ export default function TennisManager() {
                 {(() => {
                   const pg = m.pendingGame;
                   // Avantage joueur au moment du mini-jeu : AV contre 40.
-                  const pt = pg ? { p: pg.pp > pg.op ? "AV" : "40", o: pg.op > pg.pp ? "AV" : "40" } : null;
+                  const pt = !pg ? null : pg.isTiebreak ? { p: String(pg.pPts), o: String(pg.oPts) } : { p: pg.pp > pg.op ? "AV" : "40", o: pg.op > pg.pp ? "AV" : "40" };
                   return (
                     <div style={{ width: "100%", maxWidth: 400, background: "#ffffff", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, flexShrink: 0 }}>
                       {[{ name: player.name, isP: true }, { name: ms.opponent.name, isP: false }].map((row, ri) => (
@@ -4062,7 +4070,10 @@ export default function TennisManager() {
                   oppStats={ms.opponent.stats}
                   myStats={player.stats}
                   history={m.serveZones || []}
-                  stake={m.pendingGame && !m.pendingGame.isPlayerServing ? "Balle de break" : "Balle de jeu"}
+                  stake={m.pendingGame && m.pendingGame.isTiebreak
+                    ? (m.pendingGame.pPts + 1 >= m.pendingGame.target && m.pendingGame.pPts + 1 - m.pendingGame.oPts >= 2 ? "Balle de set pour vous" : "Balle de set à sauver")
+                    : m.pendingGame && !m.pendingGame.isPlayerServing ? "Balle de break" : "Balle de jeu"}
+                  myMental={player.stats.mental}
                   oppAvatar={avatarFromName(ms.opponent.name, player.circuit === "wta")}
                   myAvatar={player.avatar}
                   onDone={(win, text, zone) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone)}

@@ -25,3 +25,15 @@ describe("animation des duels", () => {
     expect(inCourt(steps[steps.length - 1].ball)).toBe(false);
   });
 });
+
+describe("mini-jeu mental", () => {
+  it("s'affiche avec son titre, sa consigne et le bouton Respirer", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { createElement } = await import("react");
+    const { MatchMiniGame } = await import("../src/ui/overlays/MiniGames.jsx");
+    const html = renderToStaticMarkup(createElement(MatchMiniGame, { kind: "mental", oppName: "X", stake: "Balle de set à sauver", myMental: 70, onDone: () => {} }));
+    expect(html).toContain("Sang-froid");
+    expect(html).toContain("Balle de set à sauver");
+    expect(html).toContain("Respirer");
+  });
+});
