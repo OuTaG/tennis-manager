@@ -1637,7 +1637,7 @@ export default function TennisManager() {
           : (gt === "lose_serve" || gt === "opp_rebreak") ? ["sur un break", "en prenant le service de " + player.name, "en breakant une dernière fois"]
           : ["sur son service", "sur sa mise en jeu", "en tenant son engagement"]);
       setVars.how = howPools[Math.floor(random() * howPools.length)];
-      newEvents.push({ ...gameEvent, id: Date.now() + random() + 1, type: result.setWonByPlayer ? "set_won" : "set_lost", text: pickComment(setType, setVars) });
+      newEvents.push({ ...gameEvent, id: Date.now() + random() + 1, type: result.setWonByPlayer ? "set_won" : "set_lost", matchEnd: !!m.matchComplete, text: pickComment(setType, setVars) });
     }
 
     if (!pendingMini && random() < 0.05 && !result.setComplete) {
@@ -4103,7 +4103,8 @@ export default function TennisManager() {
                 const good = ["break_clean", "break_grind", "rebreak", "tb_won", "set_won", "hold_easy", "hold_tough"].includes(b.type);
                 const bad = ["lose_serve", "opp_rebreak", "tb_lost", "set_lost"].includes(b.type);
                 const big = b.type === "set_won" || b.type === "set_lost";
-                const tag = b.type === "set_won" ? "SET !" : b.type === "set_lost" ? "SET PERDU"
+                // Dernier set : l'étiquette annonce l'issue du match.
+                const tag = b.type === "set_won" ? (b.matchEnd ? "MATCH GAGNÉ !" : "SET !") : b.type === "set_lost" ? (b.matchEnd ? "MATCH PERDU" : "SET PERDU")
                   : ["break_clean", "break_grind", "rebreak"].includes(b.type) ? "BREAK !"
                   : ["lose_serve", "opp_rebreak"].includes(b.type) ? "BREAKÉ"
                   : b.type === "tb_won" ? "TIE-BREAK !" : b.type === "tb_lost" ? "TIE-BREAK"
