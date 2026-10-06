@@ -129,7 +129,6 @@ export default function TennisManager() {
   const [livePoint, setLivePoint] = useState(null); // { p, o } — current game's running score shown in the scoreboard
   const livePointTimersRef = useRef([]);
   const pendingCommitRef = useRef(null); // function that commits the in-flight simulation immediately
-  const [notification, setNotification] = useState(null);
   const [activeTab, setActiveTab] = useState("hub");
   const [calFilters, setCalFilters] = useState({ surface: [], tier: [], region: "all" });
   const [atpPage, setAtpPage] = useState(1);
@@ -172,7 +171,7 @@ export default function TennisManager() {
       pointsLog: undefined,
     }));
   };
-  
+
   // Decompress back to full format when loading
   const decompactAtpDb = (atpDb) => {
     if (!atpDb) return atpDb;
@@ -234,7 +233,6 @@ export default function TennisManager() {
     obs.observe(document.body, { subtree: true, childList: true, characterData: true });
     return () => obs.disconnect();
   }, [activeCircuit]);
-
 
   // Save the game — debounced. Serialising `player + atpDb (~1200 entries) +
   // news` is heavy and JSON.stringify blocks the main thread. Writing on
@@ -322,7 +320,7 @@ export default function TennisManager() {
     setPlayer(p => ({ ...p, challenge: { ...p.challenge, status: res.status, result: res, resultSeen: false } }));
   }, [player, atpDb, screen]);
 
-  // Trophy detection: check on relevant player changes; notify on new unlocks.
+  // Trophy detection: check on relevant player changes; record new unlocks.
   useEffect(() => {
     if (!player) return;
     const prev = new Set(player.trophies || []);
@@ -333,18 +331,15 @@ export default function TennisManager() {
         trophies: [...(p.trophies || []), ...newly.map(t => t.id)],
         unseenTrophies: (p.unseenTrophies || 0) + newly.length,
       }));
-      newly.forEach((t, i) => {
-        setTimeout(() => notify("Trophée débloqué : " + t.name, "success"), i * 800);
-      });
     }
   }, [player?.careerWins, player?.titlesWon, player?.matchHistory?.length, player?.history?.length, player?.totalEarnings, player?.careerSeasons?.length, player?.sponsors?.length, player?.sponsorOffers?.length, player?.wildcardsUsed?.length, player?.viewedAtpPlayers?.length, player?.money, player?.stats]);
 
   const loadSave = (slotIdx) => {
     try {
       const raw = localStorage.getItem(saveKeyFor(slotIdx));
-      if (!raw) { notify("Aucune sauvegarde trouvée", "warn"); return; }
+      if (!raw) { return; }
       const data = JSON.parse(raw);
-      if (!data.player || !data.atpDb) { notify("Sauvegarde corrompue", "warn"); return; }
+      if (!data.player || !data.atpDb) { return; }
       // Decompress atpDb (Opt A+B)
       data.atpDb = decompactAtpDb(data.atpDb);
       setCircuit(data.player.circuit || "atp");
@@ -372,7 +367,7 @@ export default function TennisManager() {
       }
     } catch (e) {
       console.error(e);
-      notify("Erreur lors du chargement", "warn");
+
     }
   };
 
@@ -402,7 +397,7 @@ export default function TennisManager() {
       setScreen("menu");
     }
     refreshSlots();
-    notify("Carrière effacée", "info");
+
   };
 
   // Retour au menu principal : on sauvegarde tout de suite, puis on décharge
@@ -430,11 +425,6 @@ export default function TennisManager() {
     setCircuit("atp");
     refreshSlots();
     setScreen("menu");
-  };
-
-  const notify = (msg, type = "info") => {
-    setNotification({ msg, type });
-    setTimeout(() => setNotification(null), 3000);
   };
 
   // ── DÉFIS ───────────────────────────────────────────────────────────────
@@ -486,12 +476,12 @@ export default function TennisManager() {
   const repayDebt = (amount) => {
     const debt = player?.challenge?.debt || 0;
     const pay = Math.floor(Math.min(amount, debt, player?.money || 0));
-    if (pay <= 0) { notify("Pas assez d'argent pour rembourser", "warn"); return; }
+    if (pay <= 0) { return; }
     setPlayer(p => ({
       ...p, money: p.money - pay, totalSpent: (p.totalSpent || 0) + pay,
       challenge: { ...p.challenge, debt: Math.max(0, (p.challenge.debt || 0) - pay) },
     }));
-    notify("Remboursement de " + pay.toLocaleString() + " €", "success");
+
   };
 
   // ── AIDE À LA PREMIÈRE VISITE ────────────────────────────────────────────
@@ -542,7 +532,7 @@ export default function TennisManager() {
     if (p.injury) {
       const inj = { ...p.injury, weeksRemaining: p.injury.weeksRemaining - 1 };
       if (inj.weeksRemaining <= 0) {
-        notify("Vous êtes guéri de votre blessure !", "success");
+
         p.injury = null;
       } else {
         p.injury = inj;
@@ -581,9 +571,9 @@ export default function TennisManager() {
           else p.totalSpent = (p.totalSpent || 0) - amount;
           if (met) p.careerObjectivesMet = (p.careerObjectivesMet || 0) + 1;
           p._endedSponsorResults = [...(p._endedSponsorResults || []), { brand: s.brand, met, amount, objective: s.objective }];
-          notify("Fin du contrat " + s.brand + " : objectif " + (met ? "atteint, prime de " + amount.toLocaleString() + "€" : "manqué, pénalité de " + (-amount).toLocaleString() + "€"), met ? "success" : "warn");
+
         } else {
-          notify("Contrat sponsor terminé : " + s.brand, "info");
+
         }
       }
       // Agent bonus: extra % on sponsor revenue
@@ -694,7 +684,7 @@ export default function TennisManager() {
     }
     } catch (err) {
       console.error("[week] sponsor phase error:", err);
-      notify("Erreur lors de la phase sponsors, semaine poursuivie", "warn");
+
     }
 
     // Wildcard offers: if player has good recent perf but ranking limits them on
@@ -764,7 +754,7 @@ export default function TennisManager() {
                   tournamentYear: targetYear,
                   week: newWeek, year: newYear,
                 }];
-                notify("Wildcard proposée : " + t.name + " !", "success");
+
                 newOffersThisWeek++;
                 if (newOffersThisWeek >= 1 || (p.wildcardOffers || []).length >= 2) break outer;
               }
@@ -787,7 +777,7 @@ export default function TennisManager() {
         const payout = Math.round(inv.amount * out.mul);
         p.money += payout;
         if (payout > inv.amount) p.totalEarnings = (p.totalEarnings || 0) + (payout - inv.amount);
-        notify(out.msg + (payout > 0 ? " (+" + payout.toLocaleString() + "€)" : ""), payout >= inv.amount ? "success" : "warn");
+
       }
       p.pendingInvestments = still;
     }
@@ -830,11 +820,11 @@ export default function TennisManager() {
           p.money -= due;
           p.totalSpent = (p.totalSpent || 0) + due;
           p.challenge.debt = Math.max(0, p.challenge.debt - due);
-          notify("Échéance payée : " + due.toLocaleString() + " € (reste " + Math.round(p.challenge.debt).toLocaleString() + " €)", "info");
+
         } else {
           const pen = Math.round(p.challenge.debt * 0.1);
           p.challenge.debt += pen;
-          notify("Échéance impayée : pénalité de " + pen.toLocaleString() + " €", "warn");
+
         }
         p.challenge.nextDueAbs = absNow + 4;
       }
@@ -846,8 +836,6 @@ export default function TennisManager() {
           const k = keys[Math.floor(random() * keys.length)];
           const g = Math.round(0.12 * wins * 100) / 100;
           p.stats = { ...p.stats, [k]: Math.min(99, p.stats[k] + g) };
-          const labels = { serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" };
-          notify("Autodidacte : +" + g + " en " + labels[k], "success");
         }
       }
       // Événement propre au défi.
@@ -887,12 +875,12 @@ export default function TennisManager() {
       if (finals && !p.challenge?.failReason) {
         const raceRk = playerRaceRank(p, atpDb);
         if (newWeek === finals.week - 1 && raceRk <= 8) {
-          notify("Qualifié pour le " + finals.name + " la semaine prochaine (" + raceRk + "e de la Race) !", "success");
+
         }
         if (newWeek === finals.week && raceRk <= 8) {
           const blocked = (p.injury && !p.injury.canPlay) || (p.restUntilAbsWeek && newYear * 52 + newWeek < p.restUntilAbsWeek);
           if (blocked) {
-            notify("Qualifié pour le " + finals.name + " mais forfait : blessure ou repos.", "warn");
+
           } else {
             // Annule une autre inscription cette semaine (frais remboursés).
             if (p.enrollment && p.enrollment.tournamentId !== finals.id) {
@@ -903,7 +891,7 @@ export default function TennisManager() {
             p.location = finals.city;
             p.enrollment = { tournamentId: finals.id, week: finals.week, year: newYear, entryStatus: "direct" };
             setPlayerRaceRank(raceRk);
-            notify("Direction " + finals.city + " pour le " + finals.name + " : voyage offert par l'organisation.", "success");
+
           }
         }
       }
@@ -921,7 +909,7 @@ export default function TennisManager() {
       retirements = result.retirements || [];
     } catch (err) {
       console.error("[week] simulation error:", err);
-      notify("Erreur de simulation, semaine passée sans calculs ATP", "warn");
+
     }
     const tAfterSim = performance.now();
     console.log("[week] sim:", (tAfterSim - tSim).toFixed(1), "ms · articles:", articles.length);
@@ -977,7 +965,7 @@ export default function TennisManager() {
       if (encAbs < newYear * 52 + newWeek) {
         const missed = ALL_TOURNAMENTS.find(x => x.id === p.enrollment.tournamentId);
         p.money += missed?.entryFee || 0;
-        notify("Inscription expirée" + (missed ? " (" + missed.name + ")" : "") + " : frais remboursés.", "warn");
+
         p.enrollment = null;
       }
     }
@@ -988,7 +976,7 @@ export default function TennisManager() {
       if (t) {
         // Preventive rest: no tournament
         if (p.restUntilAbsWeek && newYear * 52 + newWeek < p.restUntilAbsWeek) {
-          notify("Repos préventif : " + t.name + " annulé, frais remboursés.", "warn");
+
           p.money += t.entryFee || 0;
           p.enrollment = null;
           setPlayer(p);
@@ -996,14 +984,14 @@ export default function TennisManager() {
         }
         // Injury too severe to play
         if (p.injury && !p.injury.canPlay) {
-          notify("Blessure : impossible de disputer " + t.name + ". Tournoi annulé.", "warn");
+
           p.enrollment = null;
           setPlayer(p);
           console.log("[week] total:", (performance.now() - tStart).toFixed(1), "ms");
           return;
         }
         if (p.location !== t.city) {
-          notify("Vous n'êtes pas à " + t.city + " ! Tournoi annulé.", "warn");
+
           p.enrollment = null;
           setPlayer(p);
           console.log("[week] total:", (performance.now() - tStart).toFixed(1), "ms");
@@ -1017,7 +1005,7 @@ export default function TennisManager() {
           launchTournament(t, p, newDb);
         } catch (err) {
           console.error("[week] tournament launch error:", err);
-          notify("Impossible de lancer " + t.name + " : inscription annulée, frais remboursés.", "warn");
+
           setPlayer(prev => ({ ...prev, money: prev.money + (t.entryFee || 0), enrollment: null }));
         }
         return;
@@ -1091,12 +1079,10 @@ export default function TennisManager() {
   const doTraining = (mod) => {
     const absNow = (player.year || 0) * 52 + (player.week || 0);
     if (player.restUntilAbsWeek && absNow < player.restUntilAbsWeek) {
-      const left = player.restUntilAbsWeek - absNow;
-      notify("Repos préventif : pas d'entraînement pendant encore " + left + " semaine" + (left > 1 ? "s" : ""), "warn");
       return;
     }
-    if (player.money < mod.cost) { notify("Pas assez d'argent", "warn"); return; }
-    if (player.energy < baseTrainingEnergy(mod) + 3) { notify("Énergie insuffisante", "warn"); return; }
+    if (player.money < mod.cost) { return; }
+    if (player.energy < baseTrainingEnergy(mod) + 3) { return; }
     setCardPick(mod);
   };
   // outcome : résultat du programme tiré à l'écran des fiches
@@ -1106,12 +1092,10 @@ export default function TennisManager() {
     {
       const absNow = (player.year || 0) * 52 + (player.week || 0);
       if (player.restUntilAbsWeek && absNow < player.restUntilAbsWeek) {
-        const left = player.restUntilAbsWeek - absNow;
-        notify("Repos préventif : pas d'entraînement pendant encore " + left + " semaine" + (left > 1 ? "s" : ""), "warn");
         return;
       }
     }
-    if (player.money < mod.cost) { notify("Pas assez d'argent", "warn"); return; }
+    if (player.money < mod.cost) { return; }
     // Stamina reduces energy cost: stat 50 → full cost, stat 90 → 60% cost
     const staminaReduction = Math.max(0.6, 1 - (player.stats.stamina - 50) / 100);
     // Staff malus: coachs intensifs (Carlos Vives, etc.) ajoutent un surcoût d'énergie
@@ -1119,7 +1103,7 @@ export default function TennisManager() {
     const extraEnergyFromStaff = staffTrainEnergyExtra(player.staff);
     // Même énergie quel que soit le programme choisi.
     const actualEnergyCost = Math.round(mod.energyCost * staminaReduction) + extraEnergyFromStaff;
-    if (player.energy < actualEnergyCost + 3) { notify("Énergie insuffisante", "warn"); return; }
+    if (player.energy < actualEnergyCost + 3) { return; }
     const cardGainMul = outcome ? outcome.gainMul : card.successMul;
 
     // Gain exact affiché sur la fiche du programme (raté = 0).
@@ -1160,21 +1144,21 @@ export default function TennisManager() {
     }));
     const failed = outcome && !outcome.success;
     if (aggravated) {
-      notify("Vous avez aggravé votre blessure ! Repos prolongé (" + updatedInjury.label + ").", "warn");
+
     } else if (failed) {
-      notify("Programme raté : pas de progrès cette fois.", "warn");
+
     } else if (player.injury && player.injury.weeksRemaining > 0) {
-      notify("+" + gain + " en " + mod.name + " (entraînement risqué malgré la blessure)", "success");
+
     } else if (gain < 0.05) {
-      notify("Entraînement effectué (stat trop élevée pour progresser)", "info");
+
     } else {
-      notify("+" + gain + " en " + mod.name + " !", "success");
+
     }
   };
 
   const doLifeActivity = (act) => {
-    if (player.money < act.cost) { notify("Pas assez d'argent", "warn"); return; }
-    if (act.energyCost > 0 && player.energy < act.energyCost + 2) { notify("Énergie insuffisante", "warn"); return; }
+    if (player.money < act.cost) { return; }
+    if (act.energyCost > 0 && player.energy < act.energyCost + 2) { return; }
     const absWeek = (player.year || 0) * 52 + (player.week || 0);
     // Cooldown check
     const lastUsed = (player.activityCooldowns || {})[act.id];
@@ -1182,7 +1166,7 @@ export default function TennisManager() {
       const since = absWeek - lastUsed;
       const remaining = (act.cooldown || 0) - since;
       if (remaining > 0) {
-        notify("Disponible dans " + remaining + " semaine" + (remaining > 1 ? "s" : ""), "warn");
+
         return;
       }
     }
@@ -1190,7 +1174,7 @@ export default function TennisManager() {
     const currentWeekKey = player.lifeActivitiesWeekKey || 0;
     const countThisWeek = currentWeekKey === absWeek ? (player.lifeActivitiesThisWeek || 0) : 0;
     if (countThisWeek >= 2) {
-      notify("Maximum 2 activités par semaine", "warn");
+
       return;
     }
     setPlayer(p => adjustLife({
@@ -1203,11 +1187,6 @@ export default function TennisManager() {
       lifeActivitiesWeekKey: absWeek,
       lifeActivitiesThisWeek: countThisWeek + 1,
     }, { happiness: act.happiness, popularity: act.popularity, image: act.image }));
-    const parts = [];
-    if (act.happiness) parts.push((act.happiness > 0 ? "+" : "") + act.happiness + " bonheur");
-    if (act.popularity) parts.push((act.popularity > 0 ? "+" : "") + act.popularity + " popularité");
-    if (act.image) parts.push((act.image > 0 ? "+" : "") + act.image + " image");
-    notify(act.name + " : " + parts.join(" · "), "success");
   };
 
   const resolveLifeEvent = (option) => {
@@ -1218,7 +1197,6 @@ export default function TennisManager() {
       let picked = option.outcomes[option.outcomes.length - 1];
       for (const o of option.outcomes) { if (r < o.chance) { picked = o; break; } r -= o.chance; }
       for (const [k, v] of Object.entries(picked.effects || {})) e[k] = (e[k] || 0) + v;
-      if (picked.msg) notify(picked.msg, (picked.effects?.image || 0) >= 0 ? "success" : "warn");
     }
     // Light training gain on one random stat (diminishing returns + age apply).
     let statGainApplied = null;
@@ -1228,23 +1206,18 @@ export default function TennisManager() {
       const cur = player.stats[k];
       const g = parseFloat((option.statGain * styledProgressionMultiplier(player.styleId, k, cur) * ageTrainingMultiplier(player.age)).toFixed(2));
       statGainApplied = { k, g };
-      const labels = { serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" };
-      notify("Séance en salle : +" + g + " en " + labels[k], "success");
     }
     const absNow = (player.year || 0) * 52 + (player.week || 0);
     const invest = option.investment
       ? { amount: option.investment.amount, plan: option.investment.plan, dueAbsWeek: absNow + option.investment.weeks }
       : null;
-    if (invest) notify("Investissement réalisé : résultat dans " + option.investment.weeks + " semaines.", "info");
     const restUntil = option.restWeeks ? absNow + option.restWeeks : null;
-    if (restUntil) notify("Repos préventif : ni entraînement ni tournoi pendant " + option.restWeeks + " semaines.", "info");
     let newInjury = null;
     if (option.injuryRisk && random() < option.injuryRisk * injuryRiskMul(player)) {
       newInjury = rollInjury();
-      notify(newInjury.label + " ! Indisponible " + newInjury.weeksRemaining + " semaine" + (newInjury.weeksRemaining > 1 ? "s" : "") + ".", "warn");
+
     }
     const boost = option.trainBoost;
-    if (boost) notify("Entraînement boosté de +" + Math.round((boost.mul - 1) * 100) + " % pendant " + boost.weeks + " semaines", "success");
     setPlayer(p => {
       let newPlayer = adjustLife({
         ...p,
@@ -1271,37 +1244,36 @@ export default function TennisManager() {
 
   // ── ENROLL TOURNAMENT ─────────────────────────────────────────────────────
   const enrollTournament = (t) => {
-    if (t.tier === "Finals") { notify("Le Masters se joue sur qualification : inscription automatique si vous êtes dans le top 8 de la Race.", "info"); return; }
+    if (t.tier === "Finals") { return; }
     if (player.restUntilAbsWeek && tournamentAbsWeek(t, player) < player.restUntilAbsWeek) {
-      notify("Repos préventif : aucun tournoi avant la fin de votre repos.", "warn");
+
       return;
     }
     // Block if injured and cannot play
     if (player.injury && !player.injury.canPlay) {
-      notify("Vous êtes trop blessé pour jouer (" + player.injury.label + ").", "warn");
+
       return;
     }
     // Block if already played any tournament this week (one tournament per week max)
     if (t.week === player.week && (player.playedThisWeek || []).length > 0) {
       if ((player.playedThisWeek || []).includes(t.id)) {
-        notify("Vous avez déjà disputé ce tournoi cette semaine.", "warn");
+
       } else {
-        notify("Vous avez déjà joué un tournoi cette semaine.", "warn");
+
       }
       return;
     }
     const ptsTotal = totalAtpPoints(player.atpPointsLog);
     const ranking = getPlayerRanking(ptsTotal, atpDb);
     const entry = getEntryStatus(t, ranking);
-    if (entry.status === "blocked") { notify(entry.reason, "warn"); return; }
+    if (entry.status === "blocked") { return; }
     if (t.week === player.week && player.location !== t.city) {
-      notify("Vous devez d'abord vous rendre à " + t.city, "warn");
+
       return;
     }
-    if (player.money < t.entryFee) { notify("Frais d'inscription insuffisants", "warn"); return; }
+    if (player.money < t.entryFee) { return; }
 
     const entryStatus = entry.protected ? "protected" : entry.status;
-    if (entry.protected) notify("Classement protégé utilisé pour " + t.name + ".", "info");
     setPlayer(p => ({
       ...p, money: p.money - t.entryFee,
       totalSpent: (p.totalSpent || 0) + t.entryFee,
@@ -1310,9 +1282,6 @@ export default function TennisManager() {
     }));
     if (t.week === player.week) {
       setTimeout(() => launchTournament(t, { ...player, money: player.money - t.entryFee, enrollment: { tournamentId: t.id, week: t.week, year: player.year, entryStatus } }, atpDb), 50);
-    } else {
-      const suffix = entry.status === "qualifying" ? " (qualifs)" : "";
-      notify("Inscrit au " + t.name + suffix + " (semaine " + t.week + ")", "success");
     }
   };
 
@@ -1329,9 +1298,6 @@ export default function TennisManager() {
         ...(p.enrollment?.entryStatus === "protected" && p.challenge ? { challenge: { ...p.challenge, protectedUses: (p.challenge.protectedUses || 0) + 1 } } : {}),
       };
     });
-    const t = player.enrollment ? ALL_TOURNAMENTS.find(x => x.id === player.enrollment.tournamentId) : null;
-    const refund = t?.entryFee || 0;
-    notify(refund > 0 ? "Inscription annulée (+" + refund + "€ remboursés)" : "Inscription annulée", "info");
   };
 
   // ── TIRAGE D'UN TABLEAU ───────────────────────────────────────────────────
@@ -2208,10 +2174,6 @@ export default function TennisManager() {
         },
         ...(isFinals ? { rr: rrNext } : {}),
       }));
-      const enteringMain = nextMode === "main" && ms.mode === "qualifying";
-      if (isFinals && nextRoundIdx === 3) notify("Qualifié pour les demi-finales !", "success");
-      else if (isFinals && !won) notify("Défaite en poule : tout reste possible", "warn");
-      else notify(enteringMain ? "Qualifié pour le tableau principal !" : "Victoire ! " + (nextMode === "qualifying" ? "Q" + (nextRoundIdx + 1) : fmt.mainRounds[nextRoundIdx]), "success");
     } else {
       // Tournament over for the player
       const isTitleWin = won && !isQualifying && roundIdx === fmt.mainRounds.length - 1;
@@ -2233,7 +2195,6 @@ export default function TennisManager() {
         const rawBonus = player.sponsors.reduce((a, s) => a + (s.titleBonus || 0), 0);
         const cap = Math.round(tourn.prize * 0.5);
         sponsorTitleBonus = Math.min(rawBonus, cap);
-        if (sponsorTitleBonus > 0) notify("Bonus sponsors pour ce titre : +" + sponsorTitleBonus.toLocaleString() + "€", "success");
       }
 
       const lifeDeltasFinal = computeMatchLifeDeltas(won, ms.opponentRank, isTitleWin, getPlayerRanking(totalAtpPoints(player.atpPointsLog), atpDb));
@@ -2413,9 +2374,9 @@ export default function TennisManager() {
   // ── TRAVEL ────────────────────────────────────────────────────────────────
   const travelTo = (cityName) => {
     if (!player) return;
-    if (cityName === player.location) { notify("Vous êtes déjà sur place", "info"); return; }
+    if (cityName === player.location) { return; }
     const cost = travelCostBetween(player.location, cityName);
-    if (player.money < cost) { notify("Budget insuffisant", "warn"); return; }
+    if (player.money < cost) { return; }
     const fromCity = player.location;
     // Energy drain scales with distance: 3 for short hops (<1000 km),
     // up to 8 for the longest intercontinental flights (~20000 km).
@@ -2430,25 +2391,25 @@ export default function TennisManager() {
       totalSpent: (p.totalSpent || 0) + cost,
       energy: Math.max(0, p.energy - energyCost)
     }));
-    notify("Vous voilà à " + cityName + " (-" + cost + "€, -" + energyCost + " énergie)", "success");
+
   };
 
   // ── HIRE / FIRE STAFF ────────────────────────────────────────────────────
   const hireStaff = (s) => {
-    if (challengeActive("seul")) { notify("Défi Seul au monde : aucun staff autorisé.", "warn"); return; }
-    if (hasGameOption(player, "no_staff")) { notify("Option Sans staff : aucun staff autorisé.", "warn"); return; }
-    if (player.staff.find(st => st.role === s.role)) { notify("Licenciez d'abord la personne actuelle", "warn"); return; }
-    if (player.money < s.cost * 4) { notify("Pas assez (1 mois requis)", "warn"); return; }
+    if (challengeActive("seul")) { return; }
+    if (hasGameOption(player, "no_staff")) { return; }
+    if (player.staff.find(st => st.role === s.role)) { return; }
+    if (player.money < s.cost * 4) { return; }
     setPlayer(p => ({
       ...p, staff: [...p.staff, s],
       money: p.money - s.cost * 4,
       totalSpent: (p.totalSpent || 0) + s.cost * 4,
     }));
-    notify(s.name + " rejoint l'équipe !", "success");
+
   };
   const fireStaff = (s) => {
     setPlayer(p => ({ ...p, staff: p.staff.filter(st => st.id !== s.id) }));
-    notify(s.name + " a quitté l'équipe", "info");
+
   };
 
   // ── SPONSORS ─────────────────────────────────────────────────────────────
@@ -2502,7 +2463,7 @@ export default function TennisManager() {
       const sponsors = [...(p.sponsors || []), buildContractFromOffer(p, offer, terms)];
       return { ...p, sponsorOffers: offers, sponsors };
     });
-    notify("Contrat signé avec " + offer.brand + " !", "success");
+
   };
   // Replace an existing sponsor by accepting a new offer of the same category.
   // Pays the cancellation penalty, then signs the new contract atomically.
@@ -2511,7 +2472,7 @@ export default function TennisManager() {
     if (!offer) return;
     const penalty = sponsorCancelCost(sponsorToCancel);
     if (player.money < penalty) {
-      notify("Fonds insuffisants pour la résiliation (" + penalty.toLocaleString() + "€)", "warn");
+
       return;
     }
     setPlayer(p => {
@@ -2526,12 +2487,12 @@ export default function TennisManager() {
         totalSpent: (p.totalSpent || 0) + penalty,
       };
     });
-    notify(sponsorToCancel.brand + " résilié (−" + penalty.toLocaleString() + "€), contrat signé avec " + offer.brand, "success");
+
     setSponsorReplaceModal(null);
   };
   const declineSponsorOffer = (offer) => {
     setPlayer(p => ({ ...p, sponsorOffers: (p.sponsorOffers || []).filter(o => o.id !== offer.id) }));
-    notify("Offre de " + offer.brand + " refusée", "info");
+
   };
   // Résiliation d'un contrat : indemnité de rupture (6 mois de salaire,
   // plafonnée au revenu restant) + pénalité d'objectif si l'objectif n'est pas
@@ -2543,7 +2504,7 @@ export default function TennisManager() {
   const cancelSponsor = (sponsor) => {
     const { total: penalty, objective: objPenalty } = sponsorCancelBreakdown(sponsor);
     if (player.money < penalty) {
-      notify("Fonds insuffisants pour payer la résiliation (" + penalty + "€)", "warn");
+
       return;
     }
     setPlayer(p => ({
@@ -2552,13 +2513,13 @@ export default function TennisManager() {
       money: p.money - penalty,
       totalSpent: (p.totalSpent || 0) + penalty,
     }));
-    notify("Contrat avec " + sponsor.brand + " résilié (−" + penalty.toLocaleString() + "€" + (objPenalty > 0 ? ", dont " + objPenalty.toLocaleString() + "€ d'objectif manqué" : "") + ")", "info");
+
   };
 
   // ── WILDCARDS ─────────────────────────────────────────────────────────────
   const acceptWildcard = (offer) => {
     if (player.restUntilAbsWeek && (offer.tournamentYear * 52 + offer.tournamentWeek) < player.restUntilAbsWeek) {
-      notify("Repos préventif : impossible de jouer ce tournoi.", "warn");
+
       return;
     }
     {
@@ -2569,16 +2530,16 @@ export default function TennisManager() {
           ...p,
           wildcardOffers: (p.wildcardOffers || []).filter(o => o.tournamentId !== offer.tournamentId || o.tournamentYear !== offer.tournamentYear),
         }));
-        notify("Vous avez déjà une entrée directe pour ce tournoi : wildcard inutile.", "info");
+
         return;
       }
     }
     if (player.enrollment) {
-      notify("Vous êtes déjà inscrit à un autre tournoi. Annulez d'abord.", "warn");
+
       return;
     }
     if (player.injury && !player.injury.canPlay) {
-      notify("Vous êtes trop blessé pour accepter.", "warn");
+
       return;
     }
     setPlayer(p => ({
@@ -2587,14 +2548,14 @@ export default function TennisManager() {
       wildcardsUsed: [...(p.wildcardsUsed || []), { tournamentId: offer.tournamentId, week: offer.tournamentWeek, year: offer.tournamentYear }],
       enrollment: { tournamentId: offer.tournamentId, week: offer.tournamentWeek, year: offer.tournamentYear, entryStatus: "wildcard" },
     }));
-    notify("Wildcard acceptée pour " + offer.tournamentName + " !", "success");
+
   };
   const declineWildcard = (offer) => {
     setPlayer(p => ({
       ...p,
       wildcardOffers: (p.wildcardOffers || []).filter(o => o.tournamentId !== offer.tournamentId || o.tournamentYear !== offer.tournamentYear),
     }));
-    notify("Wildcard refusée", "info");
+
   };
 
   // ── VOLUNTARY RETIREMENT ──────────────────────────────────────────────────
@@ -2667,9 +2628,6 @@ export default function TennisManager() {
         owned={hasPurchased("dlc_challenges")}
         goShop={() => { setMenuShop(true); setScreen("menu"); }}
       />
-      {notification && (
-        <div style={{ ...styles.notif, bottom: 24, borderLeftColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.blue }}>{notification.msg}</div>
-      )}
     </>
   );
   if (screen === "menu" && menuShop) return (
@@ -2679,19 +2637,13 @@ export default function TennisManager() {
           <Icon name="arrowLeft" size={14} /> Menu principal
         </button>
       </div>
-      <ShopScreen notify={notify} />
-      {notification && (
-        <div style={{ ...styles.notif, bottom: 24, borderLeftColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.blue }}>{notification.msg}</div>
-      )}
+      <ShopScreen />
     </div>
   );
 
   if (screen === "menu") return (
     <div style={styles.root}>
       {deleteSaveDialog}
-      {notification && (
-        <div style={{ ...styles.notif, bottom: 24, borderLeftColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.blue }}>{notification.msg}</div>
-      )}
       <div style={styles.menuBg} className="tm-grain">
         <WindowShades />
         <div style={styles.menuCard}>
@@ -3457,7 +3409,7 @@ export default function TennisManager() {
               <div style={{
                 width: 6, height: 22, borderRadius: 3,
                 background: "var(--tm-red)",
-                
+
                 animation: "pulse 2s infinite",
               }} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -3516,7 +3468,7 @@ export default function TennisManager() {
                     width: 48, height: 48, borderRadius: 24,
                     overflow: "hidden",
                     border: "2px solid " + T.green,
-                    
+
                     flexShrink: 0,
                   }}>
                     <Avatar config={player.avatar} size={48} />
@@ -3675,13 +3627,6 @@ export default function TennisManager() {
                 setMatchState(null);
                 // Medical diagnosis for an injury picked up during the tournament
                 if (player.injuryNoticePending) {
-                  const inj = player.injury;
-                  if (inj && inj.weeksRemaining > 0) {
-                    const wk = inj.weeksRemaining + " semaine" + (inj.weeksRemaining > 1 ? "s" : "");
-                    notify(inj.canPlay
-                      ? "Diagnostic médical : " + inj.label + ". Gêné pendant " + wk + " (−" + Math.round((inj.statPenalty || 0) * 100) + " % sur vos stats)."
-                      : "Diagnostic médical : " + inj.label + ". Indisponible " + wk + ".", "warn");
-                  }
                   setPlayer(p => ({ ...p, injuryNoticePending: false }));
                 }
                 // Sponsor phase that fell on the tournament week: open it now.
@@ -3873,7 +3818,6 @@ export default function TennisManager() {
               onSkip={rallyAnim.commit}
             />
           )}
-          {notification && <div style={{ ...styles.notif, background: notification.type === "success" ? T.bg2 : notification.type === "warn" ? T.bg2 : T.bg2, borderColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.brd2 }}>{withFlags(notification.msg)}</div>}
           <div style={{ ...styles.screen, height: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))", minHeight: 0, overflowY: "auto" }}>
             {/* Bandeau du tournoi, à la couleur de la surface (comme l'avant-match) */}
             <div style={{
@@ -4306,7 +4250,6 @@ export default function TennisManager() {
 
   return (
     <div style={styles.root}>
-      {notification && <div style={{ ...styles.notif, background: notification.type === "success" ? T.bg2 : notification.type === "warn" ? T.bg2 : T.bg2, borderColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.brd2 }}>{withFlags(notification.msg)}</div>}
       {isAdvancingWeek && (
         <div style={styles.notif}><Icon name="loader" size={11} /> Simulation en cours...</div>
       )}
@@ -4334,7 +4277,7 @@ export default function TennisManager() {
         <SponsorNegotiationOverlay
           data={{ ...sponsorNegotiation, onWalkAway: (offerId) => {
             setPlayer(p => ({ ...p, sponsorOffers: (p.sponsorOffers || []).filter(o => o.id !== offerId) }));
-            notify("Le sponsor a mis fin à la négociation", "warn");
+
           } }}
           player={player}
           ranking={ranking}
@@ -4452,7 +4395,7 @@ export default function TennisManager() {
             }
           }} />}
           {activeTab === "finance" && <FinanceScreen player={player} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
-          {activeTab === "shop" && <ShopScreen notify={notify} />}
+          {activeTab === "shop" && <ShopScreen />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>
         {!flightAnim && !sponsorNegotiation && (

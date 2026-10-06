@@ -5,7 +5,7 @@ import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
-export function ShopScreen({ notify }) {
+export function ShopScreen() {
   const [owned, setOwned] = useState(() => loadPurchases());
   const [pending, setPending] = useState(null); // article en cours de confirmation
   const purchaseItem = (item) => {
@@ -13,13 +13,13 @@ export function ShopScreen({ notify }) {
     try { localStorage.setItem(SHOP_STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
     setOwned(next);
     setPending(null);
-    notify && notify(item.type === "subscription" ? item.name + " activé" : item.name + " débloqué", "success");
+    
   };
   const cancelItem = (item) => {
     const next = owned.filter(id => id !== item.id);
     try { localStorage.setItem(SHOP_STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
     setOwned(next);
-    notify && notify(item.name + " résilié", "info");
+    
   };
   const categories = [...new Set(SHOP_ITEMS.map(i => i.category || "Options"))];
 
