@@ -104,7 +104,6 @@ export default function TennisManager() {
   // Ombres de défilement : fenêtre (pages de jeu), plan de jeu, aide, commentaires.
   const winEdges = useScrollEdges(null);
   const tacticsBoxRef = useRef(null);
-  const helpBoxRef = useRef(null);
   const feedBoxRef = useRef(null);
   const [cardPick, setCardPick] = useState(null); // module d'entraînement en attente du choix de fiche
   const matchPausedRef = useRef(false);
@@ -4489,11 +4488,10 @@ export default function TennisManager() {
               position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400,
               display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
             }}>
-              <div ref={helpBoxRef} onClick={e => e.stopPropagation()} style={{
+              <div onClick={e => e.stopPropagation()} style={{
                 background: T.bg1, border: "1px solid " + T.greenBrd, borderRadius: 0,
                 padding: 20, maxWidth: 440, width: "100%", maxHeight: "80vh", overflowY: "auto",
               }}>
-                <BoxShade boxRef={helpBoxRef} side="top" />
                 <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 6 }}>Aide</div>
                 <div style={{ color: T.fg, fontSize: 18, fontWeight: 800, marginBottom: 12 }}>{PAGE_HELP[helpTab].title}</div>
                 {PAGE_HELP[helpTab].items.map((it, i) => (
@@ -4503,7 +4501,6 @@ export default function TennisManager() {
                   </div>
                 ))}
                 <button style={{ ...styles.btnPrimary, marginTop: 8 }} onClick={() => setHelpTab(null)}>Compris</button>
-                <BoxShade boxRef={helpBoxRef} side="bottom" />
               </div>
             </div>
           )}
