@@ -54,9 +54,20 @@ describe("plan de jeu", () => {
 });
 
 describe("mini-jeux", () => {
-  it("duel au service : servir là où il n'attend pas gagne toujours", () => {
+  it("duel service/retour : ace à deux cases, retour gagnant si bien lu au T ou à l'extérieur", async () => {
+    const { resolveServeDuel, RALLY_POINTS, returnDuel } = await import("../src/engine/minigames.js");
+    expect(resolveServeDuel(0, 2)).toMatchObject({ kind: "ace", serverWins: true, shift: 1 });
+    expect(resolveServeDuel(2, 0)).toMatchObject({ kind: "ace", serverWins: true, shift: 1 });
+    expect(resolveServeDuel(2, 2)).toMatchObject({ kind: "return_winner", serverWins: false });
+    expect(resolveServeDuel(0, 0)).toMatchObject({ kind: "return_winner", serverWins: false });
     seedRandom(2);
-    for (let i = 0; i < 20; i++) expect(serveDuel(0, 1, 60).win).toBe(true);
+    expect(resolveServeDuel(1, 1).kind).toBe("rally");
+    expect(resolveServeDuel(1, 2).kind).toBe("rally");
+    expect(RALLY_POINTS.filter(r => r.serverWins).length).toBe(6);
+    expect(RALLY_POINTS.filter(r => !r.serverWins).length).toBe(4);
+    expect(serveDuel(0, 2).win).toBe(true);
+    const r = returnDuel(1);
+    expect(r.win).toBe(!r.serverWins);
   });
 
   it("un adversaire au gros mental repère la zone favorite", () => {

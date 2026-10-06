@@ -2,7 +2,10 @@
 // (en match) et fiches d'entraînement. Règles pures, hasard du moteur.
 import { random } from "./rng.js";
 
-export const ZONES = ["Large", "Corps", "Au T"];
+// Zones du carré de service, de l'extérieur (contre le couloir) au T
+// (contre la ligne médiane) : l'indice donne aussi la position, la
+// distance entre deux zones se compte en cases.
+export const ZONES = ["Extérieur", "Corps", "Au T"];
 
 // ─── EN MATCH ──────────────────────────────────────────────────────────────
 // Quel mini-jeu proposer à la place d'un dilemme ? Duel au service si le
@@ -23,22 +26,56 @@ export function opponentRead(history, oppStats) {
   return Math.floor(random() * 3);
 }
 
-// Duel au service : servir là où il n'attend pas. S'il devine, le point
-// reste jouable selon la qualité du service.
-export function serveDuel(pick, guess, myServe) {
-  if (pick !== guess) return { win: true, text: "Il attendait " + ZONES[guess].toLowerCase() + ". Ace !" };
-  const p = Math.max(0.15, Math.min(0.55, 0.25 + ((myServe ?? 60) - 60) / 120));
-  const win = random() < p;
-  return { win, text: win ? "Il a deviné, mais votre service passe quand même !" : "Il a deviné : retour gagnant…" };
+// Les 10 façons de jouer le point quand le retour est remis en jeu :
+// 6 gagnées par le serveur, 4 par le relanceur, tirées au hasard.
+// rallies = nombre d'allers-retours avant le dernier coup ;
+// end = fin visuelle : "winner" (passe l'adversaire et sort du cadre),
+// "net" (dans le filet), "out" (dehors), "drop" (amortie qui meurt).
+export const RALLY_POINTS = [
+  { serverWins: true,  rallies: 0, end: "net",    text: "Retour dans le filet." },
+  { serverWins: true,  rallies: 1, end: "winner", text: "Service-volée : volée gagnante." },
+  { serverWins: true,  rallies: 2, end: "winner", text: "Coup droit d'attaque gagnant du serveur." },
+  { serverWins: true,  rallies: 3, end: "drop",   text: "Amortie gagnante du serveur." },
+  { serverWins: true,  rallies: 3, end: "winner", text: "Lob trop court, smash du serveur." },
+  { serverWins: true,  rallies: 5, end: "out",    text: "Long échange, le relanceur finit par sortir la balle." },
+  { serverWins: false, rallies: 2, end: "winner", text: "Passing-shot le long de la ligne !" },
+  { serverWins: false, rallies: 3, end: "net",    text: "Faute directe du serveur dans le filet." },
+  { serverWins: false, rallies: 2, end: "winner", text: "Lob gagnant par-dessus le serveur !" },
+  { serverWins: false, rallies: 4, end: "winner", text: "Revers croisé gagnant du relanceur !" },
+];
+
+// Duel service / retour : serveZone = où part le service, readZone = où
+// le relanceur s'est placé. Selon l'écart en cases :
+// - 0 au T ou à l'extérieur : bien lu, retour gagnant ;
+// - 0 dans le corps, ou 1 case : le relanceur se décale, remet la balle,
+//   et un point se joue (RALLY_POINTS) ;
+// - 2 cases : il se décale d'une case, trop tard : ace.
+// Renvoie { kind: "return_winner" | "rally" | "ace", serverWins, rally?, shift }.
+export function resolveServeDuel(serveZone, readZone) {
+  const dist = Math.abs(serveZone - readZone);
+  if (dist === 2) return { kind: "ace", serverWins: true, shift: readZone + Math.sign(serveZone - readZone), dist };
+  if (dist === 0 && serveZone !== 1) return { kind: "return_winner", serverWins: false, shift: readZone, dist };
+  const rally = RALLY_POINTS[Math.floor(random() * RALLY_POINTS.length)];
+  return { kind: "rally", serverWins: rally.serverWins, rally, shift: serveZone, dist };
 }
 
-// Duel au retour : deviner où l'adversaire va servir.
-export function returnDuel(guess, oppServe) {
+// Duel au service : le joueur sert en pick, l'adversaire a lu guess.
+export function serveDuel(pick, guess) {
+  const r = resolveServeDuel(pick, guess);
+  const text = r.kind === "ace" ? "Il attendait " + ZONES[guess].toLowerCase() + " : ace !"
+    : r.kind === "return_winner" ? "Il avait lu votre service : retour gagnant."
+    : r.rally.text;
+  return { ...r, win: r.serverWins, text };
+}
+
+// Duel au retour : le joueur se place en guess, l'adversaire sert au hasard.
+export function returnDuel(guess) {
   const target = Math.floor(random() * 3);
-  if (guess === target) return { win: true, target, text: "Bien lu ! Retour gagnant sur son service " + ZONES[target].toLowerCase() + "." };
-  const p = Math.max(0.1, Math.min(0.35, 0.25 - ((oppServe ?? 60) - 60) / 200));
-  const win = random() < p;
-  return { win, target, text: win ? "Mauvaise lecture, mais vous remettez la balle… et gagnez l'échange !" : "Il a servi " + ZONES[target].toLowerCase() + ". Trop tard." };
+  const r = resolveServeDuel(target, guess);
+  const text = r.kind === "ace" ? "Il a servi " + ZONES[target].toLowerCase() + " : ace."
+    : r.kind === "return_winner" ? "Bien lu ! Retour gagnant."
+    : r.rally.text;
+  return { ...r, target, win: !r.serverWins, text };
 }
 
 // Smash : précision de 0 (raté) à 1 (pile au centre de la zone verte).
