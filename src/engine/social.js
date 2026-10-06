@@ -46,6 +46,24 @@ export const SOCIAL_AUTHORS = {
   ],
 };
 
+// « Pour vous » : au plus 3 nouveaux messages par semaine (matchs compris).
+export const PERSONAL_POSTS_PER_WEEK = 3;
+// Garde, parmi candidates, les messages « Pour vous » qui tiennent encore
+// dans le quota de leur semaine (existing = fil actuel). Les autres fils
+// passent tels quels.
+export function limitPersonalPosts(candidates, existing) {
+  const count = {};
+  const key = (x) => (x.year || 0) + ":" + (x.week || 0);
+  for (const x of existing || []) if (x.feed === "personal") count[key(x)] = (count[key(x)] || 0) + 1;
+  return (candidates || []).filter(x => {
+    if (!x || x.feed !== "personal") return !!x;
+    const k = key(x);
+    if ((count[k] || 0) >= PERSONAL_POSTS_PER_WEEK) return false;
+    count[k] = (count[k] || 0) + 1;
+    return true;
+  });
+}
+
 export function pickRandom(arr) { return arr[Math.floor(random() * arr.length)]; }
 export function randomLikes(min, max) { return Math.floor(min + random() * (max - min)); }
 
