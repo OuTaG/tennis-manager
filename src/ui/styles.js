@@ -82,7 +82,8 @@ export const styles = {
     borderRadius: 0, padding: 28,
     width: "100%", maxWidth: 380,
     display: "flex", flexDirection: "column", alignItems: "stretch", gap: 14,
-    position: "relative", overflow: "hidden",
+    // clip (et non hidden) : laisse fonctionner l'aperçu collant de l'avatar.
+    position: "relative", overflow: "clip",
     boxShadow: "6px 6px 0 " + T.ink,
   },
   courtLines: { position: "absolute", inset: 0, opacity: 0, pointerEvents: "none" },
