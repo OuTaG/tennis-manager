@@ -31,10 +31,12 @@ import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
 import { WallGame } from "./ui/overlays/WallGame.jsx";
+import { CustomizeScreen } from "./ui/screens/Customize.jsx";
+import { loadRosterConfigs, rosterEditCount, rosterEntries } from "./engine/roster.js";
 
 // Couleur du bandeau de match selon la surface.
 const LIVE_SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2c6fd1", "Indoor": "#5b2d8e" };
-import { AVATAR_OPTIONS, Avatar, AvatarBuilder, avatarFromName, femaleHairStyle } from "./ui/avatar.jsx";
+import { AVATAR_OPTIONS, Avatar, AvatarBuilder, aiAvatar, femaleHairStyle } from "./ui/avatar.jsx";
 import { rankingName } from "./ui/format.js";
 import { FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
@@ -148,6 +150,7 @@ export default function TennisManager() {
   const refreshSlots = () => { setSlotMetas(loadSlotMetas()); setChallengeMeta(loadChallengeMeta()); };
   const [menuShop, setMenuShop] = useState(false); // boutique ouverte depuis le menu
   const [circuitInput, setCircuitInput] = useState("atp"); // circuit choisi à la création
+  const [rosterInput, setRosterInput] = useState(-1); // base de joueurs : -1 = Standard, 0-2 = configuration perso
   const [confirmDelete, setConfirmDelete] = useState(null); // emplacement à effacer (null = fermé)
   const [confirmCancelSponsor, setConfirmCancelSponsor] = useState(null); // sponsor to confirm cancelling
   const [sponsorReplaceModal, setSponsorReplaceModal] = useState(null); // { offer, candidates: [sponsors of same cat to potentially cancel] }
@@ -2632,6 +2635,7 @@ export default function TennisManager() {
   );
 
   if (screen === "records") return <RecordsScreen onBack={() => setScreen("menu")} />;
+  if (screen === "customize") return <CustomizeScreen onBack={() => setScreen("menu")} />;
 
   const multiOwned = hasPurchased("multi_careers");
   if (screen === "challenges") return (
@@ -2732,6 +2736,10 @@ export default function TennisManager() {
             <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setScreen("records")}>
               <Icon name="trophy" size={16} color={T.amber} /> Records
             </button>
+            <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => (hasPurchased("custom_mode") ? setScreen("customize") : setMenuShop(true))}>
+              <Icon name="edit" size={16} color={T.amber} /> Personnalisation
+              {!hasPurchased("custom_mode") && <Icon name="lock" size={13} color={T.fg} />}
+            </button>
             <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setMenuShop(true)}>
               <Icon name="bag" size={16} color={T.amber} /> Boutique
             </button>
@@ -2759,13 +2767,13 @@ export default function TennisManager() {
         setAvatarInput(a => id === "wta"
           ? (a.female ? a : { ...a, female: true, hairStyle: "queue" })
           : (a.female ? { ...a, female: false, hairStyle: "court" } : a));
-        setCreateStep(0);
+        setRosterInput(-1);
+        setCreateStep(-2); // choix de la base de joueurs
       };
       return (
         <div style={styles.root}>
           <div style={styles.menuBg}>
           <WindowShades />
-            <WindowShades />
             <div style={{ ...styles.menuCard, gap: 14, alignItems: "stretch", maxWidth: 380 }}>
               <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Quel circuit ?</h2>
               <div style={{ color: T.fg4, fontSize: 13, textAlign: "center", lineHeight: 1.5 }}>
@@ -2799,13 +2807,54 @@ export default function TennisManager() {
       );
     }
 
+    // ÉTAPE : BASE DE JOUEURS (Standard ou configuration personnalisée)
+    if (createStep === -2) {
+      const owned = hasPurchased("custom_mode");
+      const cfgs = loadRosterConfigs();
+      const options = [{ id: -1, name: "Standard", sub: "Les joueurs du jeu, tirés au hasard à chaque carrière" },
+        ...cfgs.map((c, i) => ({ id: i, name: c.name, sub: rosterEditCount(c) + " joueur" + (rosterEditCount(c) > 1 ? "s" : "") + " personnalisé" + (rosterEditCount(c) > 1 ? "s" : "") }))];
+      return (
+        <div style={styles.root}>
+          <div style={styles.menuBg}>
+            <WindowShades />
+            <div style={{ ...styles.menuCard, gap: 12, alignItems: "stretch", maxWidth: 380 }}>
+              <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Base de joueurs</h2>
+              <div style={{ color: T.fg4, fontSize: 13, textAlign: "center", lineHeight: 1.5 }}>Avec quels joueurs voulez-vous jouer cette carrière ?</div>
+              {options.map(o => {
+                const locked = o.id >= 0 && !owned;
+                const on = rosterInput === o.id;
+                return (
+                  <button key={o.id} disabled={locked} onClick={() => setRosterInput(o.id)} style={{
+                    display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", cursor: locked ? "default" : "pointer",
+                    background: on ? T.gold : T.bg1, color: "#141414", border: "2.5px solid " + T.ink, boxShadow: on ? "4px 4px 0 " + T.ink : "none",
+                    padding: "10px 12px", fontFamily: T.body, opacity: locked ? 0.55 : 1,
+                  }}>
+                    <Icon name={o.id < 0 ? "users" : "edit"} size={18} color="#141414" />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span className="tm-display" style={{ display: "block", fontSize: 15 }}>{o.name}</span>
+                      <span style={{ display: "block", fontSize: 11.5, fontWeight: 600 }}>{o.sub}</span>
+                    </span>
+                    {locked && <Icon name="lock" size={15} color="#141414" />}
+                  </button>
+                );
+              })}
+              {!owned && (
+                <div style={{ fontSize: 12, fontWeight: 600, color: T.fg3, textAlign: "center" }}>Les bases personnalisées s'ouvrent avec le mode Personnalisation (boutique).</div>
+              )}
+              <button style={styles.btnPrimary} onClick={() => setCreateStep(0)}>Suivant</button>
+              <button style={styles.btnSecondary} onClick={() => setCreateStep(-1)}>Retour</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // STEP 0 : IDENTITY (name + avatar)
     if (createStep === 0) {
       return (
         <div style={styles.root}>
           <div style={styles.menuBg}>
           <WindowShades />
-            <WindowShades />
             <div style={{ ...styles.menuCard, gap: 14, alignItems: "stretch", maxWidth: 380 }}>
               <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 1/2 · Identité</h2>
               <div style={{
@@ -3057,7 +3106,10 @@ export default function TennisManager() {
                 setCircuit(circuitInput);
                 const newPlayer = createInitialPlayer(nameInput, styleInput, startCityInput, nationalityInput || undefined, avatarInput, difficultyInput, gameOptionsInput, surfaceInput);
                 newPlayer.circuit = circuitInput;
-                const newDb = generateAtpDatabase();
+                // Base de joueurs choisie : Standard, ou configuration personnalisée.
+                const rosterCfg = rosterInput >= 0 && hasPurchased("custom_mode") ? loadRosterConfigs()[rosterInput] : null;
+                const newDb = generateAtpDatabase(rosterCfg ? rosterEntries(rosterCfg, circuitInput) : null);
+                if (rosterCfg) newPlayer.rosterName = rosterCfg.name;
                 // Starter sponsor: a low-tier offer to introduce the negotiation
                 // scene and let the player earn a little from the start.
                 const startRanking = 1100;
@@ -3741,7 +3793,7 @@ export default function TennisManager() {
                       <text x="50" y="50" dy="0.36em" textAnchor="middle" fontFamily={T.display} fontSize="25" letterSpacing="-0.5" fill="#141414">VS</text>
                     </svg>
                   </div>
-                  {portrait(avatarFromName(ms.opponent.name, player.circuit === "wta"), ms.opponent.nat?.flag, ms.opponent.name, ms.opponentRank, false)}
+                  {portrait(aiAvatar(ms.opponent, player.circuit === "wta"), ms.opponent.nat?.flag, ms.opponent.name, ms.opponentRank, false)}
                 </div>
               </div>
 
@@ -3939,7 +3991,7 @@ export default function TennisManager() {
                       )}
                     </span>
                     <span style={{ width: 34, height: 34, flexShrink: 0, border: "2px solid " + T.ink, background: row.isP ? T.gold : "#ffffff", overflow: "hidden" }}>
-                      <Avatar config={row.isP ? player.avatar : avatarFromName(ms.opponent.name, player.circuit === "wta")} size={30} bare />
+                      <Avatar config={row.isP ? player.avatar : aiAvatar(ms.opponent, player.circuit === "wta")} size={30} bare />
                     </span>
                     <span style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
                       <span className="tm-display" style={{ color: T.fg, fontSize: 14, lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
@@ -4082,7 +4134,7 @@ export default function TennisManager() {
                     ? (m.pendingGame.pPts + 1 >= m.pendingGame.target && m.pendingGame.pPts + 1 - m.pendingGame.oPts >= 2 ? "Balle de set pour vous" : "Balle de set à sauver")
                     : m.pendingGame && !m.pendingGame.isPlayerServing ? "Balle de break" : "Balle de jeu"}
                   myMental={player.stats.mental}
-                  oppAvatar={avatarFromName(ms.opponent.name, player.circuit === "wta")}
+                  oppAvatar={aiAvatar(ms.opponent, player.circuit === "wta")}
                   myAvatar={player.avatar}
                   onDone={(win, text, zone) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone)}
                 />
@@ -5105,7 +5157,7 @@ export default function TennisManager() {
               {/* En-tête : portrait, rang, nom, pays, style */}
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
                 <div style={{ border: "3px solid " + T.ink, background: "#ffffff", boxShadow: "3px 3px 0 " + T.ink, flexShrink: 0, transform: "rotate(-2deg)" }}>
-                  <Avatar config={avatarFromName(p.name, player.circuit === "wta")} size={78} bare />
+                  <Avatar config={aiAvatar(p, player.circuit === "wta")} size={78} bare />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <span className="tm-num" style={{ display: "inline-block", background: T.gold, border: "2px solid " + T.ink, fontSize: 12, fontWeight: 800, padding: "0 6px" }}>#{adjustedRank} mondial</span>
