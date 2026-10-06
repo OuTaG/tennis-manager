@@ -23,7 +23,7 @@ import { computeTournamentProgression, styledProgressionMultiplier } from "./eng
 import { expireOldPoints, playerRaceRank, pointsWeekAfter, raceStandings } from "./engine/race.js";
 import { updateCareerRecords } from "./engine/records.js";
 import { FINALS_PRIZE, FINALS_PTS, RR_SCHEDULE, buildFinalsDraw, finalizeHumanTournamentBracket, finalsAiMatch, finalsAiResults, finalsPlayMatchday, finalsRanked, generateTournamentArticle, simulateAtpWeek } from "./engine/simulation.js";
-import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
+import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, limitPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
 import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
 import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
@@ -201,6 +201,11 @@ export default function TennisManager() {
     // Ancien réglage du mode sombre (supprimé) : on nettoie.
     try { localStorage.removeItem("tm-theme"); } catch (e) {}
   }, [activeCircuit]);
+
+  // Changement de page ou de menu : on repart toujours du haut.
+  useEffect(() => {
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }, [activeTab, screen]);
 
   // Carrière WTA : accorde au féminin tous les textes affichés.
   useEffect(() => {
@@ -956,7 +961,7 @@ export default function TennisManager() {
     const allNewPosts = [...retirementPosts, ...tournamentPosts, ...auxPosts, ...personalPosts];
     if (allNewPosts.length > 0) {
       const nowAbs = newYear * 52 + newWeek;
-      setNews(prev => [...allNewPosts, ...prev]
+      setNews(prev => [...limitPersonalPosts(allNewPosts, prev), ...prev]
         .filter(x => nowAbs - ((x.year || 0) * 52 + (x.week || 0)) < SOCIAL_HISTORY_WEEKS)
         .slice(0, 300));
     }
@@ -2344,7 +2349,7 @@ export default function TennisManager() {
         finalScore, player.week, player.year
       );
       if (personalPost) {
-        setNews(prev => [personalPost, ...prev].slice(0, 300));
+        setNews(prev => [...limitPersonalPosts([personalPost], prev), ...prev].slice(0, 300));
       }
 
       const debrief = pickDebrief(m, player.name, ms.opponent.name);

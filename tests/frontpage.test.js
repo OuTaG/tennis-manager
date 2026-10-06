@@ -46,3 +46,15 @@ describe("tour joué en toutes lettres", () => {
     expect(roundPhrase("Qualif. 1")).toBe("au premier tour des qualifications");
   });
 });
+
+describe("fil « Pour vous »", () => {
+  it("au plus 3 nouveaux messages par semaine", async () => {
+    const { limitPersonalPosts } = await import("../src/engine/social.js");
+    const mk = (w, feed = "personal") => ({ week: w, year: 1, feed });
+    const existing = [mk(5), mk(5), mk(4), mk(5, "world")];
+    const kept = limitPersonalPosts([mk(5), mk(5), mk(6), mk(6), mk(6), mk(6), mk(5, "world")], existing);
+    expect(kept.filter(x => x.week === 5 && x.feed === "personal").length).toBe(1);
+    expect(kept.filter(x => x.week === 6).length).toBe(3);
+    expect(kept.filter(x => x.feed === "world").length).toBe(1);
+  });
+});
