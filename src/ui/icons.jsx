@@ -2,11 +2,13 @@
 import {
   Activity, AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Award, Ban, BarChart3, Brain, Briefcase, Building2, Calendar, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDot, ClipboardList, CloudRain, Dices, DollarSign, Droplet, Dumbbell, FileText, Flag as FlagIcon, Flame, Footprints, Frown, Goal, GraduationCap, Hand, Handshake, Heart, HeartPulse, History, Home, Info, Lightbulb, Loader2, Lock, MapPin, Pencil, Megaphone, MessageCircle, Mic, Newspaper, Pill, Plane, Play, Plus, Rocket, ScrollText, Search, Settings, Shield, Smile, Sparkles, Square, Star, Target, Theater, Ticket, Trash2, TrendingDown, TrendingUp, Trophy, Turtle, Tv, User, Users, Wallet, Wrench, X, XCircle, Zap,
 } from "lucide-react";
+import { useId } from "react";
 import { FLAG_DATA } from "../data/flags.js";
 import { T } from "./theme.js";
 
 // Flag rendering using flag-icons (vectorized country flags)
 export function Flag({ code, size = 14, style }) {
+  const clipId = "tm-flag-" + useId().replace(/:/g, "");
   if (!code) return null;
   const cc = code.toLowerCase();
   const src = FLAG_DATA[cc];
@@ -15,32 +17,59 @@ export function Flag({ code, size = 14, style }) {
     return (
       <span style={{
         display: "inline-flex", alignItems: "center", justifyContent: "center",
-        minWidth: size * 1.4, height: size, padding: "0 2px", borderRadius: 2,
+        minWidth: size * 1.4, height: size, padding: "0 2px",
         fontSize: Math.max(8, size * 0.6), fontWeight: 800, letterSpacing: 0.3,
-        background: T.bg3, color: T.fg3, border: "1px solid " + T.brd2,
+        background: "#ffffff", color: T.ink, border: Math.max(1.2, size * 0.1) + "px solid " + T.ink,
         verticalAlign: "middle", flexShrink: 0, lineHeight: 1, ...style,
       }}>{cc.toUpperCase()}</span>
     );
   }
+  // Cadre BD : contour encré légèrement de travers (déformation propre à
+  // chaque pays, stable d'un rendu à l'autre) et petite ombre décalée.
+  const path = flagFramePath(cc);
+  const strokePx = Math.max(1.2, size * 0.1);
+  const sw = strokePx * 100 / size; // épaisseur en unités du viewBox (hauteur 100)
+  const sh = Math.max(1, size * 0.09) * 100 / size;
   return (
-    <span
+    <svg
       role="img"
       aria-label={cc.toUpperCase()}
-      style={{
-        display: "inline-block",
-        width: size * 1.4,
-        height: size,
-        borderRadius: 2,
-        verticalAlign: "middle",
-        backgroundImage: "url(\"" + src + "\")",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        boxShadow: "0 0 0 0.5px rgba(0,0,0,0.25)",
-        flexShrink: 0,
-        ...style,
-      }}
-    />
+      width={size * 1.4}
+      height={size}
+      viewBox="0 0 140 100"
+      style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0, overflow: "visible", ...style }}
+    >
+      <defs>
+        <clipPath id={clipId}><path d={path} /></clipPath>
+        <pattern id={clipId + "-dots"} width="12" height="12" patternUnits="userSpaceOnUse">
+          <circle cx="3" cy="3" r="1.8" fill="#141414" /><circle cx="9" cy="9" r="1.8" fill="#141414" />
+        </pattern>
+      </defs>
+      <path d={path} fill="#141414" transform={"translate(" + sh + " " + sh + ")"} />
+      <image href={src} x="0" y="0" width="140" height="100" preserveAspectRatio="xMidYMid slice" clipPath={"url(#" + clipId + ")"} />
+      {/* Trame d'impression, seulement quand le drapeau est assez grand pour la voir */}
+      {size >= 16 && <rect x="0" y="0" width="140" height="100" fill={"url(#" + clipId + "-dots)"} opacity="0.13" clipPath={"url(#" + clipId + ")"} />}
+      <path d={path} fill="none" stroke="#141414" strokeWidth={sw} strokeLinejoin="round" />
+    </svg>
   );
+}
+
+// Contour « dessiné à la main » d'un drapeau (viewBox 140×100) : coins
+// décalés et côtés légèrement bombés, tirés d'un hash du code pays.
+const frameCache = {};
+function flagFramePath(cc) {
+  if (frameCache[cc]) return frameCache[cc];
+  let h = 0;
+  for (const ch of cc) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => { h = (h * 1103515245 + 12345) >>> 0; return (h >>> 8) / 16777216; };
+  const j = (amp) => (rnd() * 2 - 1) * amp;
+  const tl = [4 + j(3), 4 + j(3)], tr = [136 + j(3), 3 + j(3)], br = [137 + j(3), 96 + j(3)], bl = [3 + j(3), 97 + j(3)];
+  const mid = (a, b, dx, dy) => [(a[0] + b[0]) / 2 + dx, (a[1] + b[1]) / 2 + dy];
+  const top = mid(tl, tr, j(6), j(3)), right = mid(tr, br, j(3), j(5)), bottom = mid(br, bl, j(6), j(3)), left = mid(bl, tl, j(3), j(5));
+  const f = (p) => p[0].toFixed(1) + " " + p[1].toFixed(1);
+  const d = "M" + f(tl) + " Q" + f(top) + " " + f(tr) + " Q" + f(right) + " " + f(br) + " Q" + f(bottom) + " " + f(bl) + " Q" + f(left) + " " + f(tl) + " Z";
+  frameCache[cc] = d;
+  return d;
 }
 
 // Convert emoji flag to ISO country code (e.g. 🇫🇷 → "fr")
@@ -219,4 +248,17 @@ export function Icon({ name, size = 14, color = "currentColor", strokeWidth = 1.
   const C = map[name];
   if (!C) return null;
   return <C size={size} color={color} strokeWidth={strokeWidth} style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle", ...style }} />;
+}
+
+// Point d'exclamation BD : petite explosion rouge cerclée d'encre, posée en
+// coin d'un bouton ou d'une carte (le parent doit être en position relative).
+export function BangBadge({ size = 22, top = -8, right = -6, style }) {
+  return (
+    <svg aria-label="Nouveau" role="img" width={size} height={size} viewBox="0 0 40 40"
+      style={{ position: "absolute", top, right, zIndex: 3, pointerEvents: "none", overflow: "visible", ...style }}>
+      <path d="M20 1 L24 10 L33 5 L30 15 L39 17 L31 23 L37 31 L27 30 L26 39 L20 32 L13 38 L13 29 L3 31 L9 23 L1 16 L11 14 L8 4 L16 10 Z"
+        fill="#c4302b" stroke="#141414" strokeWidth="2.5" strokeLinejoin="round" />
+      <text x="20" y="27.5" textAnchor="middle" fontFamily="'Archivo Black', sans-serif" fontSize="19" fill="#ffffff" stroke="#141414" strokeWidth="1" paintOrder="stroke">!</text>
+    </svg>
+  );
 }
