@@ -21,7 +21,7 @@ export const AVATAR_OPTIONS = {
   accessory: ["aucun", "bandeau", "casquette", "casquette-inversee", "visiere", "bandana"],
   accessoryColor: ["#d6ef3c", "#5b2d8e", "#1f7a45", "#c9b6ea", "#ffffff", "#c4302b", "#141414"],
   shirt:   ["#1f7a45", "#5b2d8e", "#d6ef3c", "#c9b6ea", "#ffffff", "#141414", "#c4302b", "#2c6fd1"],
-  facial:  ["aucun", "barbe", "moustache"],
+  facial:  ["aucun", "barbe", "moustache", "bouc-moustache"],
   mood:    ["determine", "sourire", "concentre"],
   // Conservé pour les anciennes sauvegardes (plus affiché).
   eyes:    ["#3f6f8f"],
@@ -31,7 +31,7 @@ export const AVATAR_LABELS = {
   court: "Court", pics: "Pics", boucles: "Boucles", meche: "Mèche", rase: "Rasé", chauve: "Chauve",
   long: "Long", queue: "Queue", chignon: "Chignon", carre: "Carré",
   aucun: "Aucun", bandeau: "Bandeau", casquette: "Casquette", "casquette-inversee": "À l'envers", visiere: "Visière", bandana: "Bandana",
-  barbe: "Barbe", moustache: "Moustache",
+  barbe: "Barbe", moustache: "Moustache", "bouc-moustache": "Bouc",
   determine: "Déterminé", sourire: "Sourire", concentre: "Concentré",
 };
 
@@ -143,8 +143,9 @@ export function Avatar({ config, size = 96, style, bare = false }) {
       <path d="M77 32 Q87 48 84 68 Q81 83 71 90 Q79 70 77 32 Z" fill={shade} />
 
       {/* Barbe, moustache */}
-      {a.facial === "barbe" && <path d="M36 66 Q38 92 60 96 Q82 92 84 66 Q80 80 72 82 Q60 76 48 82 Q40 80 36 66 Z" fill={a.hair} stroke={INK} strokeWidth="3" strokeLinejoin="round" />}
-      {a.facial === "moustache" && <path d="M48 77 Q54 72 60 75 Q66 72 72 77 Q66 79 60 77 Q54 79 48 77 Z" fill={a.hair} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />}
+      {a.facial === "barbe" && <path d="M36 66 Q38 94 60 98 Q82 94 84 66 Q82 84 72 86 Q60 93 48 86 Q38 84 36 66 Z" fill={a.hair} stroke={INK} strokeWidth="3" strokeLinejoin="round" />}
+      {a.facial === "bouc-moustache" && <path d="M51 87 Q60 85 69 87 Q68 97 60 98 Q52 97 51 87 Z" fill={a.hair} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />}
+      {(a.facial === "moustache" || a.facial === "bouc-moustache") && <path d="M48 77 Q54 72 60 75 Q66 72 72 77 Q66 79 60 77 Q54 79 48 77 Z" fill={a.hair} stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />}
 
       {/* Visage */}
       <ellipse cx="49" cy="61" rx="5.5" ry="6.5" fill="#ffffff" stroke={INK} strokeWidth="2.5" />
@@ -267,8 +268,9 @@ export function AvatarBuilder({ config, onChange }) {
   return (
     <div>
       {/* Aperçu : grande case de BD */}
-      <div className="tm-halftone-lilac" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "flex-end", height: 210, marginBottom: 16, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, overflow: "hidden" }}>
-        <Avatar config={a} size={210} bare />
+      {/* Collé en haut de l'écran : la tête reste visible pendant qu'on choisit les dernières options. */}
+      <div className="tm-halftone-lilac" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", justifyContent: "center", alignItems: "flex-end", height: 170, marginBottom: 16, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, overflow: "hidden" }}>
+        <Avatar config={a} size={170} bare />
         <div className="tm-lettering" style={{ position: "absolute", left: 8, top: 8, background: T.gold, border: "2.5px solid " + T.ink, padding: "2px 8px", fontSize: 15, color: "#141414" }}>Le futur n° 1 ?</div>
       </div>
 
