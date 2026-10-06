@@ -295,8 +295,8 @@ function SmashGauge({ done, onHit }) {
 // Trois programmes avec leur probabilité de réussite (façon essais libres).
 // Au choix, le jet est tiré puis animé sur une jauge : à gauche du seuil,
 // réussi ; à droite, raté. onPick(id, outcome) lance la séance.
-// Pourcentage exact, au dixième (ex. 71,4 %).
-const fmtPct = (p) => (Math.round(p * 1000) / 10).toLocaleString("fr-FR") + " %";
+// Pourcentage arrondi à l'entier (ex. 71 %).
+const fmtPct = (p) => Math.round(p * 100) + " %";
 const fmtGain = (g) => "+" + g.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx, noStaff = false, onPick, onClose }) {
@@ -346,7 +346,7 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {TRAINING_CARDS.map(c => {
               const p = odds[c.id] ?? c.baseP;
-              const pct = Math.round(p * 1000) / 10;
+              const pct = Math.round(p * 100);
               return (
                 <button key={c.id} onClick={() => pick(c)} style={{
                   padding: 0, border: "3px solid " + INK, background: colors[c.id], color: INK,
