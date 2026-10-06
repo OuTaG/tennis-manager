@@ -63,7 +63,7 @@ const rnd = (a, b) => a + Math.random() * (b - a); // cosmétique : trajectoires
 
 // Construit la suite des positions de la balle (et des joueurs) pour un duel.
 // r = résultat de resolveServeDuel (+ serveZone, readZone).
-function buildDuelSteps(r) {
+export function buildDuelSteps(r) {
   const steps = [];
   const lx = zoneX(r.serveZone);
   // 1. Le relanceur s'est placé là où il lit le service, le service part.
@@ -78,8 +78,10 @@ function buildDuelSteps(r) {
   // Le relanceur touche la balle.
   steps.push({ ball: { x: lx, y: TOP_Y + 18 }, dur: 200 });
   if (r.kind === "return_winner") {
-    // Bien lu : retour gagnant, à l'opposé du serveur, hors du cadre.
-    steps.push({ ball: { x: VW + 60, y: VH + 40 }, dur: 520, srv: SERVER_X - 20, burst: { text: "RETOUR GAGNANT !", at: { x: 250, y: 300 } } });
+    // Bien lu : retour gagnant à l'opposé du serveur. La balle rebondit
+    // d'abord dans le terrain (côté serveur, loin de lui), puis file hors du cadre.
+    steps.push({ ball: { x: 292, y: 352 }, dur: 430, srv: SERVER_X - 20, bounce: true });
+    steps.push({ ball: { x: VW + 50, y: VH + 50 }, dur: 260, burst: { text: "RETOUR GAGNANT !", at: { x: 250, y: 290 } } });
     return steps;
   }
   // 2. Un point se joue : échanges, puis le dernier coup.
@@ -101,12 +103,17 @@ function buildDuelSteps(r) {
   const toBottom = hitterTop; // la balle part vers le bas si le relanceur frappe
   const labels = { winner: "GAGNANT !", net: "FILET !", out: "FAUTE !", drop: "AMORTIE !" };
   let end;
-  if (rally.end === "winner") end = { x: rnd(0, 1) < 0.5 ? -50 : VW + 50, y: toBottom ? VH + 40 : -40 };
+  if (rally.end === "winner") {
+    // Coup gagnant : rebond dans le terrain adverse, loin du joueur, puis hors cadre.
+    const side = rnd(0, 1) < 0.5 ? -1 : 1;
+    steps.push({ ball: { x: 180 + side * 112, y: toBottom ? 352 : 68 }, dur: 430, bounce: true });
+    end = { x: side < 0 ? -50 : VW + 50, y: toBottom ? VH + 50 : -50 };
+  }
   else if (rally.end === "net") end = { x: rnd(90, 270), y: toBottom ? NET_Y - 8 : NET_Y + 8 };
   else if (rally.end === "out") end = { x: rnd(0, 1) < 0.5 ? 8 : VW - 8, y: toBottom ? 330 : 90 };
   else end = { x: rnd(110, 250), y: toBottom ? NET_Y + 22 : NET_Y - 22 };
   const burstAt = { x: Math.min(290, Math.max(70, end.x)), y: toBottom ? 300 : 110 };
-  steps.push({ ball: end, dur: rally.end === "drop" ? 600 : 460, bounce: rally.end !== "winner", burst: { text: labels[rally.end], at: burstAt } });
+  steps.push({ ball: end, dur: rally.end === "drop" ? 600 : rally.end === "winner" ? 260 : 460, bounce: rally.end !== "winner", burst: { text: labels[rally.end], at: burstAt } });
   return steps;
 }
 
