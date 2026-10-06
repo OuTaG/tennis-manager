@@ -64,8 +64,9 @@ export const PAGE_HELP = {
   ] },
   finance: { title: "Finances", items: [
     ["Revenus et dépenses", "Gains en tournoi, sponsors et primes d'un côté ; staff, voyages, entraînements et frais fixes de l'autre."],
-    ["Catégories de sponsors", "Un seul équipementier (bandeau bleu) et jusqu'à deux partenaires (bandeau ocre) en même temps. Certaines marques sont « à prendre ou à laisser »."],
+    ["Catégories de sponsors", "Un seul équipementier (étiquette bleue) et jusqu'à deux partenaires en même temps. Certaines marques sont « à prendre ou à laisser »."],
     ["Sponsors", "Les offres arrivent aux semaines 26 et 52. Négociez le salaire ou la prime, choisissez le niveau d'objectif, puis signez."],
+    ["Offres du moment", "En cours de saison, une marque peut aussi se manifester (plus souvent après de bons résultats). L'offre reste 4 semaines : signez-la telle quelle ou, si vos places sont prises, remplacez un contrat en payant sa résiliation."],
     ["Faillite", "Si votre argent passe sous zéro, votre carrière s'arrête."],
   ] },
   shop: { title: "Boutique", items: [

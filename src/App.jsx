@@ -706,6 +706,22 @@ export default function TennisManager() {
           objMoney,
         };
       }
+    } else {
+      // Offres en cours de saison : une marque peut se manifester n'importe
+      // quelle semaine (plus souvent après de bons résultats). L'offre reste
+      // valable 4 semaines et peut remplacer un contrat existant.
+      const nowAbs = newYear * 52 + newWeek;
+      const pending = (p.sponsorOffers || []).filter(o => o.midSeason && o.expiresAbs > nowAbs);
+      const perfBonus = getRecentPerfBonus(p.matchHistory);
+      if (pending.length < 2 && (p.image ?? 60) >= 20 && random() < 0.08 + 0.06 * perfBonus) {
+        const rankingNow = getPlayerRanking(totalAtpPoints(p.atpPointsLog), atpDb);
+        const taken = [...(p.sponsors || []).map(s => s.brand), ...pending.map(o => o.brand)];
+        const engagedCats = (p.sponsors || []).reduce((acc, s) => { acc[s.cat] = (acc[s.cat] || 0) + 1; return acc; }, {});
+        const tierBoost = Math.max(0, sumStaffEffect(p.staff, "sponsorTierBoost"));
+        const offer = generateSponsorOffer(rankingNow, perfBonus, taken, p.image, engagedCats, newYear, p.startDifficulty, null, tierBoost);
+        if (offer) pending.push({ ...offer, week: newWeek, year: newYear, midSeason: true, expiresAbs: nowAbs + 4 });
+      }
+      p.sponsorOffers = pending;
     }
     } catch (err) {
       console.error("[week] sponsor phase error:", err);
@@ -2479,6 +2495,8 @@ export default function TennisManager() {
     const nextPhase = (w, y) => (w < 26 ? { w: 26, y } : w < 52 ? { w: 52, y } : { w: 26, y: y + 1 });
     let dl = nextPhase(p.week, p.year);
     if ((offer.durationWeeks || 26) >= 52) dl = nextPhase(dl.w, dl.y);
+    // Offre signée en cours de saison : au moins 13 semaines pour l'objectif.
+    if (offer.midSeason && (dl.y - p.year) * 52 + (dl.w - p.week) < 13) dl = nextPhase(dl.w, dl.y);
     const objectiveWeek = dl.w, objectiveYear = dl.y;
     const weeksToDeadline = (dl.y - p.year) * 52 + (dl.w - p.week);
     const baseline = { titles: p.titlesWon || 0, wins: p.careerWins || 0, bigwins: p.careerBigWins || 0 };
@@ -4489,7 +4507,7 @@ export default function TennisManager() {
               });
             }
           }} />}
-          {activeTab === "finance" && <FinanceScreen player={player} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
+          {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "shop" && <ShopScreen />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>

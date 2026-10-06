@@ -1,18 +1,21 @@
 // Écran Bureau › Finances.
 import { tournamentEarningsFromHistory, tournamentIdByName } from "../../engine/history.js";
-import { SPONSOR_CAPS } from "../../engine/sponsors.js";
+import { SPONSOR_CAPS, sponsorSlotWarning } from "../../engine/sponsors.js";
 import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
-export function FinanceScreen({ player, acceptSponsorOffer, declineSponsorOffer, requestCancelSponsor, sponsorCancelCost, setTournamentDetail }) {
+export function FinanceScreen({ player, ranking, acceptSponsorOffer, declineSponsorOffer, requestCancelSponsor, sponsorCancelCost, setTournamentDetail }) {
   const balance = player.money;
   const earned = player.totalEarnings || 0;
   const spent = player.totalSpent || 0;
   const net = earned - spent;
   const staffWeekly = player.staff.reduce((a, s) => a + s.cost, 0);
   const sponsors = player.sponsors || [];
-  const offers = player.sponsorOffers || [];
+  // Offres reçues en cours de saison (celles des phases de négociation
+  // passent par la table de négociation).
+  const offers = (player.sponsorOffers || []).filter(o => o.midSeason);
+  const nowAbs = player.year * 52 + player.week;
   const weeklySponsorIncome = sponsors.reduce((a, s) => a + s.weeklyPay, 0);
   const weeklyOutflow = player.weeklyExpenses + staffWeekly;
   const weeklyNet = weeklySponsorIncome - weeklyOutflow;
@@ -100,6 +103,46 @@ export function FinanceScreen({ player, acceptSponsorOffer, declineSponsorOffer,
           );
         })}
       </div>
+
+      {/* Offres en cours de saison */}
+      {offers.length > 0 && (
+        <div style={panel}>
+          {band("Offres du moment", <span style={chip("#d6ef3c", "#141414")}>{offers.length} offre{offers.length > 1 ? "s" : ""}</span>)}
+          {offers.map((o, k) => {
+            const med = (o.objectiveLevels || []).find(l => l.level === "medium") || (o.objectiveLevels || [])[1];
+            const left = Math.max(1, o.expiresAbs - nowAbs);
+            const warn = sponsorSlotWarning(player, o, ranking ?? 9999);
+            return (
+              <div key={o.id} className="tm-halftone-yellow" style={{ padding: 12, borderTop: k ? "2px dashed " + INK : 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      <span style={o.cat === "equipment" ? chip("#2c6fd1", "#ffffff") : chip("#ffffff", "#141414")}>{o.cat === "equipment" ? "Équipementier" : "Sponsor"}</span>
+                      <span style={chip("#ffffff", "#141414")}>{tierLabels[o.tier]}</span>
+                    </div>
+                    <div className="tm-display" style={{ fontSize: 17, marginTop: 5 }}>{o.brand}</div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div className="tm-display" style={{ color: "#1f7a45", fontSize: 16 }}>+{o.weeklyPay} €<span style={{ fontSize: 11 }}>/sem</span></div>
+                    <div style={{ fontSize: 11, fontWeight: 800, marginTop: 2 }}>Expire dans {left} sem.</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 6, lineHeight: 1.45 }}>
+                  Bonus titre : +{o.titleBonus.toLocaleString()} €
+                  {med && <><br />Objectif : {med.label} (+{Math.round((o.baseReward || 0) * (med.rewardMul || 1)).toLocaleString()} € / −{Math.round((o.basePenalty || 0) * (med.penaltyMul || 1)).toLocaleString()} €)</>}
+                </div>
+                {warn && <div style={{ marginTop: 6, background: "#ffffff", border: "2px solid " + INK, padding: "4px 7px", fontSize: 11.5, fontWeight: 700, lineHeight: 1.4 }}>{warn.short}</div>}
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button className="tm-display" style={{ flex: 1, background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "7px 8px", fontSize: 13, cursor: "pointer" }} onClick={() => acceptSponsorOffer(o)}>
+                    {warn ? "Remplacer un contrat" : "Signer"}
+                  </button>
+                  <button style={{ ...styles.btnSmall, background: "#ffffff", color: INK, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontWeight: 800 }} onClick={() => declineSponsorOffer(o)}>Refuser</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Bilan hebdomadaire */}
       <div style={panel}>
