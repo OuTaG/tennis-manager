@@ -11,7 +11,7 @@ import { CHALLENGE_SLOT, MEDAL_INFO, challengeActive, challengeTallyWeek, evalua
 import { ALL_TOURNAMENTS, getEntryStatus, getPointSplits, getSeedCount, getTournamentFormat, getTournamentLore, isBestOfFiveMatch, isWTA, playerHasBye, setCircuit, setPlayerRaceRank, tierColor, tierLabel, tournamentAbsWeek } from "./engine/circuit.js";
 import { pickComment, pickDebrief } from "./engine/commentary.js";
 import { generateAtpDatabase, getPlayerProfile, getRating, pickOpponentForMatch } from "./engine/database.js";
-import { MATCH_FIX_DILEMMA, pickRandomDilemma, resolveDilemmaOption } from "./engine/dilemmas.js";
+import { MATCH_FIX_DILEMMA, resolveDilemmaOption } from "./engine/dilemmas.js";
 import { feminizeText } from "./engine/feminize.js";
 import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/history.js";
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
@@ -29,6 +29,7 @@ import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
 import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
+import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, avatarFromName, femaleHairStyle } from "./ui/avatar.jsx";
 import { rankingName } from "./ui/format.js";
 import { FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
@@ -51,7 +52,7 @@ import { TravelScreen } from "./ui/screens/Travel.jsx";
 import { styles } from "./ui/styles.js";
 import { T, applyTheme } from "./ui/theme.js";
 import { getRngState, newSeed, random, setRngState, setSeed } from "./engine/rng.js";
-import { TACTIC_DEFS, coachAdvice, normalizeTactics } from "./engine/tactics.js";
+import { TACTIC_DEFS, adviceStars, coachAdvice, normalizeTactics } from "./engine/tactics.js";
 import { TRAINING_CARDS, ZONES, miniGameEffect, pickMatchMiniGame, trainingOdds } from "./engine/minigames.js";
 import { programmeGain, trainingBaseGain } from "./engine/training.js";
 import { MatchMiniGame, TrainingCards } from "./ui/overlays/MiniGames.jsx";
@@ -92,6 +93,11 @@ export default function TennisManager() {
   // Pause du match : les jeux ne s'enchaînent plus tant qu'elle est active.
   const [matchPaused, setMatchPaused] = useState(false);
   const [tacticsOpen, setTacticsOpen] = useState(false);
+  // Ombres de défilement : fenêtre (pages de jeu), plan de jeu, aide, commentaires.
+  const winEdges = useScrollEdges(null);
+  const tacticsBoxRef = useRef(null);
+  const helpBoxRef = useRef(null);
+  const feedBoxRef = useRef(null);
   const [cardPick, setCardPick] = useState(null); // module d'entraînement en attente du choix de fiche
   const matchPausedRef = useRef(false);
   // Suite du jeu interrompu par la pause (reprise au point près).
@@ -1559,7 +1565,10 @@ export default function TennisManager() {
     const preSet = m.sets[m.sets.length - 1];
     const preSetNum = m.sets.length; // 1-based set number being played (approx)
     const energyBefore = m.playerEnergy;
-    const result = advanceMatchOneGame(m, getEffectiveStats(player, { tournamentCity: ms.tournament?.city, opponentCountry: ms.opponent?.nat?.country, surface: ms.tournament?.surface }), ms.opponent.stats);
+    // Point décisif : une fois sur deux, l'avantage du joueur se joue en mini-jeu.
+    const allowMiniGame = !m.pendingGame && !m.matchFixThrown && random() < 0.5;
+    const result = advanceMatchOneGame(m, getEffectiveStats(player, { tournamentCity: ms.tournament?.city, opponentCountry: ms.opponent?.nat?.country, surface: ms.tournament?.surface }), ms.opponent.stats, { allowMiniGame });
+    const pendingMini = !!result.pending;
     // Apply staff energy-drain reduction (e.g. fitness coach).
     const drainCut = Math.max(0, sumStaffEffect(player.staff, "energyDrainCut"));
     if (drainCut > 0) {
@@ -1585,7 +1594,7 @@ export default function TennisManager() {
     const gameEvent = { id: Date.now() + random(), type: result.gameType, text: pickComment(commentKey, vars), points: result.points || null, isTiebreak: !!result.isTiebreak, score: { ...result.score, isPlayerServing: result.isPlayerServing, tiebreak: m.sets[m.sets.length - 1].tiebreak } };
     // A game that closes a set is NOT commented on its own: the set comment
     // below says how the set was closed (hold, break, tie-break) instead.
-    if (!result.setComplete) newEvents.push(gameEvent);
+    if (!result.setComplete && !pendingMini) newEvents.push(gameEvent);
 
     if (result.setComplete) {
       const winnerSets = result.setWonByPlayer ? m.pSets : m.oSets;
@@ -1618,7 +1627,7 @@ export default function TennisManager() {
       newEvents.push({ ...gameEvent, id: Date.now() + random() + 1, type: result.setWonByPlayer ? "set_won" : "set_lost", text: pickComment(setType, setVars) });
     }
 
-    if (random() < 0.05 && !result.setComplete) {
+    if (!pendingMini && random() < 0.05 && !result.setComplete) {
       const eventTypes = ["crowd_cheer", "challenge"];
       const type = eventTypes[Math.floor(random() * eventTypes.length)];
       newEvents.push({ id: Date.now() + random() + 2, type: "event", text: pickComment(type, vars) });
@@ -1628,7 +1637,7 @@ export default function TennisManager() {
     const totalGamesPlayed = m.sets.reduce((a, s) => a + s.gameLog.length, 0);
 
     // Forme du jour : allusion discrète après quelques jeux si elle est marquée.
-    if (!m.formNoted && totalGamesPlayed >= 3 && !m.matchComplete) {
+    if (!pendingMini && !m.formNoted && totalGamesPlayed >= 3 && !m.matchComplete) {
       m.formNoted = true;
       const pick = arr => arr[Math.floor(random() * arr.length)];
       const lines = [];
@@ -1639,35 +1648,18 @@ export default function TennisManager() {
       lines.forEach((text, i) => newEvents.push({ id: Date.now() + random() + 3 + i, type: "event", text }));
     }
     let pendingDilemma = null;
-    let coachRevealedFor = ms.coachRevealedFor || null; // coach's scouting memory for this match
     // Match-fixing: only pops on the pre-scheduled game (one roll per match).
     const fixDue = ms.scheduledFixGame != null
       && totalGamesPlayed === ms.scheduledFixGame
-      && !ms.fixOffered && !ms.pendingDilemma
+      && !ms.fixOffered && !ms.pendingDilemma && !pendingMini
       && !m.matchComplete && !result.setComplete;
     let fixOffered = ms.fixOffered || false;
-    if (fixDue) {
+    if (pendingMini) {
+      // Avantage joueur : le point se joue en mini-jeu (gagné = jeu, perdu = égalité).
+      pendingDilemma = { id: "minigame", minigame: pickMatchMiniGame(result.isPlayerServing !== false), title: "Point décisif", desc: "" };
+    } else if (fixDue) {
       pendingDilemma = MATCH_FIX_DILEMMA;
       fixOffered = true;
-    } else {
-      const shouldDilemma = !m.matchComplete && !result.setComplete && totalGamesPlayed >= 3 && random() < 0.18 && !ms.pendingDilemma;
-      if (shouldDilemma) {
-        // Mini-jeu de choix à la place d'un dilemme, un peu moins d'une fois sur deux.
-        const candidate = random() < 0.45
-          ? { id: "minigame", minigame: pickMatchMiniGame(m.nextServerIsPlayer !== false), title: "Mini-jeu", desc: "" }
-          : pickRandomDilemma();
-        if (!candidate.requiresCoach || player.staff.some(s => s.role === "Coach")) {
-          // The coach's scouting hint only shows up about 30% of the time
-          // (decided once, when the dilemma appears).
-          const alreadyRevealed = ms.coachRevealedFor && ms.coachRevealedFor === ms.opponent?.name;
-          const hint = alreadyRevealed || random() < 0.30;
-          pendingDilemma = { ...candidate, coachHint: hint };
-          // Once the coach has spotted the weakness, he keeps giving it until the end of the match.
-          if (hint && candidate.id === "exploit_weakness" && player.staff.some(s => s.role === "Coach")) {
-            coachRevealedFor = ms.opponent?.name || null;
-          }
-        }
-      }
     }
 
     const committedState = {
@@ -1676,7 +1668,6 @@ export default function TennisManager() {
       eventLog: [...newEvents.reverse(), ...ms.eventLog].slice(0, 80),
       pendingDilemma,
       fixOffered,
-      coachRevealedFor,
       lastResolveMsg: null,
     };
 
@@ -1694,7 +1685,10 @@ export default function TennisManager() {
       contextLabel = "Set " + setNum + " · " + serveTxt;
     }
 
-    const points = result.points && result.points.length ? result.points : [{ winner: result.gameType && /won|break|hold|rebreak/.test(result.gameType) ? "p" : "o", kind: "winner", rallies: 3, label: "JEU", servingPlayer: !!result.isPlayerServing }];
+    const allPoints = result.points && result.points.length ? result.points : [{ winner: result.gameType && /won|break|hold|rebreak/.test(result.gameType) ? "p" : "o", kind: "winner", rallies: 3, label: "JEU", servingPlayer: !!result.isPlayerServing }];
+    // Jeu repris après un mini-jeu : on n'anime que les points restants.
+    const points = result.resumeFrom ? allPoints.slice(result.resumeFrom) : allPoints;
+    const resumeLabel = result.resumeFrom ? allPoints[result.resumeFrom - 1] : null;
 
     // Decompose a point label into per-player cells for the scoreboard.
     // For the deciding "JEU" label, show it only on the winner's line so the
@@ -1748,9 +1742,10 @@ export default function TennisManager() {
     };
     const commitAndMaybeContinue = () => { commitNow(); scheduleAuto(); };
     pendingCommitRef.current = commitAndMaybeContinue;
-    setLivePoint({ p: "0", o: "0", server: serverAt(0) });
+    const startSplit = resumeLabel ? splitLabel(resumeLabel.label, resumeLabel.winner, "0", "0") : { p: "0", o: "0" };
+    setLivePoint({ ...startSplit, server: serverAt(0) });
     let step = 0;
-    let prevP = "0", prevO = "0";
+    let prevP = startSplit.p, prevO = startSplit.o;
     // Super tie-break (10 points): slower points to build suspense.
     // Speed: x2 = reference pace (also used in manual). x1 = everything twice
     // as slow. x4 = twice as fast, except tie-break points which keep their pace.
@@ -1800,12 +1795,14 @@ export default function TennisManager() {
       const m = { ...ms.matchData };
       m.playerMomentum = clampMomentum((m.playerMomentum || 0) + miniGameEffect(win).momentumDelta);
       if (zone !== null && zone !== undefined) m.serveZones = [...(m.serveZones || []), zone].slice(-8);
+      // Le jeu interrompu reprend : gagné → jeu pour le joueur, perdu → égalité.
+      if (m.pendingGame) m.pendingGame = { ...m.pendingGame, miniGameWon: !!win };
       const title = kind === "serve_duel" ? "Duel au service" : kind === "return_duel" ? "Duel au retour" : "Smash";
       return {
         ...ms,
         matchData: m,
         pendingDilemma: null,
-        eventLog: [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text }, ...(ms.eventLog || [])].slice(0, 80),
+        eventLog: [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text: text + (win ? " Jeu !" : " Retour à égalité.") }, ...(ms.eventLog || [])].slice(0, 80),
       };
     });
     resumeAfterDilemma();
@@ -2643,6 +2640,7 @@ export default function TennisManager() {
         <div style={{ ...styles.notif, bottom: 24, borderLeftColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.blue }}>{notification.msg}</div>
       )}
       <div style={styles.menuBg} className="tm-grain">
+        <WindowShades />
         <div style={styles.menuCard}>
           <div style={{ position: "relative", zIndex: 2, width: "100%", textAlign: "center" }}>
             {/* Balle de tennis dessinée à l'encre */}
@@ -2743,6 +2741,8 @@ export default function TennisManager() {
       return (
         <div style={styles.root}>
           <div style={styles.menuBg}>
+          <WindowShades />
+            <WindowShades />
             <div style={{ ...styles.menuCard, gap: 14, alignItems: "stretch", maxWidth: 380 }}>
               <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Quel circuit ?</h2>
               <div style={{ color: T.fg4, fontSize: 13, textAlign: "center", lineHeight: 1.5 }}>
@@ -2781,6 +2781,8 @@ export default function TennisManager() {
       return (
         <div style={styles.root}>
           <div style={styles.menuBg}>
+          <WindowShades />
+            <WindowShades />
             <div style={{ ...styles.menuCard, gap: 14, alignItems: "stretch", maxWidth: 380 }}>
               <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 1/2 · Identité</h2>
               <div style={{
@@ -2862,6 +2864,7 @@ export default function TennisManager() {
     return (
       <div style={styles.root}>
         <div style={styles.menuBg}>
+          <WindowShades />
           <div style={{ ...styles.menuCard, gap: 16, alignItems: "stretch", maxWidth: 380 }}>
             <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 2/2 · Profil</h2>
             <div style={{
@@ -3077,6 +3080,7 @@ export default function TennisManager() {
     return (
       <div style={styles.root}>
         <div style={{ ...styles.menuBg, padding: 24, alignItems: "flex-start", paddingTop: 40 }}>
+          <WindowShades />
           <div style={{ ...styles.menuCard, maxWidth: 380, alignItems: "stretch" }}>
             <div style={{ textAlign: "center" }}>
               <div style={{ marginBottom: 8 }}><Icon name={isRetirement ? "trophy" : "wallet"} size={56} color={isRetirement ? T.amber : T.red} /></div>
@@ -3176,6 +3180,7 @@ export default function TennisManager() {
       <div style={styles.root}>
         {deleteSaveDialog}
         <div style={{ ...styles.menuBg, padding: 24, alignItems: "flex-start", paddingTop: 40 }}>
+          <WindowShades />
           <div style={{ ...styles.menuCard, maxWidth: 380, alignItems: "stretch", gap: 14 }}>
             <div style={{ textAlign: "center", marginBottom: 4 }}>
               <Icon name="cog" size={36} color={T.fg3} strokeWidth={1.5} />
@@ -3677,6 +3682,8 @@ export default function TennisManager() {
 
     if (ms.phase === "prematch") {
       const oppProfile = getPlayerProfile(ms.opponent.stats);
+      // Analyste vidéo : 1 = les 6 stats adverses, 2 = + sa forme du jour.
+      const scoutLevel = Math.max(0, Math.min(2, sumStaffEffect(player.staff || [], "scouting")));
       // Affiche de match façon BD : bandeau à la couleur de la surface,
       // face-à-face des deux portraits, fiche de scouting, forme du jour.
       const SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2c6fd1", "Indoor": "#5b2d8e" };
@@ -3710,6 +3717,7 @@ export default function TennisManager() {
       return (
         <div style={styles.root}>
           <div style={{ ...styles.screen, paddingBottom: 0 }}>
+            <WindowShades />
             {/* Bandeau du tournoi */}
             <div style={{ background: surfBg, color: "#ffffff", padding: "14px 16px 12px", borderBottom: "3px solid " + ink, backgroundImage: "radial-gradient(rgba(255,255,255,0.16) 1.4px, transparent 1.6px)", backgroundSize: "7px 7px" }}>
               <span style={{ display: "inline-block", background: T.gold, color: "#141414", border: "2px solid " + ink, fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", padding: "1px 7px" }}>{tierLabel(tourn.tier)} · {tourn.surface}</span>
@@ -3749,6 +3757,23 @@ export default function TennisManager() {
                       <div style={{ fontWeight: 800, fontSize: 14 }}>{oppProfile.weakness.label} <span className="tm-num">{Math.round(oppProfile.weakness.value)}</span></div>
                     </div>
                   </div>
+                  {scoutLevel > 0 && (
+                    <div style={{ border: "2.5px solid " + ink, background: T.lilac, color: "#141414", padding: "6px 8px" }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Rapport de l'analyste vidéo</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "3px 10px" }}>
+                        {[["serve", "Service"], ["forehand", "Coup droit"], ["backhand", "Revers"], ["stamina", "Endurance"], ["mental", "Mental"], ["net", "Filet"]].map(([k, l]) => (
+                          <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 4, fontSize: 12, fontWeight: 700 }}>
+                            <span>{l}</span><span className="tm-num" style={{ fontWeight: 800 }}>{Math.round(ms.opponent.stats[k] ?? 0)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {scoutLevel >= 2 && (
+                        <div style={{ marginTop: 5, fontSize: 12, fontWeight: 800 }}>
+                          Forme du jour : {(m.oppForm || 0) >= 4 ? "en grande forme" : (m.oppForm || 0) <= -4 ? "en difficulté" : "habituelle"}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 12, fontWeight: 700 }}>Cote globale</span>
                     <span className="tm-display" style={{ fontSize: 20, background: T.gold, color: "#141414", border: "2.5px solid " + ink, padding: "0 8px" }}>{getRating(ms.opponent.stats)}</span>
@@ -3948,7 +3973,8 @@ export default function TennisManager() {
             {/* Le résultat des décisions apparaît désormais dans le fil des commentaires. */}
 
             {/* Event feed */}
-            <div style={{ ...styles.eventFeed, flex: "1 1 0", minHeight: 160, maxHeight: "none", paddingBottom: 18 }}>
+            <div ref={feedBoxRef} style={{ ...styles.eventFeed, flex: "1 1 0", minHeight: 160, maxHeight: "none", paddingBottom: 18 }}>
+              <BoxShade boxRef={feedBoxRef} side="top" />
               {ms.eventLog.length === 0 && (
                 <div style={{ color: T.fg4, fontSize: 13, textAlign: "center", padding: 16 }}>
                   {matchPaused ? "Match en pause · appuyez sur Reprendre pour commencer."
@@ -3960,7 +3986,7 @@ export default function TennisManager() {
                 if (b.type === "dilemma") {
                   return (
                     <div key={b.id} style={{ ...styles.eventItem, opacity: Math.max(0.55, 1 - i * 0.05), borderLeft: "3px solid " + T.ball, background: T.bg2 }}>
-                      <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 4 }}>Décision{b.title ? " · " + b.title : ""}</div>
+                      <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 4 }}>{/Duel|Smash/.test(b.title || "") ? "Point décisif" : "Décision"}{b.title ? " · " + b.title : ""}</div>
                       {b.choice && <div style={{ fontSize: 12, color: T.fg3, marginBottom: 4 }}>Choix : <strong style={{ color: T.fg }}>{b.choice}</strong></div>}
                       <span style={{ fontSize: 13, color: T.fg }}>{withFlags(b.text || "")}</span>
                     </div>
@@ -3982,6 +4008,7 @@ export default function TennisManager() {
                   oppStats={ms.opponent.stats}
                   myStats={player.stats}
                   history={m.serveZones || []}
+                  stake={m.pendingGame && !m.pendingGame.isPlayerServing ? "Balle de break" : "Balle de jeu"}
                   onDone={(win, text, zone) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone)}
                 />
               </div>
@@ -3997,19 +4024,6 @@ export default function TennisManager() {
                       Truquer un match est passible d'une suspension de 10 à 12 semaines et ruine votre réputation si vous êtes démasqué.
                     </div>
                   )}
-                  {ms.pendingDilemma.id === "exploit_weakness" && (() => {
-                    const hasCoach = (player.staff || []).some(s => s.role === "Coach");
-                    const prof = getPlayerProfile(ms.opponent.stats);
-                    return (
-                      <div style={{ margin: "-8px 0 16px", padding: "8px 10px", borderRadius: 3, background: (hasCoach && ms.pendingDilemma.coachHint) ? T.greenSub : T.bg2, border: "1px solid " + ((hasCoach && ms.pendingDilemma.coachHint) ? T.greenBrd : T.brd), color: (hasCoach && ms.pendingDilemma.coachHint) ? T.green : T.fg4, fontSize: 11.5, lineHeight: 1.4 }}>
-                        {hasCoach && ms.pendingDilemma.coachHint
-                          ? "Rapport du coach : point faible de " + ms.opponent.name + " → " + prof.weakness.label.toLowerCase() + " (" + Math.round(prof.weakness.value) + ")."
-                          : hasCoach
-                            ? "Votre coach n'a rien repéré de décisif chez " + ms.opponent.name + " : à vous de trouver sa faille."
-                            : "Sans coach pour le scouting, à vous d'identifier sa faille."}
-                      </div>
-                    );
-                  })()}
                   {ms.pendingDilemma.options.filter(opt => !opt.requiresCoach || player.staff.some(s => s.role === "Coach")).map((opt, i) => (
                     <button
                       key={i}
@@ -4108,17 +4122,22 @@ export default function TennisManager() {
                     // Conseil seulement si un coach est engagé (jamais en mode sans staff).
                     const hasCoach = (player.staff || []).some(st => st.role === "Coach");
                     const advice = hasCoach ? coachAdvice(player.stats, ms.opponent.stats, tourn.surface) : { key: null, value: null };
+                    // Étoiles : une pour le coach, jusqu'à deux de plus avec un analyste vidéo.
+                    const scouting = Math.max(0, Math.min(2, sumStaffEffect(player.staff || [], "scouting")));
+                    const stars = adviceStars(player.stats, ms.opponent.stats, tourn.surface, (hasCoach ? 1 : 0) + scouting);
+                    const hasStars = stars.length > 0 || (hasCoach && advice.key);
                     const setTac = (key, value) => {
                       const next = { ...tac, [key]: value };
                       setMatchState(prev => prev ? ({ ...prev, matchData: { ...prev.matchData, tactics: next } }) : prev);
                       setPlayer(p => ({ ...p, tactics: next }));
                     };
                     return (
-                      <div role="dialog" aria-label="Plan de jeu" className="tm-paper" style={{
+                      <div ref={tacticsBoxRef} role="dialog" aria-label="Plan de jeu" className="tm-paper" style={{
                         position: "fixed", inset: 0, zIndex: 250, overflowY: "auto",
                         padding: "16px 16px calc(16px + env(safe-area-inset-bottom, 0px))",
                         display: "flex", flexDirection: "column", gap: 10,
                       }}>
+                        <BoxShade boxRef={tacticsBoxRef} side="top" />
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "3px solid " + T.ink, paddingBottom: 4 }}>
                           <span className="tm-display" style={{ fontSize: 22 }}>Plan de jeu</span>
                           <span className="tm-eyebrow" style={{ color: T.fg }}>Contre {ms.opponent.name}</span>
@@ -4136,7 +4155,7 @@ export default function TennisManager() {
                             <div role="radiogroup" aria-label={d.label} style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", border: "2.5px solid " + T.ink, background: T.bg1 }}>
                               {d.options.map((label, i) => {
                                 const on = tac[d.key] === i;
-                                const suggested = advice.key === d.key && advice.value === i;
+                                const suggested = (advice.key === d.key && advice.value === i) || stars.some(st => st.key === d.key && st.value === i);
                                 return (
                                   <button key={i} role="radio" aria-checked={on} onClick={() => setTac(d.key, i)} style={{
                                     minHeight: 42, border: 0, borderRight: i < 2 ? "2px solid " + T.ink : 0, cursor: "pointer",
@@ -4144,18 +4163,19 @@ export default function TennisManager() {
                                     fontFamily: T.body, fontWeight: 800, fontSize: 11.5, position: "relative",
                                   }}>
                                     {label}
-                                    {suggested && !on && <span style={{ position: "absolute", top: 2, right: 3, fontSize: 9, color: T.blue }}>★</span>}
+                                    {suggested && !on && <span style={{ position: "absolute", top: 1, right: 3, fontSize: 13, lineHeight: 1, color: T.magenta, WebkitTextStroke: "0.5px " + T.ink }}>★</span>}
                                   </button>
                                 );
                               })}
                             </div>
                           </div>
                         ))}
-                        <div style={{ fontSize: 11.5, color: T.fg3, fontWeight: 600 }}>{hasCoach ? "★ = conseil du coach. " : ""}Les effets dépendent de votre profil, de celui de l'adversaire et de la surface.</div>
+                        <div style={{ fontSize: 11.5, color: T.fg3, fontWeight: 600 }}>{hasStars ? (scouting > 0 ? (hasCoach ? "★ = conseils de votre coach et de votre analyste. " : "★ = conseils de votre analyste. ") : "★ = conseil du coach. ") : ""}Les effets dépendent de votre profil, de celui de l'adversaire et de la surface.</div>
                         <button
                           style={{ ...styles.btnPrimary, marginTop: "auto", background: T.green }}
                           onClick={() => { setTacticsOpen(false); if (!running) togglePause(); }}
                         >Reprendre le match ▶</button>
+                        <BoxShade boxRef={tacticsBoxRef} side="bottom" />
                       </div>
                     );
                   })()}
@@ -4227,6 +4247,7 @@ export default function TennisManager() {
       )}
       <div style={styles.screen}>
         <div style={styles.topBar}>
+          <BarShade side="top" show={winEdges.top} />
           {/* Manchette de la gazette : logo, aide, trophées, réglages */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <div className="tm-display" style={{ fontSize: 26, lineHeight: 0.9, background: T.ink, color: T.gold, padding: "4px 10px 6px", transform: "rotate(-2deg)" }}>Courtside</div>
@@ -4295,10 +4316,11 @@ export default function TennisManager() {
               position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400,
               display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
             }}>
-              <div onClick={e => e.stopPropagation()} style={{
+              <div ref={helpBoxRef} onClick={e => e.stopPropagation()} style={{
                 background: T.bg1, border: "1px solid " + T.greenBrd, borderRadius: 3,
                 padding: 20, maxWidth: 440, width: "100%", maxHeight: "80vh", overflowY: "auto",
               }}>
+                <BoxShade boxRef={helpBoxRef} side="top" />
                 <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 6 }}>Aide</div>
                 <div style={{ color: T.fg, fontSize: 18, fontWeight: 800, marginBottom: 12 }}>{PAGE_HELP[helpTab].title}</div>
                 {PAGE_HELP[helpTab].items.map((it, i) => (
@@ -4308,6 +4330,7 @@ export default function TennisManager() {
                   </div>
                 ))}
                 <button style={{ ...styles.btnPrimary, marginTop: 8 }} onClick={() => setHelpTab(null)}>Compris</button>
+                <BoxShade boxRef={helpBoxRef} side="bottom" />
               </div>
             </div>
           )}
@@ -4334,6 +4357,7 @@ export default function TennisManager() {
         </div>
         {!flightAnim && !sponsorNegotiation && (
           <nav style={styles.bottomNav}>
+            <BarShade side="bottom" show={winEdges.bottom} />
             {NAV_GROUPS.map(g => {
               const isActive = activeGroup.id === g.id;
               return (

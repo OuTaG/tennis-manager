@@ -1,6 +1,7 @@
 // Mini-jeux de choix (match et entraînement), en cases de BD.
 import { useEffect, useRef, useState } from "react";
 import { ZONES, TRAINING_CARDS, opponentRead, returnDuel, rollTraining, serveDuel, smashResult } from "../../engine/minigames.js";
+import { BoxShade } from "../scrollShade.jsx";
 import { T } from "../theme.js";
 
 const INK = "#141414";
@@ -27,12 +28,12 @@ function Caption({ children }) {
 // ─── EN MATCH ─────────────────────────────────────────────────────────────
 // kind : "serve_duel" | "return_duel" | "smash"
 // onDone(win, text, zone) : appelé quand le joueur clique « Continuer ».
-export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, onDone }) {
+export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, stake = "Balle de jeu", onDone }) {
   const [res, setRes] = useState(null);
   const title = kind === "serve_duel" ? "Duel au service !" : kind === "return_duel" ? "Duel au retour !" : "Smash !";
-  const caption = kind === "serve_duel" ? "Vous servez. " + oppName + " lit votre service…"
-    : kind === "return_duel" ? oppName + " va servir. Où va-t-il frapper ?"
-    : "Une balle haute flotte au-dessus du filet…";
+  const caption = kind === "return_duel" ? stake + " · " + oppName + " va servir. Où va-t-il frapper ?"
+    : kind === "smash" ? stake + " · une balle haute flotte au-dessus du filet…"
+    : stake;
 
   const pickZone = (i) => {
     if (res) return;
@@ -46,6 +47,14 @@ export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, onDon
     }
   };
 
+  // Demi-court adverse vu depuis le serveur : fond de court en haut, filet en
+  // bas. Le carré de service visé (à droite de la ligne médiane) est découpé
+  // en trois zones, du T (contre la ligne médiane) au large (contre le couloir).
+  const VW = 360, VH = 250;
+  const BOX = { x: 180, y: 116, w: 164, h: 116 };
+  const ORDER = [2, 1, 0]; // Au T, Corps, Large (indices de ZONES)
+  const pct = (v, total) => (v / total * 100) + "%";
+
   return (
     <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ alignSelf: "center" }}><Sfx>{title}</Sfx></div>
@@ -53,37 +62,49 @@ export function MatchMiniGame({ kind, oppName, oppStats, myStats, history, onDon
       {kind === "smash"
         ? <SmashGauge done={!!res} onHit={(precision) => setRes({ ...smashResult(precision), zone: null })} />
         : (
-          <div style={{ position: "relative", height: 230, background: GRASS, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK }}>
-            <svg viewBox="0 0 360 230" width="100%" height="100%" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
-              <path d="M30 26 L330 26 L330 210 L30 210 Z M180 26 L180 210 M30 118 L330 118" fill="none" stroke="#ffffff" strokeWidth="4" />
-              <path d="M14 10 L346 10" stroke={INK} strokeWidth="6" />
+          <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, background: GRASS, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK }}>
+            <svg viewBox={"0 0 " + VW + " " + VH} width="100%" height="100%" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
+              {/* Carré visé, éclairci */}
+              <rect x={BOX.x} y={BOX.y} width={BOX.w} height={BOX.h} fill="#2f9a5c" />
+              {/* Lignes : couloirs, fond, ligne de service, ligne médiane */}
+              <path d="M2 20 L358 20 M2 20 L2 232 M358 20 L358 232 M16 20 L16 232 M344 20 L344 232 M16 116 L344 116 M180 116 L180 232" fill="none" stroke="#ffffff" strokeWidth="4" />
+              {/* Filet */}
+              <path d="M4 236 L356 236" stroke={INK} strokeWidth="8" />
+              <path d="M4 236 L356 236" stroke="#ffffff" strokeWidth="2" strokeDasharray="6 5" />
+              <text x="98" y="180" textAnchor="middle" fill="#ffffff" opacity="0.55" fontFamily={T.body} fontWeight="800" fontSize="13">{kind === "serve_duel" ? oppName : "Vous"}</text>
             </svg>
-            <div style={{ position: "absolute", left: 34, right: 34, top: 124, bottom: 30, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 }}>
-              {ZONES.map((z, i) => {
-                const chosen = res && (res.zone === i || res.picked === i);
-                const shown = res && res.shown === i;
-                return (
-                  <button key={z} onClick={() => pickZone(i)} disabled={!!res} style={{
-                    border: "3px solid " + INK, cursor: res ? "default" : "pointer",
-                    background: chosen ? BALL : shown ? LILAC : "#ffffff", color: INK,
-                    boxShadow: chosen ? "3px 3px 0 " + INK : "none",
-                    fontFamily: T.display, fontSize: 15, textTransform: "uppercase", position: "relative",
-                  }}>
-                    {z}
-                    {shown && <span style={{ position: "absolute", left: 0, right: 0, bottom: 3, fontFamily: T.body, fontSize: 9.5, fontWeight: 800 }}>{kind === "serve_duel" ? "IL ATTENDAIT" : "IL A SERVI"}</span>}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: INK, color: "#ffffff", padding: "4px 10px", fontSize: 11.5, fontWeight: 700 }}>
-              {kind === "serve_duel" ? "Servez là où il ne vous attend pas. Variez : il repère vos habitudes." : "Devinez la zone : bonne lecture = retour gagnant."}
-            </div>
+            {ORDER.map((zi, k) => {
+              const z = ZONES[zi];
+              const chosen = res && (res.zone === zi || res.picked === zi);
+              const shown = res && res.shown === zi;
+              const cellW = BOX.w / 3;
+              return (
+                <button key={z} onClick={() => pickZone(zi)} disabled={!!res} style={{
+                  position: "absolute",
+                  left: pct(BOX.x + k * cellW + 2.5, VW), width: pct(cellW - 5, VW),
+                  top: pct(BOX.y + 4, VH), height: pct(BOX.h - 8, VH),
+                  border: "2.5px solid " + INK, cursor: res ? "default" : "pointer", padding: 0,
+                  background: chosen ? BALL : shown ? LILAC : "rgba(255,255,255,0.92)", color: INK,
+                  boxShadow: chosen ? "2px 2px 0 " + INK : "none",
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+                  fontFamily: T.display, fontSize: 11.5, letterSpacing: 0, lineHeight: 1, textTransform: "uppercase", overflow: "hidden",
+                }}>
+                  <span>{z}</span>
+                  {shown && <span style={{ fontFamily: T.body, fontSize: 8.5, fontWeight: 800, lineHeight: 1.1 }}>{kind === "serve_duel" ? "IL ATTENDAIT" : "IL A SERVI"}</span>}
+                </button>
+              );
+            })}
           </div>
         )}
+      {!res && kind !== "smash" && (
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: T.fg }}>
+          {kind === "serve_duel" ? "Servez là où il ne vous attend pas." : "Devinez la zone : bonne lecture = retour gagnant."}
+        </div>
+      )}
       {res && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "10px 12px" }}>
-          <Sfx color={res.win ? BALL : LILAC}>{res.win ? "GAGNÉ !" : "RATÉ…"}</Sfx>
-          <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>{res.text} <span style={{ color: res.win ? GRASS : PURPLE }}>{res.win ? "Élan +2" : "Élan −1"}</span></div>
+          <Sfx color={res.win ? BALL : LILAC}>{res.win ? "JEU !" : "ÉGALITÉ"}</Sfx>
+          <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>{res.text}</div>
         </div>
       )}
       {res && (
@@ -156,6 +177,7 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
   const [needle, setNeedle] = useState(0);
   const [settled, setSettled] = useState(false);
   const rafRef = useRef(null);
+  const boxRef = useRef(null);
 
   useEffect(() => {
     if (!chosen) return undefined;
@@ -183,8 +205,9 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
   };
 
   return (
-    <div className="tm-paper" onClick={() => !chosen && onClose()} style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div ref={boxRef} className="tm-paper" onClick={() => !chosen && onClose()} style={{ position: "fixed", inset: 0, zIndex: 300, padding: 16, overflowY: "auto" }}>
+      <BoxShade boxRef={boxRef} side="top" />
+      <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, minHeight: "calc(100% - 0px)", margin: "0 auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "3px solid " + INK, paddingBottom: 4 }}>
           <span className="tm-display" style={{ fontSize: 22, color: T.fg }}>{mod.name}</span>
           <span className="tm-eyebrow" style={{ color: T.fg }}>Programme du jour</span>
@@ -258,6 +281,7 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
           </div>
         )}
       </div>
+      <BoxShade boxRef={boxRef} side="bottom" />
     </div>
   );
 }

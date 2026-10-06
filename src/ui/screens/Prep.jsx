@@ -112,6 +112,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
     sponsorPay: { label: "revenu sponsors", suffix: "%", scale: 100, color: T.green },
     sponsorTierBoost: { label: "chance sponsor premium", suffix: "%", scale: 100, color: T.green },
     surfaceBoost: { label: "stats en match (surface)", suffix: "", color: T.green },
+    scouting: { label: "★ de conseil tactique en match", suffix: "", color: T.green },
   };
   const MALUS_LABELS = {
     happinessDrain: { label: "bonheur/sem", suffix: "", color: T.red },
@@ -125,6 +126,9 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
       if (!def) continue;
       const val = (def.scale ? v * def.scale : v);
       items.push({ text: (def.sign || "+") + (Math.round(val * 10) / 10) + def.suffix + " " + def.label, color: def.color });
+    }
+    if (s.bonus && s.bonus.scouting) {
+      items.push({ text: "Les 6 stats de l'adversaire avant chaque match" + (s.bonus.scouting >= 2 ? ", et sa forme du jour" : ""), color: T.green });
     }
     for (const [k, v] of Object.entries(s.malus || {})) {
       const def = MALUS_LABELS[k];

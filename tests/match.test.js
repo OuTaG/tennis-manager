@@ -120,3 +120,43 @@ describe("règles et profils", () => {
     expect(run()).toBe(run());
   });
 });
+
+describe("point décisif en mini-jeu", () => {
+  const stats = { serve: 60, forehand: 60, backhand: 60, stamina: 60, mental: 60, net: 60 };
+  const findPending = (seed) => {
+    seedRandom(seed);
+    const m = createInitialMatchData(false, 100, "Dur");
+    for (let i = 0; i < 200 && !m.matchComplete; i++) {
+      const r = advanceMatchOneGame(m, stats, stats, { allowMiniGame: true });
+      if (r.pending) return { m, r };
+    }
+    return null;
+  };
+
+  it("s'arrête sur l'avantage du joueur sans finir le jeu", () => {
+    const { m, r } = findPending(3);
+    expect(r.points[r.points.length - 1].label).toBe("AV. JOUEUR");
+    expect(m.pendingGame).toBeTruthy();
+    expect(m.nextServerIsPlayer).toBe(r.isPlayerServing);
+  });
+
+  it("gagné : le joueur remporte le jeu", () => {
+    const { m, r } = findPending(5);
+    const games = m.sets[m.sets.length - 1].pGames;
+    m.pendingGame.miniGameWon = true;
+    const r2 = advanceMatchOneGame(m, stats, stats);
+    expect(r2.points.length).toBe(r.points.length + 1);
+    expect(r2.points[r2.points.length - 1].label).toBe("JEU");
+    expect(m.sets[m.sets.length - 1].pGames).toBe(games + 1);
+    expect(m.nextServerIsPlayer).toBe(!r.isPlayerServing);
+  });
+
+  it("perdu : retour à égalité, le jeu continue", () => {
+    const { m, r } = findPending(7);
+    m.pendingGame.miniGameWon = false;
+    const r2 = advanceMatchOneGame(m, stats, stats);
+    expect(r2.points[r.points.length].label).toBe("ÉGALITÉ");
+    expect(r2.points.length).toBeGreaterThanOrEqual(r.points.length + 3);
+    expect(r2.resumeFrom).toBe(r.points.length);
+  });
+});

@@ -97,6 +97,23 @@ export function tacticsShape(tactics) {
   return { aceMul, longMul };
 }
 
+// Réglages conseillés, du plus payant au moins payant (un par ligne de
+// réglage), utile au moins de 0,4 point de note. n = nombre d'étoiles.
+export function adviceStars(me, opp, surface, n) {
+  if (!n || n <= 0) return [];
+  const base = (tacticsBonus(DEFAULT_TACTICS, me, opp, surface, true) + tacticsBonus(DEFAULT_TACTICS, me, opp, surface, false)) / 2;
+  const best = {};
+  for (const d of TACTIC_DEFS) {
+    for (let v = 0; v < 3; v++) {
+      if (v === DEFAULT_TACTICS[d.key]) continue;
+      const t = { ...DEFAULT_TACTICS, [d.key]: v };
+      const gain = (tacticsBonus(t, me, opp, surface, true) + tacticsBonus(t, me, opp, surface, false)) / 2 - base;
+      if (gain >= 0.4 && (!best[d.key] || gain > best[d.key].gain)) best[d.key] = { key: d.key, value: v, gain };
+    }
+  }
+  return Object.values(best).sort((a, b) => b.gain - a.gain).slice(0, n);
+}
+
 // Conseil du coach : le réglage le plus payant contre cet adversaire.
 export function coachAdvice(me, opp, surface) {
   const candidates = [];

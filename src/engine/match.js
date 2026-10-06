@@ -195,13 +195,17 @@ export function playerPointProb(ctx, playerServes) {
 
 // ctx = { playerStats, oppStats, surface, playerEnergy, oppEnergy,
 //         playerMomentum, oppMomentum, playerForm, oppForm }
-export function playOneGame(ctx, isPlayerServing, forceLoss = false) {
+// opts.stopOnAdvantage : s'arrêter dès que le joueur obtient l'avantage
+//   (point décisif joué en mini-jeu) → { pending: true, pp, op, points }.
+// opts.start = { pp, op, points } : reprendre un jeu interrompu.
+export function playOneGame(ctx, isPlayerServing, forceLoss = false, opts = {}) {
   const pPoint = playerPointProb(ctx, isPlayerServing);
   const shape = pointShape(ctx, isPlayerServing);
   // Le jeu est simulé point par point : le vainqueur découle des points.
   const rng = random;
-  const points = [];
-  let pp = 0, op = 0;
+  const points = opts.start ? [...opts.start.points] : [];
+  let pp = opts.start ? opts.start.pp : 0, op = opts.start ? opts.start.op : 0;
+  if ((pp >= 4 && pp - op >= 2) || (op >= 4 && op - pp >= 2)) return { playerWon: pp > op, points };
   while (true) {
     const playerPt = rng() < pPoint;
     if (playerPt) pp++; else op++;
@@ -213,6 +217,9 @@ export function playOneGame(ctx, isPlayerServing, forceLoss = false) {
     if ((pp >= 4 && pp - op >= 2) || (op >= 4 && op - pp >= 2)) {
       points[points.length - 1].label = "JEU";
       break;
+    }
+    if (opts.stopOnAdvantage && !forceLoss && pp >= 3 && op >= 3 && pp - op === 1) {
+      return { pending: true, pp, op, points };
     }
   }
   const playerWon = pp > op;
@@ -242,9 +249,16 @@ export function playOneTiebreak(ctx, target, firstServerIsPlayer = true, forceLo
 }
 
 // Main function: advance ONE game in the live match, using current state
-export function advanceMatchOneGame(matchData, playerStats, oppStats) {
+// opts.allowMiniGame : ce jeu peut s'interrompre sur un avantage du joueur
+// (renvoie { pending: true, … } et garde le jeu dans m.pendingGame).
+// Pour reprendre : m.pendingGame.miniGameWon = true/false, puis rappeler la
+// fonction. Gagné → le joueur remporte le jeu ; perdu → retour à égalité,
+// la fin du jeu se joue normalement.
+export function advanceMatchOneGame(matchData, playerStats, oppStats, opts = {}) {
   const m = matchData;
   if (m.matchComplete) return { gameType: "noop", score: { p: 0, o: 0 } };
+  const resume = m.pendingGame && typeof m.pendingGame.miniGameWon === "boolean" ? m.pendingGame : null;
+  if (resume) delete m.pendingGame;
   // Currently playing set
   let curSet = m.sets[m.sets.length - 1];
   if (!curSet || curSet.completed) {
@@ -255,7 +269,7 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats) {
   // Qui sert : le service alterne à chaque jeu, sans repartir à zéro entre
   // deux sets. Après un tie-break, sert celui qui a relancé le premier point.
   // (Anciennes sauvegardes sans nextServerIsPlayer : ancienne règle.)
-  let isPlayerServing = m.nextServerIsPlayer;
+  let isPlayerServing = resume ? resume.isPlayerServing : m.nextServerIsPlayer;
   if (typeof isPlayerServing !== "boolean") {
     const setNum = m.sets.length - 1;
     const totalGamesInSet = curSet.pGames + curSet.oGames;
@@ -297,8 +311,31 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats) {
     return { gameType: tb.playerWon ? "tb_won" : "tb_lost", isPlayerServing: false, isTiebreak: true, points: tb.points, score: { p: curSet.pGames, o: curSet.oGames }, setComplete: true, setWonByPlayer: tb.playerWon, tbScore: (tb.playerWon ? tb.oPts : tb.pPts), tbTarget };
   }
 
-  // Normal game
-  const gameResult = playOneGame(buildMatchCtx(m, effPlayerStats, oppStats), isPlayerServing, !!m.matchFixThrown);
+  // Normal game (éventuellement interrompu puis repris sur un point décisif)
+  const ctxGame = buildMatchCtx(m, effPlayerStats, oppStats);
+  let gameResult;
+  let resumeFrom = 0;
+  if (resume) {
+    resumeFrom = resume.points.length;
+    const pts = [...resume.points];
+    if (resume.miniGameWon) {
+      const pk = rollPointKind(isPlayerServing, random, pointShape(ctxGame, isPlayerServing));
+      pts.push({ winner: "p", kind: pk.kind, rallies: pk.rallies, label: "JEU", servingPlayer: isPlayerServing, miniGame: true });
+      gameResult = { playerWon: true, points: pts };
+    } else {
+      const pk = rollPointKind(!isPlayerServing, random, pointShape(ctxGame, isPlayerServing));
+      pts.push({ winner: "o", kind: pk.kind, rallies: pk.rallies, label: "ÉGALITÉ", servingPlayer: isPlayerServing, miniGame: true });
+      gameResult = playOneGame(ctxGame, isPlayerServing, !!m.matchFixThrown, { start: { pp: resume.pp, op: resume.op + 1, points: pts } });
+    }
+  } else {
+    gameResult = playOneGame(ctxGame, isPlayerServing, !!m.matchFixThrown, { stopOnAdvantage: !!opts.allowMiniGame });
+    if (gameResult.pending) {
+      // Le jeu attend le mini-jeu : le serveur ne change pas encore.
+      m.nextServerIsPlayer = isPlayerServing;
+      m.pendingGame = { isPlayerServing, pp: gameResult.pp, op: gameResult.op, points: gameResult.points };
+      return { pending: true, gameType: "pending", isPlayerServing, points: gameResult.points, score: { p: curSet.pGames, o: curSet.oGames }, setComplete: false };
+    }
+  }
   const playerWon = gameResult.playerWon;
   const gamePoints = gameResult.points;
   if (playerWon) curSet.pGames++;
@@ -391,7 +428,7 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats) {
   const setsToWin = m.isGrandSlam ? 3 : 2;
   if (m.pSets === setsToWin || m.oSets === setsToWin) m.matchComplete = true;
 
-  return { gameType, commentType, isPlayerServing, points: gamePoints, score: { p: curSet.pGames, o: curSet.oGames }, setComplete, setWonByPlayer, isInjuryNote: false };
+  return { gameType, commentType, isPlayerServing, points: gamePoints, resumeFrom, score: { p: curSet.pGames, o: curSet.oGames }, setComplete, setWonByPlayer, isInjuryNote: false };
 }
 
 export function buildMatchCtx(m, playerStats, oppStats) {
