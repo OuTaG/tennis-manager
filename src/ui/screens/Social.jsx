@@ -158,41 +158,35 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
     <div style={styles.tabContent}>
       <div style={styles.sectionTitle}>Social</div>
 
-      {/* Feed switcher */}
-      <div style={{
-        display: "flex", gap: 0, marginBottom: 14,
-        borderRadius: 3, overflow: "hidden",
-        border: "1px solid " + T.brd2,
-      }}>
-        <button
-          onClick={() => setActiveFeed("world")}
-          style={{
-            flex: 1, padding: "10px 12px",
-            background: activeFeed === "world" ? T.bg2 : "transparent",
-            color: activeFeed === "world" ? T.fg : T.fg4,
-            border: "none", cursor: "pointer",
-            fontSize: 12, fontWeight: 700, letterSpacing: 0.5, textTransform: "none",
-            borderBottom: activeFeed === "world" ? "2px solid " + T.green : "2px solid transparent",
-          }}
-        >Monde</button>
-        <button
-          onClick={() => setActiveFeed("personal")}
-          style={{
-            flex: 1, padding: "10px 12px",
-            background: activeFeed === "personal" ? T.bg2 : "transparent",
-            color: activeFeed === "personal" ? T.fg : T.fg4,
-            border: "none", cursor: "pointer",
-            fontSize: 12, fontWeight: 700, letterSpacing: 0.5, textTransform: "none",
-            borderBottom: activeFeed === "personal" ? "2px solid " + T.green : "2px solid transparent",
-          }}
-        >Pour vous</button>
+      {/* Choix du fil : mêmes filtres que le Classement (Classique / Race),
+          pour ne pas répéter le ruban noir des sous-onglets juste au-dessus. */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+        {[
+          { id: "world", label: "Monde", icon: "news" },
+          { id: "personal", label: "Pour vous", icon: "chat" },
+        ].map(f => {
+          const active = activeFeed === f.id;
+          return (
+            <button
+              key={f.id}
+              onClick={() => setActiveFeed(f.id)}
+              style={{ ...styles.filterBtn, ...(active ? styles.filterBtnActive : {}), display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              <Icon name={f.icon} size={14} color={active ? T.onAccent : T.fg3} />
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ color: T.fg3, fontSize: 12, margin: "0 2px 14px" }}>
+        {activeFeed === "personal"
+          ? "Fans et presse vous interpellent. Vos réponses comptent."
+          : "L'actualité du circuit : résultats, rumeurs, annonces."}
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{
-          background: T.bg1, borderRadius: 3, padding: 32, textAlign: "center",
-          color: T.fg5, fontSize: 12, border: "1px dashed " + T.brd2,
-        }}>
+        <div style={{ ...styles.skillsCard, padding: "24px 18px", textAlign: "center", color: T.fg3, fontSize: 13, lineHeight: 1.5 }}>
+          <Icon name={activeFeed === "personal" ? "chat" : "news"} size={22} color={T.fg4} style={{ display: "block", margin: "0 auto 8px" }} />
           {activeFeed === "personal"
             ? "Aucun post vous concernant pour l'instant. Jouez quelques matchs."
             : "Le fil est calme. Avancez les semaines."}

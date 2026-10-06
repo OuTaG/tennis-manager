@@ -99,7 +99,7 @@ export function loadPurchases() {
   try { return JSON.parse(localStorage.getItem(SHOP_STORAGE_KEY) || "[]"); } catch (e) { return []; }
 }
 export function hasPurchased(id) { return loadPurchases().includes(id); }
-// Droit débloqué par un achat (ex. "speed_x4" via l'abonnement).
+// Droit débloqué par un achat (perk { ready: true, entitlement: "clé" }).
 export function hasEntitlement(key) {
   const owned = loadPurchases();
   return SHOP_ITEMS.some(it => owned.includes(it.id) && (it.perks || []).some(p => p.ready && p.entitlement === key));
