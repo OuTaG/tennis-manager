@@ -83,19 +83,16 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
       <div style={styles.sectionTitle}>Calendrier</div>
 
       {enrolled && (
-        <div className="tm-fade-up" style={{
-          background: T.greenSub, border: "1px solid " + T.greenBrd, borderLeft: "3px solid " + T.green,
-          borderRadius: 0, padding: 14, marginBottom: 14,
-        }}>
-          <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 4 }}>Inscrit</div>
-          <div style={{ color: T.fg, fontSize: 14, fontWeight: 700 }}>{ALL_TOURNAMENTS.find(t => t.id === enrolled.tournamentId)?.name}</div>
-          <div style={{ color: T.fg3, fontSize: 11, marginTop: 2 }}>Semaine {enrolled.week}</div>
+        <div className="tm-fade-up tm-halftone-cyan" style={{ border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, padding: "10px 14px", marginBottom: 14, color: "#ffffff" }}>
+          <span style={{ display: "inline-block", background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, letterSpacing: 1, padding: "0 6px", textTransform: "uppercase" }}>Inscrit</span>
+          <div className="tm-display" style={{ fontSize: 19, marginTop: 4, textShadow: "2px 2px 0 " + T.ink }}>{ALL_TOURNAMENTS.find(t => t.id === enrolled.tournamentId)?.name}</div>
+          <div style={{ fontSize: 12, fontWeight: 800, marginTop: 2 }}>Semaine {enrolled.week}</div>
         </div>
       )}
 
       {/* Filters - segmented control style */}
       <div style={{ marginBottom: 14 }}>
-        <div className="tm-eyebrow" style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="tm-display" style={{ fontSize: 13, marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span>Surface</span>
           {selSurfaces.length > 0 && (
             <button
@@ -121,7 +118,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
         </div>
       </div>
       <div style={{ marginBottom: 14 }}>
-        <div className="tm-eyebrow" style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="tm-display" style={{ fontSize: 13, marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span>Catégorie</span>
           {selTiers.length > 0 && (
             <button
@@ -142,7 +139,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
         </div>
       </div>
       <div style={{ marginBottom: 18 }}>
-        <div className="tm-eyebrow" style={{ marginBottom: 8 }}>Région</div>
+        <div className="tm-display" style={{ fontSize: 13, marginBottom: 6 }}>Région</div>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {[
             { k: "all", label: "Mondial", iconName: null },
@@ -157,8 +154,8 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
         </div>
       </div>
 
-      <div style={{ fontSize: 10, color: T.fg5, marginBottom: 12, fontWeight: 600, letterSpacing: 0.2, textTransform: "none" }}>
-        <span className="tm-num">{filtered.length}</span> tournois · Vous êtes à <span style={{ color: T.green }}>{player.location}</span>
+      <div className="tm-lettering" style={{ fontSize: 15, marginBottom: 12 }}>
+        {filtered.length} tournois · vous êtes à {player.location}
       </div>
 
       {weekKeys.slice(0, visibleWeeks).map((wkKey) => {
@@ -170,10 +167,10 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
 
         return (
           <div key={wkKey} style={{ marginBottom: 18 }}>
-            <div style={{ display: "flex", alignItems: "center", marginBottom: 10, gap: 10 }}>
-              <span className="tm-eyebrow" style={{ color: isCurrent ? T.ball : T.fg4, letterSpacing: 0.2 }}>{weekLabel}</span>
-              <div style={{ flex: 1, height: 1, background: T.brd }} />
-              <span className="tm-num" style={{ fontSize: 10, color: T.fg5, fontWeight: 700 }}>W{wk > 52 ? wk - 52 : wk}</span>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 10, gap: 8 }}>
+              <span className="tm-display" style={{ background: isCurrent ? "#d6ef3c" : T.ink, color: isCurrent ? "#141414" : "#ffffff", border: "2px solid " + T.ink, padding: "2px 9px", fontSize: 13 }}>{weekLabel}</span>
+              <div style={{ flex: 1, height: 0, borderTop: "2px dashed " + T.ink }} />
+              <span className="tm-num" style={{ fontSize: 11, fontWeight: 800 }}>Sem. {wk > 52 ? wk - 52 : wk}</span>
             </div>
 
             {tournaments.map(t => {
@@ -194,17 +191,22 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
 
               return (
                 <div key={t.id} className="tm-card" style={{
-                  ...styles.tournCard,
-                  opacity: !canE ? 0.55 : 1,
-                  borderColor: isEnrolledTo ? T.green : T.brd,
-                  borderLeft: "3px solid " + tierColor(t.tier),
-                  paddingLeft: 14,
+                  ...styles.tournCard, padding: 0, overflow: "hidden",
+                  opacity: !canE ? 0.6 : 1,
+                  border: "3px solid " + T.ink, boxShadow: (isEnrolledTo ? "5px 5px 0 #1f7a45" : "4px 4px 0 " + T.ink),
+                  background: isEnrolledTo ? "rgba(214,239,60,0.18)" : "#ffffff", color: "#141414",
                 }}>
+                  {/* Bandeau à la couleur de la catégorie */}
+                  <div style={{ background: tierColor(t.tier), borderBottom: "2.5px solid " + T.ink, padding: "3px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span className="tm-display" style={{ color: "#ffffff", fontSize: 12.5, textShadow: "1px 1px 0 " + T.ink }}>{tierLabel(t.tier)}</span>
+                    {isEnrolledTo && <span style={{ background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, fontSize: 10, fontWeight: 800, padding: "0 5px", textTransform: "uppercase" }}>Inscrit</span>}
+                  </div>
+                  <div style={{ padding: "10px 12px 12px" }}>
                   <div style={styles.tournHeader}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="tm-eyebrow" style={{ color: tierColor(t.tier), marginBottom: 4 }}>{tierLabel(t.tier)}</div>
                       <div
-                        style={{ color: T.fg, fontWeight: 700, fontSize: 15, cursor: "pointer", lineHeight: 1.2 }}
+                        className="tm-display"
+                        style={{ color: "#141414", fontSize: 17, cursor: "pointer", lineHeight: 1.1 }}
                         onClick={() => setTournamentDetail && setTournamentDetail(t.id)}
                       >{t.name}</div>
                       <div style={{ color: T.fg3, fontSize: 12, marginTop: 4 }}>
@@ -241,18 +243,18 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                   </div>
 
                   {entry.status === "direct" && (
-                    <div style={{ color: T.green, fontSize: 11, marginBottom: 10, fontWeight: 600, letterSpacing: 0.5 }}>
+                    <div style={{ display: "inline-block", background: "#1f7a45", color: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, marginBottom: 10, fontWeight: 800, padding: "1px 6px" }}>
                       ✓ Tableau principal{seedBye ? " · tête de série (bye)" : ""}{entry.protected ? " · classement protégé" : ""}
                     </div>
                   )}
                   {entry.status === "qualifying" && (
-                    <div style={{ color: T.amber, fontSize: 11, marginBottom: 10, fontWeight: 600, letterSpacing: 0.5 }}>
+                    <div style={{ display: "inline-block", background: "#e0a21b", color: "#141414", border: "2px solid " + T.ink, fontSize: 11, marginBottom: 10, fontWeight: 800, padding: "1px 6px" }}>
                       Qualifications ({fmt.qualiRounds} tours)
                     </div>
                   )}
                   {entry.status === "blocked" && (
-                    <div style={{ color: T.red, fontSize: 11, marginBottom: 10, fontWeight: 600, letterSpacing: 0.5 }}>
-                      <Icon name="x" size={11} /> Classement insuffisant
+                    <div style={{ display: "inline-block", background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, marginBottom: 10, fontWeight: 800, padding: "1px 6px" }}>
+                      <Icon name="x" size={11} color="#ffffff" /> Classement insuffisant
                     </div>
                   )}
                   {isCurrentWeek && !onSite && <div style={{ color: T.red, fontSize: 11, marginBottom: 10 }}><Icon name="x" size={11} /> Vous devez être à {t.city}</div>}
@@ -270,9 +272,9 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                       style={{
                         ...styles.btnSmall,
                         width: "100%",
-                        background: (canE && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? T.green : T.bg3,
-                        color: (canE && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? T.bg0 : T.fg4,
-                        borderColor: "transparent",
+                        background: (canE && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? "#1f7a45" : "#ffffff",
+                        color: (canE && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? "#ffffff" : T.fg4,
+                        border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontFamily: T.display, fontSize: 14,
                         opacity: (!canE || blockedByOther || alreadyPlayed || blockedByWeekLimit || (isCurrentWeek && !onSite)) ? 0.5 : 1,
                       }}
                       disabled={!canE || blockedByOther || alreadyPlayed || blockedByWeekLimit || (isCurrentWeek && !onSite)}
@@ -283,6 +285,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                         : "S'inscrire"} {!blockedByWeekLimit && t.entryFee > 0 ? "· " + t.entryFee + "€" : ""}
                     </button>
                   )}
+                  </div>
                 </div>
               );
             })}

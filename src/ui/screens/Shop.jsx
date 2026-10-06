@@ -5,6 +5,8 @@ import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
+const INK = "#141414";
+
 export function ShopScreen() {
   const [owned, setOwned] = useState(() => loadPurchases());
   const [pending, setPending] = useState(null); // article en cours de confirmation
@@ -42,50 +44,57 @@ export function ShopScreen() {
           </div>
         </div>
       ) : categories.map(cat => (
-        <div key={cat} style={{ marginBottom: 16 }}>
-          <div style={{ color: T.fg3, fontSize: 12, fontWeight: 600, margin: "0 2px 8px" }}>{cat}</div>
+        <div key={cat} style={{ marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span className="tm-display" style={{ background: INK, color: "#ffffff", border: "2px solid " + INK, padding: "2px 9px", fontSize: 13 }}>{cat}</span>
+            <div style={{ flex: 1, borderTop: "2px dashed " + INK }} />
+          </div>
           {SHOP_ITEMS.filter(i => (i.category || "Options") === cat).map(item => {
             // L'accès complet inclut l'accès Classements.
             const isOwned = owned.includes(item.id) || (item.id === "online_ranked" && owned.includes("online_full"));
             const soon = item.status === "soon";
             return (
-              <div key={item.id} style={{ ...styles.skillsCard, marginBottom: 8, padding: 14, opacity: soon ? 0.85 : 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 0, background: soon ? T.bg2 : T.amberSub, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Icon name={item.icon || "bag"} size={20} color={soon ? T.fg4 : T.amber} />
+              <div key={item.id} style={{ background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, marginBottom: 12, opacity: soon ? 0.85 : 1, overflow: "hidden" }}>
+                <div className={soon ? "" : isOwned ? "tm-halftone-cyan" : "tm-halftone-yellow"} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: "2.5px solid " + INK, background: soon ? "#eeeeee" : undefined }}>
+                  <div style={{ width: 40, height: 40, background: "#ffffff", border: "2.5px solid " + INK, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon name={item.icon || "bag"} size={20} color={INK} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: T.fg, fontSize: 14, fontWeight: 600 }}>{item.name}</div>
-                    <div className="tm-num" style={{ color: T.fg4, fontSize: 12, marginTop: 2 }}>{item.price}{item.period ? " " + item.period : ""}</div>
+                    <div className="tm-display" style={{ fontSize: 16, lineHeight: 1.1, color: isOwned && !soon ? "#ffffff" : INK, textShadow: isOwned && !soon ? "1.5px 1.5px 0 " + INK : "none" }}>{item.name}</div>
+                    <span className="tm-num" style={{ display: "inline-block", marginTop: 4, background: "#ffffff", border: "2px solid " + INK, fontSize: 12, fontWeight: 800, padding: "0 6px" }}>{item.price}{item.period ? " " + item.period : ""}</span>
                   </div>
                   {isOwned ? (
-                    <span style={{ ...styles.badge, color: T.green, borderColor: T.greenBrd, background: T.greenSub }}>{item.type === "subscription" ? "Actif" : "Acquis"}</span>
+                    <span style={{ background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + INK, fontSize: 11, fontWeight: 800, padding: "2px 7px", textTransform: "uppercase", flexShrink: 0 }}>{item.type === "subscription" ? "Actif" : "Acquis"}</span>
                   ) : soon ? (
-                    <span style={styles.badge}>Bientôt</span>
+                    <span style={{ background: "#ffffff", border: "2.5px solid " + INK, fontSize: 11, fontWeight: 800, padding: "2px 7px", textTransform: "uppercase", flexShrink: 0 }}>Bientôt</span>
                   ) : (
-                    <button style={{ ...styles.btnSmall, background: T.amber, color: T.onAccent, borderColor: T.amber, flexShrink: 0 }} onClick={() => setPending(item)}>
+                    <button className="tm-display" style={{ background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "6px 10px", fontSize: 13, cursor: "pointer", flexShrink: 0 }} onClick={() => setPending(item)}>
                       {item.type === "subscription" ? "S'abonner" : "Acheter"}
                     </button>
                   )}
                 </div>
-                {item.desc && <div style={{ color: T.fg3, fontSize: 13, lineHeight: 1.45, marginTop: 10 }}>{item.desc}</div>}
-                {(item.perks || []).length > 0 && (
-                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-                    {item.perks.map((pk, pi) => (
-                      <div key={pi} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: pk.ready ? T.fg2 : T.fg4 }}>
-                        <Icon name={pk.ready ? "check" : "history"} size={14} color={pk.ready ? T.green : T.fg5} />
-                        <span style={{ flex: 1 }}>{pk.label}</span>
-                        {!pk.ready && <span style={{ fontSize: 11, color: T.fg5 }}>bientôt</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {isOwned && item.type === "subscription" && (
-                  <button
-                    style={{ background: "none", border: "none", padding: 0, marginTop: 10, color: T.fg4, fontSize: 12, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}
-                    onClick={() => cancelItem(item)}
-                  >Résilier l'abonnement</button>
-                )}
+                <div style={{ padding: "10px 12px 12px" }}>
+                  {item.desc && <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>{item.desc}</div>}
+                  {(item.perks || []).length > 0 && (
+                    <div style={{ marginTop: item.desc ? 10 : 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                      {item.perks.map((pk, pi) => (
+                        <div key={pi} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, opacity: pk.ready ? 1 : 0.6 }}>
+                          <span style={{ width: 18, height: 18, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: pk.ready ? "#d6ef3c" : "#ffffff", border: "2px solid " + INK }}>
+                            <Icon name={pk.ready ? "check" : "history"} size={11} color={INK} />
+                          </span>
+                          <span style={{ flex: 1 }}>{pk.label}</span>
+                          {!pk.ready && <span className="tm-lettering" style={{ fontSize: 13 }}>bientôt</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {isOwned && item.type === "subscription" && (
+                    <button
+                      style={{ background: "none", border: "none", padding: 0, marginTop: 10, color: INK, fontSize: 12, fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}
+                      onClick={() => cancelItem(item)}
+                    >Résilier l'abonnement</button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -95,9 +104,9 @@ export function ShopScreen() {
       {pending && (
         <div style={{ ...styles.dilemmaOverlay, zIndex: 200 }} onClick={() => setPending(null)}>
           <div style={styles.dilemmaCard} onClick={e => e.stopPropagation()}>
-            <div style={{ color: T.fg, fontSize: 17, fontWeight: 600, marginBottom: 6 }}>{pending.name}</div>
+            <div className="tm-display" style={{ color: INK, fontSize: 20, marginBottom: 6 }}>{pending.name}</div>
             {pending.desc && <div style={{ color: T.fg3, fontSize: 13, lineHeight: 1.5, marginBottom: 14 }}>{pending.desc}</div>}
-            <button style={{ ...styles.btnPrimary, background: T.amber, boxShadow: "0 3px 0 " + T.clay }} onClick={() => purchaseItem(pending)}>
+            <button style={styles.btnPrimary} onClick={() => purchaseItem(pending)}>
               {pending.type === "subscription" ? "S'abonner" : "Acheter"} · {pending.price}{pending.period ? " " + pending.period : ""}
             </button>
             <button style={{ ...styles.btnSecondary, marginTop: 8 }} onClick={() => setPending(null)}>Annuler</button>
