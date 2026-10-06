@@ -110,3 +110,19 @@ describe("gain d'un programme", () => {
     expect(programmeGain(player, mod, TRAINING_CARDS[2])).toBeCloseTo(base * 2, 2);
   });
 });
+
+describe("étoiles de conseil", () => {
+  it("donne au plus n réglages distincts, du plus payant au moins payant", async () => {
+    const { adviceStars, coachAdvice } = await import("../src/engine/tactics.js");
+    const me = { serve: 80, forehand: 75, backhand: 55, stamina: 70, mental: 65, net: 70 };
+    const opp = { serve: 60, forehand: 70, backhand: 45, stamina: 55, mental: 60, net: 50 };
+    const s3 = adviceStars(me, opp, "Gazon", 3);
+    expect(s3.length).toBeGreaterThan(1);
+    expect(s3.length).toBeLessThanOrEqual(3);
+    expect(new Set(s3.map(x => x.key)).size).toBe(s3.length);
+    for (let i = 1; i < s3.length; i++) expect(s3[i - 1].gain).toBeGreaterThanOrEqual(s3[i].gain);
+    const c = coachAdvice(me, opp, "Gazon");
+    expect(s3[0].key).toBe(c.key);
+    expect(adviceStars(me, opp, "Gazon", 0)).toEqual([]);
+  });
+});

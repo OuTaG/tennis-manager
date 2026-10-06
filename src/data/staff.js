@@ -9,7 +9,7 @@ export const PLAYER_STYLES = {
 };
 
 // Each staff member has:
-// - role: one of Coach / Kiné / Préparateur mental / Préparateur physique / Nutritionniste / Agent
+// - role: one of Coach / Analyste vidéo / Kiné / Préparateur mental / Préparateur physique / Nutritionniste / Agent
 // - level: 1-3 (cost & impact scale)
 // - cost: weekly salary
 // - surface (optional): "Terre battue" | "Dur" | "Gazon" | "Indoor" — gives a bonus on this surface, malus on others
@@ -54,6 +54,17 @@ export const STAFF_LIST = [
     surface: "Indoor",
     bonus: { trainGain: 0.05, surfaceBoost: 5 },
     malus: { surfaceMalus: 2 } },
+
+  // ─── ANALYSTES VIDÉO (2 niveaux) ────────────────────────────────────
+  // scouting : étoiles de conseil en plus dans le plan de jeu en match.
+  // Dès le niveau 1 : les 6 stats de l'adversaire à l'avant-match ;
+  // niveau 3 : en plus, sa forme du jour.
+  { id: "analyst_basic", role: "Analyste vidéo", name: "Léa Fontaine",  level: 1, cost: 350,
+    bonus: { scouting: 1 },
+    malus: {} },
+  { id: "analyst_elite", role: "Analyste vidéo", name: "Victor Haddad", level: 3, cost: 1100,
+    bonus: { scouting: 2 },
+    malus: { happinessDrain: 1 } },
 
   // ─── KINÉS (3 niveaux) ──────────────────────────────────────────────
   { id: "kine_basic",    role: "Kiné", name: "Sophie Laurent", level: 1, cost: 250,
