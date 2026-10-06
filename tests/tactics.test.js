@@ -137,3 +137,16 @@ describe("étoiles de conseil", () => {
     expect(adviceStars(me, opp, "Gazon", 0)).toEqual([]);
   });
 });
+
+describe("efficacité affichée de l'entraînement", () => {
+  it("100 % à pleine énergie, quelle que soit la difficulté ; la difficulté joue sur le gain", async () => {
+    const { trainingEfficiency } = await import("../src/engine/training.js");
+    const { createInitialPlayer } = await import("../src/engine/player.js");
+    const p = createInitialPlayer("T", "allcourt", "Paris", "France", null, 5);
+    p.energy = 100; p.happiness = 70; p.age = 24;
+    const eff = trainingEfficiency(p);
+    expect(Math.round(eff.shown * 100)).toBe(100);
+    expect(eff.parts.some(x => x.key === "difficulty")).toBe(false);
+    expect(eff.total).toBeLessThan(eff.shown);
+  });
+});

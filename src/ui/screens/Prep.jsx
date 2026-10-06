@@ -19,7 +19,7 @@ export function TrainingScreen({ player, doTraining }) {
       {/* Forme d'entraînement : énergie et efficacité des séances */}
       {(() => {
         const eff = trainingEfficiency(player);
-        const effPct = Math.round(eff.total * 100);
+        const effPct = Math.round(eff.shown * 100);
         const e = Math.round(player.energy);
         const fmt = (m) => (m >= 1 ? "+" : "−") + Math.abs(Math.round((m - 1) * 100)) + " %";
         return (
