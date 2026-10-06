@@ -380,15 +380,23 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
 
   useEffect(() => {
     if (!chosen) return undefined;
-    // L'aiguille balaie la jauge deux fois puis se pose sur le jet.
-    const DUR = 1500;
+    // L'aiguille fait des allers-retours d'un bord à l'autre de la jauge
+    // (elle rebondit pile sur les bords), ralentit, puis se pose sur le jet.
+    // Trajet : 0 → 1 → 0 → 1 → 0 → jet ; s = distance parcourue (0 à 4 + jet).
+    const DUR = 1900;
+    const roll = chosen.outcome.roll;
+    const total = 4 + roll;
+    const at = (d) => {
+      if (d >= 4) return d - 4;
+      const leg = Math.floor(d), f = d - leg;
+      return leg % 2 === 0 ? f : 1 - f;
+    };
     let start = null;
     const step = (now) => {
       if (start === null) start = now;
       const k = Math.min(1, (now - start) / DUR);
-      const ease = 1 - Math.pow(1 - k, 3);
-      const sweep = Math.abs(Math.sin(ease * Math.PI * 2.5));
-      setNeedle(k < 1 ? sweep * (1 - ease) + chosen.outcome.roll * ease : chosen.outcome.roll);
+      const ease = 1 - Math.pow(1 - k, 2.4);
+      setNeedle(k < 1 ? at(ease * total) : roll);
       if (k < 1) rafRef.current = requestAnimationFrame(step);
       else setSettled(true);
     };
@@ -459,7 +467,7 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
               <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: (chosen.outcome.p * 100) + "%", background: GRASS, borderRight: "3px solid " + INK }} />
               <div style={{ position: "absolute", left: 8, top: 6, color: "#ffffff", fontFamily: T.display, fontSize: 14 }}>RÉUSSITE {fmtPct(chosen.outcome.p)}</div>
               <div style={{ position: "absolute", right: 8, bottom: 6, color: INK, fontFamily: T.display, fontSize: 14 }}>ÉCHEC</div>
-              <div style={{ position: "absolute", top: -3, bottom: -3, width: 8, marginLeft: -4, left: (needle * 100) + "%", background: INK }} />
+              <div style={{ position: "absolute", top: -3, bottom: -3, width: 8, left: "calc(" + (needle * 100) + "% - " + (needle * 8) + "px)", background: INK }} />
             </div>
             {settled && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "10px 12px" }}>

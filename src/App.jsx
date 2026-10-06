@@ -17,7 +17,7 @@ import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/hist
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
 import { advanceMatchOneGame, aiMatchProb, clampMomentum, createInitialMatchData } from "./engine/match.js";
 import { randomFullName } from "./engine/names.js";
-import { RETIREMENT_AGE, START_CITIES, START_STAT_BONUS, SURFACE_BONUS, adjustLife, ageTrainingMultiplier, applyWeeklyAgeDecline, clampLife, computeMatchLifeDeltas, createInitialPlayer, difficultyFactors, getEffectiveStats, getPlayerRanking, lifeCaps, rollInjury, startMoney, totalAtpPoints } from "./engine/player.js";
+import { RETIREMENT_AGE, START_CITIES, betweenMatchRecovery, START_STAT_BONUS, SURFACE_BONUS, adjustLife, ageTrainingMultiplier, applyWeeklyAgeDecline, clampLife, computeMatchLifeDeltas, createInitialPlayer, difficultyFactors, getEffectiveStats, getPlayerRanking, lifeCaps, rollInjury, startMoney, totalAtpPoints } from "./engine/player.js";
 import { buildPressConference } from "./engine/press.js";
 import { computeTournamentProgression, styledProgressionMultiplier } from "./engine/progression.js";
 import { expireOldPoints, playerRaceRank, pointsWeekAfter, raceStandings } from "./engine/race.js";
@@ -511,6 +511,9 @@ export default function TennisManager() {
     const isNewSeason = newYear !== oldYear;
     p.week = newWeek;
     p.year = newYear;
+    // Semaine de repos : ni match ni entraînement (récupération bonus).
+    const restedWeek = !p.activeThisWeek && !(p.playedThisWeek || []).length;
+    p.activeThisWeek = false;
     p.playedThisWeek = []; // reset weekly tournament play tracking
 
     // Age progression: +1 week at current age, +1 year every 52 weeks
@@ -541,8 +544,10 @@ export default function TennisManager() {
       }
     }
 
+    // Récupération de la semaine : 32 de base, 50 après une semaine de repos
+    // complet, plus le bonus du staff (kiné, nutritionniste).
     const recoveryBonus = sumStaffEffect(p.staff, "recovery"); // flat extra energy
-    p.energy = Math.min(100, p.energy + 25 + Math.max(0, recoveryBonus));
+    p.energy = Math.min(100, p.energy + (restedWeek ? 50 : 32) + Math.max(0, recoveryBonus));
     // Cumulative happiness drain from staff (joueur surchargé par trop de membres)
     const happDrain = sumStaffEffect(p.staff, "happinessDrain");
     if (happDrain > 0) {
@@ -1141,6 +1146,7 @@ export default function TennisManager() {
       money: p.money - mod.cost,
       totalSpent: (p.totalSpent || 0) + mod.cost,
       trainCount: (p.trainCount || 0) + 1,
+      activeThisWeek: true,
       energy: Math.max(0, p.energy - actualEnergyCost),
       injury: updatedInjury,
     }));
@@ -2122,7 +2128,9 @@ export default function TennisManager() {
         careerLosses: won ? p.careerLosses : p.careerLosses + 1,
         seasonBigWins: (p.seasonBigWins || 0) + (won && (ms.opponentRank || 999) <= 50 ? 1 : 0),
         careerBigWins: (p.careerBigWins || 0) + (won && (ms.opponentRank || 999) <= 50 ? 1 : 0),
-        energy: Math.min(100, postMatchEnergy + 10), // +10 recovery between tournament matches
+        // Récupération entre deux matchs du tournoi : 10 à 20 selon l'endurance.
+        energy: Math.min(100, postMatchEnergy + betweenMatchRecovery(p.stats.stamina)),
+        activeThisWeek: true,
         matchHistory: [matchEntry, ...p.matchHistory].slice(0, 80),
         seasonStats: {
           ...(p.seasonStats || { wins: 0, losses: 0, titles: 0, earnings: 0, year: p.year }),
