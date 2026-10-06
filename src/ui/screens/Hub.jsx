@@ -1,6 +1,6 @@
 // Écran Accueil : la une du journal.
 import { PLAYER_STYLES } from "../../data/staff.js";
-import { ALL_TOURNAMENTS, tierLabel } from "../../engine/circuit.js";
+import { ALL_TOURNAMENTS, tierColor, tierLabel } from "../../engine/circuit.js";
 import { difficultyLevel, formatMultiplier, scoreMultiplier } from "../../engine/difficulty.js";
 import { buildFrontPage } from "../../engine/frontpage.js";
 import { Avatar } from "../avatar.jsx";
@@ -106,10 +106,18 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
             <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", marginTop: 2 }}>{c.label}</div>
           </div>
         ))}
-        <div style={{ gridColumn: "1 / -1", display: "flex", gap: 12, flexWrap: "wrap", padding: "6px 10px", borderTop: "2px solid " + T.ink, fontSize: 11, fontWeight: 700 }}>
-          <span>{PLAYER_STYLES[player.styleId]?.name}</span>
-          <span>Côte {rating}</span>
-          {(ss.titles || 0) > 0 && <span style={{ color: T.magenta }}>{ss.titles} titre{ss.titles > 1 ? "s" : ""}</span>}
+        {/* Style de jeu et cote : deux étiquettes encrées « libellé | valeur » */}
+        <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", padding: "7px 10px", borderTop: "2px solid " + T.ink }}>
+          {[
+            PLAYER_STYLES[player.styleId]?.name && ["Style", PLAYER_STYLES[player.styleId].name, "#ffffff", "#141414"],
+            ["Cote", rating, "#d6ef3c", "#141414"],
+            (ss.titles || 0) > 0 && ["Titres", ss.titles, "#c4302b", "#ffffff"],
+          ].filter(Boolean).map(([l, v, bg, fg]) => (
+            <span key={l} style={{ display: "inline-flex", alignItems: "stretch", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, whiteSpace: "nowrap" }}>
+              <span style={{ background: T.ink, color: "#ffffff", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", padding: "3px 6px", display: "flex", alignItems: "center" }}>{l}</span>
+              <span className="tm-display" style={{ background: bg, color: fg, fontSize: 13, padding: "2px 8px", display: "flex", alignItems: "center" }}>{v}</span>
+            </span>
+          ))}
         </div>
       </section>
 
@@ -171,28 +179,33 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       <section aria-label="Cette semaine" style={{ marginBottom: 14 }}>
         <Rubric title="Cette semaine" aside={enrolled ? tierLabel(enrolled.tier) + " · " + enrolled.surface : "Calendrier libre"} color={T.blue} />
       {enrolled && (
-        <div className="tm-fade-up" style={{
-          background: T.bg1, border: "2.5px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink,
-          padding: 14, marginBottom: 12,
-        }}>
-          <div className="tm-eyebrow" style={{ color: T.green, marginBottom: 6 }}>Engagé</div>
-          <div
-            onClick={() => setTournamentDetail && setTournamentDetail(enrolled.id)}
-            style={{ color: T.fg, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
-          >
-            {enrolled.name}
-            <Icon name="chevron-right" size={13} color={T.green} />
+        <div className="tm-fade-up" style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 12, overflow: "hidden" }}>
+          <div style={{ background: tierColor(enrolled.tier), borderBottom: "2.5px solid " + T.ink, padding: "3px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <span className="tm-display" style={{ color: "#ffffff", fontSize: 12.5, textShadow: "1px 1px 0 " + T.ink }}>{tierLabel(enrolled.tier)}</span>
+            <span style={{ background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, fontSize: 10, fontWeight: 800, padding: "0 5px", textTransform: "uppercase" }}>Engagé</span>
           </div>
-          <div style={{ color: T.fg3, fontSize: 12, marginTop: 2 }}>
-            Semaine {enrolled.week}
-            {player.enrollment?.entryStatus === "qualifying" && <span style={{ color: T.amber }}> · qualifs</span>}
-            {player.enrollment?.entryStatus === "wildcard" && <span style={{ color: T.ball }}> · wildcard</span>}
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-            <button style={styles.btnSmall} onClick={() => setTournamentDetail && setTournamentDetail(enrolled.id)}>Voir le tournoi</button>
-            {enrolled.week !== player.week && (
-              <button style={styles.btnSmall} onClick={cancelEnrollment}>Annuler</button>
-            )}
+          <div style={{ padding: "10px 12px 12px" }}>
+            <div
+              className="tm-display"
+              onClick={() => setTournamentDetail && setTournamentDetail(enrolled.id)}
+              style={{ fontSize: 18, lineHeight: 1.1, cursor: "pointer" }}
+            >{enrolled.name} ›</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 7 }}>
+              {[
+                ["Semaine " + enrolled.week, "#ffffff", "#141414"],
+                [enrolled.city, "#ffffff", "#141414"],
+                player.enrollment?.entryStatus === "qualifying" && ["Qualifications", "#e0a21b", "#141414"],
+                player.enrollment?.entryStatus === "wildcard" && ["Wildcard", "#d6ef3c", "#141414"],
+              ].filter(Boolean).map(([txt, bg, fg]) => (
+                <span key={txt} style={{ background: bg, color: fg, border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px" }}>{txt}</span>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button className="tm-display" style={{ flex: 1, background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "7px 8px", fontSize: 13, cursor: "pointer" }} onClick={() => setTournamentDetail && setTournamentDetail(enrolled.id)}>Voir le tournoi</button>
+              {enrolled.week !== player.week && (
+                <button style={{ ...styles.btnSmall, background: "#ffffff", color: "#c4302b", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontWeight: 800 }} onClick={cancelEnrollment}>Annuler</button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -214,9 +227,21 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         {!enrolled && (
           <div style={{ fontSize: 13, color: T.fg3, marginBottom: 10 }}>Aucun tournoi au programme. Inscrivez-vous depuis l'onglet Circuit.</div>
         )}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", rowGap: 4, fontSize: 13, color: T.fg2 }}>
-          <span>Staff</span><span className="tm-num" style={{ color: T.red, fontWeight: 700 }}>−{staffWeeklyCost} €/sem.</span>
-          <span>Charges</span><span className="tm-num" style={{ color: T.red, fontWeight: 700 }}>−{player.weeklyExpenses} €/sem.</span>
+        {/* Dépenses fixes de la semaine */}
+        <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
+          <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px" }}>Dépenses de la semaine</div>
+          <div style={{ padding: "2px 12px 10px" }}>
+            {[["Staff", staffWeeklyCost], ["Charges", player.weeklyExpenses]].map(([l, v]) => (
+              <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "2px dashed " + T.ink, fontSize: 13.5, fontWeight: 700 }}>
+                <span>{l}</span>
+                <span className="tm-num" style={{ color: "#c4302b", fontWeight: 800 }}>−{v} €</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 9 }}>
+              <span className="tm-display" style={{ fontSize: 14 }}>Total</span>
+              <span className="tm-display" style={{ fontSize: 15, background: "#c4302b", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px" }}>−{staffWeeklyCost + player.weeklyExpenses} €/sem.</span>
+            </div>
+          </div>
         </div>
       </section>
 
