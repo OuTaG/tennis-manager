@@ -3550,133 +3550,80 @@ export default function TennisManager() {
         }
       };
 
+      // Conférence de presse façon BD : bandeau rouge, case de la salle de
+      // presse avec le journaliste et sa bulle, puis vos réponses en bulles.
+      const reporter = aiAvatar({ name: "Presse " + tourn?.name + " " + currentQ }, currentQ % 2 === 1);
       return (
         <div style={styles.root}>
-          <div style={{ ...styles.screen, alignItems: "stretch", justifyContent: "flex-start", overflowY: "auto", padding: 0, background: T.bg0 }}>
-            {/* Press room banner */}
-            <div style={{
-              padding: "16px 16px 12px",
-              borderBottom: "1px solid " + T.brd,
-              background: T.bg1,
-              display: "flex", alignItems: "center", gap: 10,
-            }}>
-              <div style={{
-                width: 6, height: 22, borderRadius: 0,
-                background: "var(--tm-red)",
-
-                animation: "pulse 2s infinite",
-              }} />
+          <div style={{ ...styles.screen, alignItems: "stretch", justifyContent: "flex-start", overflowY: "auto", padding: 0, paddingBottom: 20 }}>
+            <WindowShades />
+            {/* Bandeau */}
+            <div style={{ background: "#c4302b", color: "#ffffff", padding: "12px 16px", borderBottom: "3px solid " + T.ink, backgroundImage: "radial-gradient(rgba(255,255,255,0.16) 1.4px, transparent 1.6px)", backgroundSize: "7px 7px", display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="tm-eyebrow" style={{ color: "var(--tm-red)" }}>● EN DIRECT — Conférence de presse</div>
-                <div style={{ color: T.fg, fontSize: 12, fontWeight: 700, marginTop: 2 }}>{tourn?.name}</div>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#ffffff", color: "#c4302b", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#c4302b", animation: "tm-live-blink 1.2s ease-in-out infinite" }} />En direct
+                </span>
+                <div className="tm-display" style={{ fontSize: 22, lineHeight: 1.05, marginTop: 5, textShadow: "2px 2px 0 " + T.ink }}>Conférence de presse</div>
+                <div style={{ fontSize: 12, fontWeight: 800, marginTop: 2 }}>{tourn?.name}</div>
               </div>
-              <div style={{ color: T.fg5, fontSize: 11, fontWeight: 700 }}>
-                {currentQ + 1} / {questions.length}
-              </div>
+              <span className="tm-display" style={{ background: "#d6ef3c", color: "#141414", border: "2.5px solid " + T.ink, padding: "2px 8px", fontSize: 16 }}>{currentQ + 1}/{questions.length}</span>
             </div>
+            <style>{"@keyframes tm-live-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }"}</style>
 
-            {/* Microphones / row of journalists at top */}
-            <div style={{
-              padding: "10px 16px",
-              display: "flex", gap: 6, justifyContent: "center",
-              fontSize: 18, opacity: 0.4,
-            }}>
-              {[0, 1, 2, 3, 4].map(k => <Icon key={k} name="mic" size={18} color={T.fg4} />)}
-            </div>
-
-            {/* Question bubble from a journalist */}
-            <div style={{
-              padding: "0 16px 14px",
-              display: "flex", gap: 10, alignItems: "flex-start",
-            }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 0, flexShrink: 0,
-                background: T.bg3, border: "2px solid " + T.ink,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 14, marginTop: 4,
-              }}><Icon name="document" size={22} color={T.fg3} /></div>
-              <div style={{
-                background: T.bg2, borderRadius: "12px 12px 12px 2px",
-                padding: "10px 14px",
-                border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
-                color: T.fg, fontSize: 14, lineHeight: 1.5,
-                fontStyle: "italic", flex: 1,
-                position: "relative",
-              }}>
-                {q.text}
-              </div>
-            </div>
-
-            {/* Player avatar + name on the right (the "interviewee") */}
-            <div style={{
-              padding: "4px 16px 14px",
-              display: "flex", flexDirection: "column", alignItems: "flex-end",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ color: T.fg, fontSize: 13, fontWeight: 800 }}>{player.name}</div>
-                  <div style={{ color: T.fg4, fontSize: 10, fontWeight: 600, letterSpacing: 0.5, textTransform: "none" }}>Votre réponse</div>
+            <div style={{ padding: "14px 16px 0", display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Case 1 : le journaliste pose sa question */}
+              <div className="tm-halftone-lilac" style={{ border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, padding: "12px 10px 10px", position: "relative" }}>
+                <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 10 }}>
+                  {[0, 1, 2, 3, 4].map(k => (
+                    <span key={k} style={{ width: 26, height: 26, borderRadius: "50%", background: k === 2 ? "#d6ef3c" : "#ffffff", border: "2px solid " + T.ink, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="mic" size={14} color="#141414" /></span>
+                  ))}
                 </div>
-                {player.avatar ? (
-                  <div style={{
-                    width: 48, height: 48, borderRadius: 24,
-                    overflow: "hidden",
-                    border: "2px solid " + T.green,
-
-                    flexShrink: 0,
-                  }}>
-                    <Avatar config={player.avatar} size={48} />
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+                  <div style={{ flexShrink: 0, border: "2.5px solid " + T.ink, background: "#ffffff", boxShadow: "2px 2px 0 " + T.ink }}>
+                    <Avatar config={reporter} size={62} bare />
                   </div>
-                ) : (
-                  <div style={{
-                    width: 48, height: 48, borderRadius: 24,
-                    background: T.bg3, border: "2px solid " + T.green,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <Icon name="users" size={20} color={T.green} />
+                  <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+                    <div className="tm-lettering" style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, borderRadius: "26px / 20px", padding: "12px 14px", fontSize: 16, lineHeight: 1.25 }}>{q.text}</div>
+                    {/* pointe de la bulle vers le journaliste */}
+                    <svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true" style={{ position: "absolute", left: -14, bottom: 8, overflow: "visible" }}>
+                      <path d="M22 2 L0 16 L18 12" fill="#ffffff" stroke={T.ink} strokeWidth="3" strokeLinejoin="round" />
+                      <path d="M22.5 3.5 L17 11" stroke="#ffffff" strokeWidth="4" />
+                    </svg>
                   </div>
-                )}
+                </div>
+                <span style={{ position: "absolute", left: 10, top: -11, background: T.ink, color: "#d6ef3c", fontSize: 10, fontWeight: 800, padding: "1px 6px", textTransform: "uppercase", letterSpacing: 0.6 }}>La question</span>
               </div>
-            </div>
 
-            {/* Answer options */}
-            <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 8 }}>
-              {q.options.map((opt, i) => (
-                <button
-                  key={i}
-                  onClick={() => answerQuestion(opt)}
-                  style={{
-                    background: T.bg2,
-                    border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
-                    borderRadius: "12px 12px 2px 12px",
-                    padding: "12px 14px",
-                    textAlign: "right", cursor: "pointer",
-                    color: T.fg, fontFamily: T.body, fontSize: 14,
-                    lineHeight: 1.45, fontWeight: 500,
-                  }}
-                >
-                  « {opt.label} »
-                </button>
-              ))}
-            </div>
+              {/* Case 2 : vos réponses */}
+              <div style={{ border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, background: "#ffffff", padding: "12px 10px", position: "relative" }}>
+                <span style={{ position: "absolute", left: 10, top: -11, background: T.ink, color: "#d6ef3c", fontSize: 10, fontWeight: 800, padding: "1px 6px", textTransform: "uppercase", letterSpacing: 0.6 }}>Votre réponse</span>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minWidth: 0 }}>
+                    {q.options.map((opt, i) => (
+                      <button key={i} onClick={() => answerQuestion(opt)} className="tm-lettering" style={{
+                        background: i % 2 ? "#ffffff" : "#d6ef3c", color: "#141414",
+                        border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: "18px 18px 4px 18px",
+                        padding: "9px 12px", textAlign: "left", cursor: "pointer", fontSize: 15, lineHeight: 1.25,
+                      }}>« {opt.label} »</button>
+                    ))}
+                  </div>
+                  <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <div style={{ border: "2.5px solid " + T.ink, background: "#d6ef3c", boxShadow: "2px 2px 0 " + T.ink }}>
+                      {player.avatar ? <Avatar config={player.avatar} size={62} bare /> : <Icon name="users" size={40} />}
+                    </div>
+                    <span className="tm-display" style={{ fontSize: 11, maxWidth: 70, textAlign: "center", lineHeight: 1.05, overflowWrap: "anywhere" }}>{player.name}</span>
+                  </div>
+                </div>
+              </div>
 
-            {/* Progress dots */}
-            <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "20px 0 10px" }}>
-              {questions.map((_, i) => (
-                <div key={i} style={{
-                  width: i === currentQ ? 20 : 6, height: 6, borderRadius: 0,
-                  background: i < currentQ ? T.green : i === currentQ ? T.green : T.bg4,
-                  transition: "all 0.3s",
-                }} />
-              ))}
-            </div>
+              {/* Avancement */}
+              <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                {questions.map((_, i) => (
+                  <span key={i} style={{ width: 22, height: 10, border: "2px solid " + T.ink, background: i < currentQ ? "#1f7a45" : i === currentQ ? "#d6ef3c" : "#ffffff" }} />
+                ))}
+              </div>
 
-            <div style={{ padding: "0 16px 20px" }}>
-              <button
-                style={{ ...styles.btnSecondary, width: "100%", fontSize: 11, opacity: 0.6 }}
-                onClick={() => setMatchState(prev => ({ ...prev, phase: "result" }))}
-              >Passer la conférence</button>
+              <button style={{ ...styles.btnSecondary, width: "auto" }} onClick={() => setMatchState(prev => ({ ...prev, phase: "result" }))}>Passer la conférence</button>
             </div>
           </div>
         </div>

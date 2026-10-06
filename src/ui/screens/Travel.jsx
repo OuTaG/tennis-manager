@@ -100,18 +100,19 @@ export function TravelScreen({ player, travelTo }) {
     <div style={styles.tabContent}>
       <div style={styles.sectionTitle}>Voyager</div>
 
-      <div style={{
-        background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 14,
-        border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderLeft: "3px solid " + T.green,
-      }}>
-        <div className="tm-eyebrow" style={{ marginBottom: 4 }}>Position actuelle</div>
-        <div style={{ color: T.fg, fontWeight: 700, fontSize: 18 }}>
-          <FlagFromEmoji emoji={CITIES[player.location]?.flag} /> {player.location}
+      {/* Position actuelle : case verte tramée */}
+      <div className="tm-halftone-cyan" style={{ border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, padding: "12px 14px", marginBottom: 14, color: "#ffffff", display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ width: 46, height: 46, flexShrink: 0, borderRadius: "50%", background: "#d6ef3c", border: "2.5px solid " + T.ink, display: "flex", alignItems: "center", justifyContent: "center", transform: "rotate(-12deg)" }}>
+          <Icon name="plane" size={22} color="#141414" />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>Vous êtes à</div>
+          <div className="tm-display" style={{ fontSize: 24, lineHeight: 1.05, textShadow: "2px 2px 0 " + T.ink, display: "flex", alignItems: "center", gap: 8 }}>
+            <FlagFromEmoji emoji={CITIES[player.location]?.flag} size={18} />{player.location}
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 700 }}>{CITIES[player.location]?.country}</div>
         </div>
-        <div style={{ color: T.fg3, fontSize: 12, marginTop: 2 }}>{CITIES[player.location]?.country}</div>
-        <div className="tm-eyebrow" style={{ color: T.fg5, marginTop: 10 }}>
-          Tarif · 30€ fixe + 0,18€/km
-        </div>
+        <span className="tm-lettering" style={{ background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, padding: "2px 7px", fontSize: 12.5, textAlign: "center", lineHeight: 1.15 }}>30 € + 0,18 €/km</span>
       </div>
 
       <input
@@ -130,39 +131,39 @@ export function TravelScreen({ player, travelTo }) {
         ))}
       </div>
 
-      <div className="tm-eyebrow" style={{ marginBottom: 12, color: T.fg5 }}>
-        <span className="tm-num">{totalCities}</span> ville{totalCities > 1 ? "s" : ""}
+      <div className="tm-lettering" style={{ marginBottom: 12, fontSize: 15 }}>
+        {totalCities} ville{totalCities > 1 ? "s" : ""} à portée de billet
       </div>
 
       {visibleGroups.map(({ country, flag, cities }) => (
         <div key={country} style={{ marginBottom: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, marginBottom: 8, background: T.ink, color: "#ffffff", padding: "3px 9px" }}>
             <FlagFromEmoji emoji={flag} size={13} />
-            <div className="tm-eyebrow" style={{ color: T.fg2 }}>{country}</div>
+            <span className="tm-display" style={{ fontSize: 13 }}>{country}</span>
           </div>
           {cities.map(c => {
             const isHere = c.name === player.location;
             const canAfford = player.money >= c.cost;
             return (
               <div key={c.name} style={{
-                background: T.bg1, borderRadius: 0, padding: "12px 14px",
-                marginBottom: 6, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                opacity: isHere ? 0.5 : 1,
+                background: isHere ? "#d6ef3c" : "#ffffff", color: "#141414", padding: "10px 12px",
+                marginBottom: 7, border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+                display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
               }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ color: T.fg, fontWeight: 600, fontSize: 14 }}>{c.name}</div>
-                  <div className="tm-num" style={{ color: T.fg4, fontSize: 11, marginTop: 2 }}>{c.distance.toLocaleString()} km</div>
+                  <div className="tm-display" style={{ fontSize: 15 }}>{c.name}</div>
+                  <span className="tm-num" style={{ display: "inline-block", marginTop: 3, fontSize: 11, fontWeight: 800, border: "1.5px solid " + T.ink, padding: "0 5px", background: "#ffffff" }}>{c.distance.toLocaleString("fr-FR")} km</span>
                 </div>
                 {isHere ? (
-                  <div className="tm-eyebrow" style={{ color: T.green }}><Icon name="location" size={11} /> ICI</div>
+                  <span className="tm-display" style={{ background: T.ink, color: "#d6ef3c", padding: "3px 9px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="location" size={12} color="#d6ef3c" /> Ici</span>
                 ) : (
                   <button
                     style={{
                       ...styles.btnSmall,
-                      background: canAfford ? T.green : T.bg3,
-                      color: canAfford ? T.bg0 : T.fg4,
-                      borderColor: "transparent",
+                      background: canAfford ? "#1f7a45" : "#ffffff",
+                      color: canAfford ? "#ffffff" : T.fg4,
+                      border: "2.5px solid " + T.ink, boxShadow: canAfford ? "2px 2px 0 " + T.ink : "none",
+                      fontFamily: T.display, fontSize: 14,
                       opacity: canAfford ? 1 : 0.5,
                     }}
                     disabled={!canAfford}
