@@ -2893,8 +2893,7 @@ export default function TennisManager() {
             }}>
               <Avatar config={avatarInput} size={40} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ color: T.fg, fontSize: 13, fontWeight: 700 }}>{nameInput}</div>
-                <div style={{ fontSize: 11 }}>Votre <strong style={{ color: T.fg }}>ville de départ</strong> est seulement votre point de départ sur le circuit.</div>
+                <div className="tm-display" style={{ color: T.fg, fontSize: 22, lineHeight: 1.1, overflowWrap: "anywhere" }}>{nameInput}</div>
               </div>
             </div>
 
@@ -2914,7 +2913,7 @@ export default function TennisManager() {
             <div>
               <label style={styles.label}>Surface de prédilection</label>
               <div style={{ color: T.fg4, fontSize: 11, marginTop: -4, marginBottom: 8 }}>
-                +{SURFACE_BONUS} à toutes vos stats en match sur cette surface. Le gazon compte peu de tournois, mais aussi peu de spécialistes.
+                +{SURFACE_BONUS} à toutes vos stats en match sur cette surface.
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
                 {SURFACES.map(sf => (
