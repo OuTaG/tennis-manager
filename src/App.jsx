@@ -100,6 +100,7 @@ export default function TennisManager() {
   const [matchPaused, setMatchPaused] = useState(false);
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [wallTaps, setWallTaps] = useState(0); // secret des réglages
+  const [travelWarning, setTravelWarning] = useState(null); // tournoi de la semaine prochaine, joueur pas sur place
   // Ombres de défilement : fenêtre (pages de jeu), plan de jeu, aide, commentaires.
   const winEdges = useScrollEdges(null);
   const tacticsBoxRef = useRef(null);
@@ -503,6 +504,20 @@ export default function TennisManager() {
   }, [activeTab, screen, !!player, sponsorNegotiation, flightAnim, player?.pendingSeasonRecap, player?.pendingLifeEvent]);
 
   // ── WEEK ADVANCE ──────────────────────────────────────────────────────────
+  // « Semaine suivante » : si le tournoi où l'on est inscrit commence la
+  // semaine prochaine dans une autre ville, on demande confirmation (sinon
+  // c'est un forfait, frais d'inscription perdus).
+  const requestAdvanceWeek = () => {
+    const e = player && player.enrollment;
+    const nextWeek = player ? (player.week === 52 ? 1 : player.week + 1) : null;
+    const t = e && e.week === nextWeek ? ALL_TOURNAMENTS.find(x => x.id === e.tournamentId) : null;
+    const absNext = player ? (player.week === 52 ? player.year + 1 : player.year) * 52 + nextWeek : 0;
+    const resting = player && player.restUntilAbsWeek && absNext < player.restUntilAbsWeek;
+    const injured = player && player.injury && !player.injury.canPlay;
+    if (t && player.location !== t.city && !resting && !injured) { setTravelWarning(t); return; }
+    advanceWeek();
+  };
+
   const advanceWeek = () => {
     if (!player || isAdvancingWeek) return;
     const tStart = performance.now();
@@ -3338,6 +3353,75 @@ export default function TennisManager() {
     const tourn = ms.tournament;
     const m = ms.matchData;
 
+    // ─── Écrans d'après-match, façon BD (comme l'avant-match) ───────────────
+    const POST_INK = T.ink;
+    // Bandeau titre : couleur selon l'issue, grosse onomatopée, tournoi + tour.
+    const postHeader = (title, tone, sub) => {
+      const bg = tone === "gold" ? "#d6ef3c" : tone === "win" ? "#1f7a45" : "#c4302b";
+      const fg = tone === "gold" ? "#141414" : "#ffffff";
+      return (
+        <div style={{ background: bg, color: fg, padding: "16px 16px 14px", borderBottom: "3px solid " + POST_INK, backgroundImage: "radial-gradient(rgba(255,255,255,0.18) 1.4px, transparent 1.6px)", backgroundSize: "7px 7px", textAlign: "center" }}>
+          <div className="tm-display" style={{ fontSize: 40, lineHeight: 1, color: tone === "gold" ? "#141414" : "#d6ef3c", WebkitTextStroke: "1.5px " + POST_INK, textShadow: "3px 3px 0 " + POST_INK, transform: "rotate(-3deg)", display: "inline-block" }}>{title}</div>
+          <div className="tm-display" style={{ fontSize: 17, marginTop: 10, textShadow: tone === "gold" ? "none" : "1px 1px 0 " + POST_INK }}>{tourn.name}</div>
+          <span className="tm-lettering" style={{ display: "inline-block", marginTop: 5, background: "#ffffff", color: "#141414", border: "2px solid " + POST_INK, padding: "0 8px", fontSize: 14 }}>{sub}</span>
+        </div>
+      );
+    };
+    // Face-à-face final : les deux portraits, le score au milieu, le vainqueur en jaune.
+    const postFaces = (fr) => {
+      const me = { avatar: player.avatar, name: player.name, flag: player.nationalityFlag, won: fr.won };
+      const opp = { avatar: aiAvatar(ms.opponent, player.circuit === "wta"), name: fr.opponent, flag: ms.opponent?.nat?.flag, won: !fr.won, rank: fr.opponentRank };
+      const face = (x) => (
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+          <div style={{ position: "relative", border: "3px solid " + POST_INK, background: x.won ? "#d6ef3c" : "#ffffff", boxShadow: "3px 3px 0 " + POST_INK, overflow: "hidden", filter: x.won ? "none" : "grayscale(0.7)" }}>
+            <Avatar config={{ ...x.avatar, mood: x.won ? "sourire" : "concentre" }} size={88} bare />
+          </div>
+          <div className="tm-display" style={{ fontSize: 13, textAlign: "center", lineHeight: 1.05, overflowWrap: "anywhere" }}>{x.name}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            {x.flag && <FlagFromEmoji emoji={x.flag} size={12} />}
+            {x.won && <span style={{ background: POST_INK, color: "#d6ef3c", fontSize: 10, fontWeight: 800, padding: "0 5px", textTransform: "uppercase" }}>Gagnant</span>}
+            {x.rank && !x.won && <span className="tm-num" style={{ fontSize: 11, fontWeight: 800 }}>#{x.rank}</span>}
+          </div>
+        </div>
+      );
+      return (
+        <div style={{ border: "3px solid " + POST_INK, boxShadow: "5px 5px 0 " + POST_INK, background: "linear-gradient(100deg, #d6ef3c 0 50%, #c9b6ea 50% 100%)", position: "relative", overflow: "hidden", padding: "14px 8px 10px" }}>
+          <div aria-hidden="true" style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(20,20,20,0.14) 1.4px, transparent 1.6px)", backgroundSize: "6px 6px" }} />
+          <div style={{ position: "relative", display: "flex", alignItems: "flex-start" }}>
+            {face(me)}
+            <div style={{ width: 92, flexShrink: 0, height: 94, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="tm-display" style={{ background: "#ffffff", border: "2.5px solid " + POST_INK, boxShadow: "2px 2px 0 " + POST_INK, padding: "4px 5px", fontSize: 13, lineHeight: 1.2, textAlign: "center", color: "#141414" }}>{fr.finalScore}</span>
+            </div>
+            {face(opp)}
+          </div>
+        </div>
+      );
+    };
+    // Gains : deux cases encrées.
+    const postGains = (fr) => (
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {[{ icon: "money", l: "Gains", v: "+" + fr.prize.toLocaleString("fr-FR") + " €", c: "#1f7a45" }, { icon: "trending", l: "Points", v: "+" + fr.pts + " pts", c: "#5b2d8e" }].map(x => (
+          <div key={x.l} style={{ background: "#ffffff", border: "2.5px solid " + POST_INK, boxShadow: "3px 3px 0 " + POST_INK, padding: "8px 10px", color: "#141414" }}>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4 }}><Icon name={x.icon} size={11} />{x.l}</div>
+            <div className="tm-display" style={{ fontSize: 22, color: x.c }}>{x.v}</div>
+          </div>
+        ))}
+      </div>
+    );
+    // Débrief : bulle de BD des commentateurs.
+    const postDebrief = (fr) => fr.debrief && (
+      <div style={{ position: "relative", marginTop: 4 }}>
+        <span className="tm-display" style={{ position: "absolute", left: 10, top: -11, zIndex: 1, background: POST_INK, color: "#d6ef3c", fontSize: 11, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="mic" size={11} color="#d6ef3c" />Les commentateurs</span>
+        <div className="tm-lettering" style={{ background: "#ffffff", color: "#141414", border: "3px solid " + POST_INK, borderRadius: "28px / 22px", padding: "16px 16px 12px", fontSize: 15, lineHeight: 1.3 }}>« {fr.debrief} »</div>
+      </div>
+    );
+    const postPanel = (title, children, extra = {}) => (
+      <div style={{ background: "#ffffff", border: "3px solid " + POST_INK, boxShadow: "4px 4px 0 " + POST_INK, color: "#141414", ...extra }}>
+        <div className="tm-display" style={{ background: POST_INK, color: "#ffffff", fontSize: 15, padding: "5px 12px" }}>{title}</div>
+        <div style={{ padding: 12 }}>{children}</div>
+      </div>
+    );
+
     if (ms.phase === "intermediate") {
       const fr = ms.finalResult;
       const pnm = ms.pendingNextMatch || {};
@@ -3378,27 +3462,13 @@ export default function TennisManager() {
 
       return (
         <div style={styles.root}>
-          <div style={{ ...styles.screen, alignItems: "center", justifyContent: "flex-start", overflowY: "auto", paddingBottom: 24 }}>
-            <div style={{ textAlign: "center", padding: 24, width: "100%", boxSizing: "border-box" }}>
-              <div><Icon name={enteringMain ? "party" : fr.won ? "success" : "fail"} size={52} color={fr.won ? T.green : T.red} /></div>
-              <h2 style={{ color: fr.won ? T.green : T.red, fontSize: 26, margin: "12px 0 4px" }}>
-                {enteringMain ? "Qualifié !" : fr.won ? "Victoire !" : "Défaite"}
-              </h2>
-              <p style={{ color: T.fg4, fontSize: 14 }}>{tourn.name}</p>
-              <p style={{ color: T.fg, fontSize: 22, margin: "16px 0 4px", fontWeight: 800 }}>{fr.finalScore}</p>
-              <p style={{ color: T.fg4, fontSize: 13 }}>vs {fr.opponent} (#{fr.opponentRank})</p>
-              <div style={{ display: "flex", gap: 16, justifyContent: "center", margin: "20px 0", flexWrap: "wrap" }}>
-                <div style={styles.resultPill}><Icon name="money" size={11} /> +{fr.prize.toLocaleString()}€</div>
-                <div style={styles.resultPill}><Icon name="trending" size={11} /> +{fr.pts} pts</div>
-              </div>
-
-              {fr.debrief && (
-                <div style={{ background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 16, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
-                  <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: "none", letterSpacing: 0.5, fontStyle: "normal" }}><Icon name="mic" size={11} /> Débrief des commentateurs</div>
-                  "{fr.debrief}"
-                </div>
-              )}
-
+          <div style={{ ...styles.screen, justifyContent: "flex-start", overflowY: "auto", paddingBottom: 24 }}>
+            <WindowShades />
+            {postHeader(enteringMain ? "QUALIFIÉ !" : fr.won ? "VICTOIRE !" : "DÉFAITE", fr.won ? "win" : "loss", roundName)}
+            <div style={{ padding: "16px 16px 0", display: "flex", flexDirection: "column", gap: 14 }}>
+              {postFaces(fr)}
+              {postGains(fr)}
+              {postDebrief(fr)}
               {ms.rr && (() => {
                 const { g, h } = finalsRanked(ms.rr, player);
                 const nameOf = id => id === "__me" ? rankingName(player.name) : ms.rr.players[id].name;
@@ -3417,24 +3487,27 @@ export default function TennisManager() {
                   </div>
                 );
                 return (
-                  <div style={{ background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 16, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, textAlign: "left", display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <div style={{ background: "#ffffff", padding: 14, border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, textAlign: "left", display: "flex", gap: 16, flexWrap: "wrap", color: "#141414" }}>
                     {table(ms.rr.gLabel, g)}
                     {table(ms.rr.hLabel, h)}
                   </div>
                 );
               })()}
 
-              {pnm.nextOpp && (
-                <div style={{ background: T.bg0, borderRadius: 0, padding: 14, marginBottom: 16, border: "2px solid " + T.ink, textAlign: "left" }}>
-                  <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, marginBottom: 8, textTransform: "none", letterSpacing: 0.5 }}>Prochain match</div>
-                  <div style={{ color: T.fg, fontSize: 14, fontWeight: 700 }}>{nextRoundLabel}</div>
-                  <div style={{ color: T.fg3, fontSize: 13, marginTop: 4 }}>
-                    vs <FlagFromEmoji emoji={pnm.nextOpp.nat?.flag} size={11} /> {pnm.nextOpp.name} (#{pnm.nextOppRank})
+              {pnm.nextOpp && postPanel("Prochain match", (
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ border: "2.5px solid " + T.ink, background: "#ffffff", flexShrink: 0 }}>
+                    <Avatar config={aiAvatar(pnm.nextOpp, player.circuit === "wta")} size={56} bare />
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <span className="tm-lettering" style={{ display: "inline-block", background: "#d6ef3c", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 13 }}>{nextRoundLabel}</span>
+                    <div className="tm-display" style={{ fontSize: 16, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}><FlagFromEmoji emoji={pnm.nextOpp.nat?.flag} size={13} />{pnm.nextOpp.name}</div>
+                    <div className="tm-num" style={{ fontSize: 12, fontWeight: 800 }}>#{pnm.nextOppRank} mondial</div>
                   </div>
                 </div>
-              )}
+              ))}
 
-              <button style={styles.btnPrimary} onClick={onContinue}>Continuer →</button>
+              <button style={{ ...styles.btnPrimary, width: "auto" }} onClick={onContinue}>Continuer →</button>
             </div>
           </div>
         </div>
@@ -3616,93 +3689,61 @@ export default function TennisManager() {
       const statLabels = { serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" };
       const hasProg = Object.keys(prog).length > 0;
       const lore = fr.isTitleWin ? getTournamentLore(tourn.id) : null;
+      const negative = Object.values(prog).some(v => v < 0);
       return (
         <div style={styles.root}>
-          <div style={{ ...styles.screen, alignItems: "center", justifyContent: "flex-start", overflowY: "auto", paddingBottom: 24 }}>
-            <div style={{ textAlign: "center", padding: 24, width: "100%", boxSizing: "border-box" }}>
-              {fr.isTitleWin ? (
-                <div style={{
-                  background: "linear-gradient(180deg, var(--tm-amberSub) 0%, rgba(15,23,42,0) 60%)",
-                  borderRadius: 0, padding: "24px 8px 8px", marginBottom: 8,
-                }}>
-                  <div style={{ animation: "pulse 2s infinite", filter: "none" }}><Icon name="trophy" size={72} color={T.amber} /></div>
-                  <div style={{ color: T.amber, fontSize: 11, fontWeight: 900, letterSpacing: 0.2, marginTop: 4 }}>Champion</div>
-                  <h2 style={{ color: T.amber, fontSize: 28, margin: "8px 0 4px", fontWeight: 900, lineHeight: 1.1, textShadow: "none" }}>
-                    {tourn.name}
-                  </h2>
-                  <p style={{ color: "var(--tm-amber)", fontSize: 13, fontStyle: "italic", margin: "4px 0 12px" }}>
-                    <FlagFromEmoji emoji={CITIES[tourn.city]?.flag} size={11} /> {tourn.city} · {player.year}
-                  </p>
+          <div style={{ ...styles.screen, justifyContent: "flex-start", overflowY: "auto", paddingBottom: 24 }}>
+            <WindowShades />
+            {fr.isTitleWin
+              ? postHeader("CHAMPION !", "gold", (tourn.city || "") + " · " + player.year)
+              : postHeader(fr.won ? "VICTOIRE !" : fr.eliminatedInQuali ? "ÉLIMINÉ EN QUALIFS" : "ÉLIMINÉ", fr.won ? "win" : "loss", fr.round)}
+            <div style={{ padding: "16px 16px 0", display: "flex", flexDirection: "column", gap: 14 }}>
+              {fr.isTitleWin && (
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <div style={{ background: "#d6ef3c", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, padding: "8px 14px", display: "flex", alignItems: "center", gap: 10, transform: "rotate(-2deg)" }}>
+                    <Icon name="trophy" size={34} color="#141414" />
+                    <span className="tm-lettering" style={{ fontSize: 17, color: "#141414" }}>Le trophée est à vous !</span>
+                  </div>
                 </div>
-              ) : (
+              )}
+              {postFaces(fr)}
+              {postGains(fr)}
+
+              {fr.isTitleWin && lore && postPanel("Histoire du tournoi", (
                 <>
-                  <h2 style={{ color: fr.won ? T.green : T.red, fontSize: 26, margin: "12px 0 4px" }}>
-                    {fr.won ? "Victoire !" : (fr.eliminatedInQuali ? "Éliminé en qualifs" : "Élimination")}
-                  </h2>
-                  <p style={{ color: T.fg4, fontSize: 14 }}>{tourn.name} — {fr.round}</p>
-                </>
-              )}
-              <p style={{ color: T.fg, fontSize: 22, margin: "16px 0 4px", fontWeight: 800 }}>{fr.finalScore}</p>
-              <p style={{ color: T.fg4, fontSize: 13 }}>vs {fr.opponent} (#{fr.opponentRank})</p>
-              <div style={{ display: "flex", gap: 16, justifyContent: "center", margin: "24px 0", flexWrap: "wrap" }}>
-                <div style={styles.resultPill}><Icon name="money" size={11} /> +{fr.prize.toLocaleString()}€</div>
-                <div style={styles.resultPill}><Icon name="trending" size={11} /> +{fr.pts} pts</div>
-              </div>
-
-              {/* Tournament history (only for big titles with lore) */}
-              {fr.isTitleWin && lore && (
-                <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
-                  <div style={{ color: T.amber, fontSize: 12, fontWeight: 900, letterSpacing: 0.2, marginBottom: 8, textTransform: "none" }}>Histoire du tournoi</div>
-                  <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6, marginBottom: 12 }}>{lore.history}</div>
-                  <div style={{ color: T.amber, fontSize: 11, fontWeight: 700, marginBottom: 6 }}><Icon name="trophy" size={11} /> Légendes du tournoi</div>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.55, marginBottom: 10 }}>{lore.history}</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}><Icon name="trophy" size={11} /> Légendes du tournoi</div>
                   {lore.legends.map((legend, i) => (
-                    <div key={i} style={{ color: T.fg, fontSize: 12, padding: "3px 0", borderBottom: i < lore.legends.length - 1 ? "1px solid var(--tm-bg1)" : "none" }}>
-                      • {legend}
-                    </div>
+                    <div key={i} style={{ fontSize: 12.5, padding: "3px 0", borderBottom: i < lore.legends.length - 1 ? "1.5px dashed " + T.ink : "none" }}>• {legend}</div>
                   ))}
-                  <div style={{ marginTop: 12, padding: 10, background: T.bg0, borderRadius: 0, border: "1px solid var(--tm-amber)" }}>
-                    <div style={{ color: T.amber, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>Vainqueur {player.year}</div>
-                    <div style={{ color: T.fg, fontSize: 14, fontWeight: 800 }}><FlagFromEmoji emoji={player.nationalityFlag} size={12} /> {player.name}</div>
-                    <div style={{ color: T.fg4, fontSize: 11, marginTop: 2 }}>Score final : {fr.finalScore}</div>
+                  <div style={{ marginTop: 10, padding: "8px 10px", background: "#d6ef3c", border: "2.5px solid " + T.ink }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase" }}>Vainqueur {player.year}</div>
+                    <div className="tm-display" style={{ fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}><FlagFromEmoji emoji={player.nationalityFlag} size={13} />{player.name}</div>
                   </div>
-                </div>
-              )}
+                </>
+              ))}
+              {fr.isTitleWin && !lore && postPanel("Palmarès", (
+                <div style={{ fontSize: 13, lineHeight: 1.5 }}>Votre nom rejoint désormais la liste des vainqueurs de {tourn.name}. Une belle ligne ajoutée à votre carrière.</div>
+              ))}
 
-              {/* Generic title celebration if no lore */}
-              {fr.isTitleWin && !lore && (
-                <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 16, border: "1px solid var(--tm-amber)", textAlign: "left" }}>
-                  <div style={{ color: T.amber, fontSize: 12, fontWeight: 900, letterSpacing: 0.2, marginBottom: 8 }}>Palmarès</div>
-                  <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.6 }}>
-                    Votre nom rejoint désormais la liste des vainqueurs de {tourn.name}. Une belle ligne ajoutée à votre carrière.
+              {postDebrief(fr)}
+
+              {hasProg && postPanel("Bilan du tournoi", (
+                <>
+                  <div className="tm-lettering" style={{ fontSize: 14, marginBottom: 8 }}>
+                    {ms.totalMatchesInTournament} match{ms.totalMatchesInTournament > 1 ? "s" : ""} · {fr.isTitleWin ? "titre et bonus !" : negative ? "performance décevante…" : "progrès pendant le tournoi"}
                   </div>
-                </div>
-              )}
-
-              {fr.debrief && (
-                <div style={{ background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 16, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, color: T.fg3, fontSize: 13, lineHeight: 1.6, fontStyle: "italic", textAlign: "left" }}>
-                  <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: "none", letterSpacing: 0.5, fontStyle: "normal" }}><Icon name="mic" size={11} /> Débrief des commentateurs</div>
-                  "{fr.debrief}"
-                </div>
-              )}
-
-              {hasProg && (
-                <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 16, border: "1px solid " + (Object.values(prog).some(v => v < 0) ? T.amber : T.green) }}>
-                  <div style={{ color: Object.values(prog).some(v => v < 0) ? T.amber : T.green, fontSize: 14, fontWeight: 800, marginBottom: 12 }}>
-                    <Icon name="trending" size={11} /> Bilan du tournoi
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {Object.entries(prog).map(([k, v]) => (
+                      <span key={k} style={{ border: "2px solid " + T.ink, background: v >= 0 ? "#1f7a45" : "#c4302b", color: "#ffffff", fontSize: 12, fontWeight: 800, padding: "2px 7px" }}>
+                        {statLabels[k] || k} {v >= 0 ? "+" : ""}{v}
+                      </span>
+                    ))}
                   </div>
-                  <div style={{ color: T.fg4, fontSize: 11, marginBottom: 10 }}>
-                    {ms.totalMatchesInTournament} match{ms.totalMatchesInTournament > 1 ? "s" : ""} · {fr.isTitleWin ? "Titre +bonus" : (Object.values(prog).some(v => v < 0) ? "Performance décevante" : "Progrès pendant le tournoi")}
-                  </div>
-                  {Object.entries(prog).map(([k, v]) => (
-                    <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", color: T.fg, fontSize: 13 }}>
-                      <span>{statLabels[k] || k}</span>
-                      <span style={{ color: v >= 0 ? T.green : T.red, fontWeight: 700 }}>{v >= 0 ? "+" : ""}{v}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                </>
+              ))}
 
-              <button style={styles.btnPrimary} onClick={() => {
+              <button style={{ ...styles.btnPrimary, width: "auto" }} onClick={() => {
                 setScreen("hub");
                 setActiveTab("hub");
                 setMatchState(null);
@@ -4048,8 +4089,9 @@ export default function TennisManager() {
               ) : (
                 <div key={i} title="Élan : la dynamique du match" style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", marginBottom: 2 }}>Élan</div>
-                  <div style={{ position: "relative", height: 9, border: "2px solid " + T.ink, background: "linear-gradient(90deg, #c9b6ea 0 50%, #d6ef3c 50% 100%)" }}>
-                    <div style={{ position: "absolute", top: -4, width: 6, height: 13, marginLeft: -3, background: T.ink, left: (50 + (m.playerMomentum || 0) * 10) + "%", transition: "left 0.3s" }} />
+                  <div style={{ position: "relative", height: 9, border: "2px solid " + T.ink, background: "linear-gradient(90deg, #d6ef3c 0 50%, #c9b6ea 50% 100%)" }}>
+                    {/* Votre élan pousse le curseur de votre côté (à gauche, sous votre énergie). */}
+                    <div style={{ position: "absolute", top: -4, width: 6, height: 13, marginLeft: -3, background: T.ink, left: (50 - (m.playerMomentum || 0) * 10) + "%", transition: "left 0.3s" }} />
                   </div>
                 </div>
               ))}
@@ -4438,6 +4480,28 @@ export default function TennisManager() {
           </div>
         )}
         <div style={{ ...styles.content, paddingBottom: 110 }}>
+          {travelWarning && (
+            <div onClick={() => setTravelWarning(null)} style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+              <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 400, width: "100%" }}>
+                <div className="tm-display" style={{ background: "#c4302b", color: "#ffffff", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink }}>Êtes-vous sûr ?</div>
+                <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
+                    Le {travelWarning.name} commence la semaine prochaine à {travelWarning.city}… et vous êtes encore à {player.location} !
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>
+                    Si vous avancez sans voyager, vous déclarez forfait{travelWarning.entryFee ? " et perdez les " + travelWarning.entryFee.toLocaleString("fr-FR") + " € d'inscription" : ""}.
+                  </div>
+                  <button style={styles.btnPrimary} onClick={() => { setTravelWarning(null); setActiveTab("travel"); }}>
+                    Voyager à {travelWarning.city}
+                  </button>
+                  <button style={{ ...styles.btnSecondary, borderColor: "#c4302b", color: "#c4302b" }} onClick={() => { setTravelWarning(null); advanceWeek(); }}>
+                    Avancer quand même (forfait)
+                  </button>
+                  <button style={styles.btnSecondary} onClick={() => setTravelWarning(null)}>Annuler</button>
+                </div>
+              </div>
+            </div>
+          )}
           {helpTab && PAGE_HELP[helpTab] && (
             <div onClick={() => setHelpTab(null)} style={{
               position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400,
@@ -4462,7 +4526,7 @@ export default function TennisManager() {
             </div>
           )}
           {activeTab === "hub" && player.challenge && <ChallengePanel player={player} atpDb={atpDb} repayDebt={repayDebt} />}
-          {activeTab === "hub" && <HubScreen player={player} news={news} advanceWeek={advanceWeek} rating={rating} ranking={ranking} totalPts={totalPts} cancelEnrollment={cancelEnrollment} isAdvancingWeek={isAdvancingWeek} acceptWildcard={acceptWildcard} declineWildcard={declineWildcard} retire={retire} setTournamentDetail={setTournamentDetail} />}
+          {activeTab === "hub" && <HubScreen player={player} news={news} advanceWeek={requestAdvanceWeek} rating={rating} ranking={ranking} totalPts={totalPts} cancelEnrollment={cancelEnrollment} isAdvancingWeek={isAdvancingWeek} acceptWildcard={acceptWildcard} declineWildcard={declineWildcard} retire={retire} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "calendar" && <CalendarScreen player={player} ranking={ranking} calFilters={calFilters} setCalFilters={setCalFilters} enrollTournament={enrollTournament} cancelEnrollment={cancelEnrollment} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "travel" && <TravelScreen player={player} travelTo={travelTo} />}
           {activeTab === "prep" && <PrepScreen player={player} doTraining={doTraining} hireStaff={hireStaff} fireStaff={fireStaff} />}

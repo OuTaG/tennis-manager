@@ -134,7 +134,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const title = kind === "serve_duel" ? "Duel au service !" : kind === "return_duel" ? "Duel au retour !" : kind === "mental" ? "Sang-froid !" : "Smash !";
   const caption = kind === "return_duel" ? stake + " · " + oppName + " va servir. Où va-t-il frapper ?"
-    : kind === "smash" ? stake + " · une balle haute flotte au-dessus du filet…"
+    : kind === "smash" ? null
     : kind === "mental" ? stake + " · le public retient son souffle…"
     : stake;
   // Serveur en bas, relanceur en haut.
@@ -184,7 +184,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
     <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 10 }}>
       <style>{MG_KEYFRAMES}</style>
       <div style={{ alignSelf: "center" }}><Sfx>{title}</Sfx></div>
-      <Caption>{caption}</Caption>
+      {caption && <Caption>{caption}</Caption>}
       {kind === "mental"
         ? <MentalGame mental={myMental} done={!!res} onEnd={(win, n) => { setRes({ win, zone: null, text: win ? n + " respirations sur 3 : vous restez de glace, point gagné." : n + " respiration" + (n > 1 ? "s" : "") + " sur 3 : crispé, le point vous échappe." }); setPhase("reveal"); }} />
         : kind === "smash"
@@ -328,7 +328,7 @@ function SmashGauge({ done, onHit }) {
     let start = null;
     const step = (now) => {
       if (start === null) start = now;
-      const t = ((now - start) / 720) % 2; // aller en 0,72 s, retour en 0,72 s
+      const t = ((now - start) / 560) % 2; // aller en 0,56 s, retour en 0,56 s
       const p = t < 1 ? t : 2 - t;
       posRef.current = p;
       setPos(p);
