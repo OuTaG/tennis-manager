@@ -100,6 +100,7 @@ export default function TennisManager() {
   const [matchPaused, setMatchPaused] = useState(false);
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [wallTaps, setWallTaps] = useState(0); // secret des réglages
+  const [wildcardBlocked, setWildcardBlocked] = useState(null); // { wc, enrolled } : wildcard refusée car déjà inscrit ailleurs
   const [travelWarning, setTravelWarning] = useState(null); // tournoi de la semaine prochaine, joueur pas sur place
   // Ombres de défilement : fenêtre (pages de jeu), plan de jeu, aide, commentaires.
   const winEdges = useScrollEdges(null);
@@ -2590,7 +2591,9 @@ export default function TennisManager() {
       }
     }
     if (player.enrollment) {
-
+      // Déjà inscrit ailleurs : on explique qu'il faut d'abord se désinscrire.
+      const enr = ALL_TOURNAMENTS.find(x => x.id === player.enrollment.tournamentId);
+      setWildcardBlocked({ wc: offer.tournamentName, enrolled: enr ? enr.name : "un autre tournoi", week: player.enrollment.week });
       return;
     }
     if (player.injury && !player.injury.canPlay) {
@@ -4463,6 +4466,24 @@ export default function TennisManager() {
           </div>
         )}
         <div style={{ ...styles.content, paddingBottom: 110 }}>
+          {wildcardBlocked && (
+            <div onClick={() => setWildcardBlocked(null)} style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+              <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 400, width: "100%" }}>
+                <div className="tm-display" style={{ background: "#e0a21b", color: "#141414", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Icon name="ticket" size={18} color="#141414" /> Déjà inscrit !
+                </div>
+                <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
+                    Vous êtes déjà inscrit au {wildcardBlocked.enrolled}{wildcardBlocked.week ? " (semaine " + wildcardBlocked.week + ")" : ""}…
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>
+                    Pour accepter la wildcard du {wildcardBlocked.wc}, annulez d'abord votre inscription à l'autre tournoi (sur l'accueil ou dans Circuit › Tournois), puis acceptez la wildcard.
+                  </div>
+                  <button style={styles.btnPrimary} onClick={() => setWildcardBlocked(null)}>Compris</button>
+                </div>
+              </div>
+            </div>
+          )}
           {travelWarning && (
             <div onClick={() => setTravelWarning(null)} style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
               <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 400, width: "100%" }}>

@@ -154,25 +154,29 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         );
       })()}
 
-      {/* WILDCARDS */}
+      {/* WILDCARDS : cartes BD, une par invitation */}
       {wildcardOffers.length > 0 && (
-        <div className="tm-fade-up" style={{
-          background: T.bg1,
-          padding: 16, marginBottom: 14,
-          border: "2.5px solid " + T.ink, borderLeft: "8px solid " + T.gold, boxShadow: "4px 4px 0 " + T.ink,
-        }}>
-          <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 10 }}><Icon name="ticket" size={11} /> Wildcards proposées</div>
+        <div className="tm-fade-up" style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, marginBottom: 14 }}>
+          <div className="tm-halftone-yellow" style={{ borderBottom: "3px solid " + T.ink, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ width: 30, height: 30, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2.5px solid " + T.ink, transform: "rotate(-4deg)" }}>
+              <Icon name="ticket" size={17} color="#141414" />
+            </span>
+            <span className="tm-display" style={{ fontSize: 17 }}>Wildcard{wildcardOffers.length > 1 ? "s" : ""} proposée{wildcardOffers.length > 1 ? "s" : ""}</span>
+          </div>
           {wildcardOffers.map((o, i) => {
             const t = ALL_TOURNAMENTS.find(x => x.id === o.tournamentId);
             return (
-              <div key={i} style={{ background: T.bg2, padding: 12, marginBottom: i < wildcardOffers.length - 1 ? 8 : 0, border: "2px solid " + T.ink }}>
-                <div style={{ color: T.fg, fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{o.tournamentName}</div>
-                <div className="tm-eyebrow" style={{ marginBottom: 10 }}>
-                  {t ? tierLabel(t.tier) : ""} · {t?.city || ""} · S{o.tournamentWeek}
+              <div key={i} style={{ padding: 12, borderTop: i ? "2px dashed " + T.ink : 0 }}>
+                {t && <span style={{ display: "inline-block", background: tierColor(t.tier), color: "#ffffff", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, padding: "0 6px", textTransform: "uppercase", textShadow: "1px 1px 0 " + T.ink }}>{tierLabel(t.tier)}</span>}
+                <div className="tm-display" style={{ fontSize: 17, lineHeight: 1.1, marginTop: 5 }}>{o.tournamentName}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                  {t?.city && <span style={{ background: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px" }}>{t.city}</span>}
+                  <span style={{ background: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px" }}>Semaine {o.tournamentWeek}</span>
+                  {t?.surface && <span style={{ background: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px" }}>{t.surface}</span>}
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button style={{ ...styles.btnSmall, background: T.green, color: T.bg0, borderColor: T.green, flex: 1 }} onClick={() => acceptWildcard(o)}>Accepter</button>
-                  <button style={{ ...styles.btnSmall, flex: 1 }} onClick={() => declineWildcard(o)}>Refuser</button>
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button className="tm-display" style={{ flex: 1, background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "7px 8px", fontSize: 13, cursor: "pointer" }} onClick={() => acceptWildcard(o)}>Accepter</button>
+                  <button style={{ ...styles.btnSmall, flex: 1, background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontWeight: 800 }} onClick={() => declineWildcard(o)}>Refuser</button>
                 </div>
               </div>
             );
