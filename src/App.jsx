@@ -30,6 +30,9 @@ import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKey
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
+
+// Couleur du bandeau de match selon la surface.
+const LIVE_SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2c6fd1", "Indoor": "#5b2d8e" };
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, avatarFromName, femaleHairStyle } from "./ui/avatar.jsx";
 import { rankingName } from "./ui/format.js";
 import { FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
@@ -1596,7 +1599,7 @@ export default function TennisManager() {
     // A game that closes a set is NOT commented on its own: the set comment
     // below says how the set was closed (hold, break, tie-break) instead.
     if (!result.setComplete && !pendingMini) newEvents.push(gameEvent);
-    if (injuryText) newEvents.push({ id: Date.now() + random() + 5, type: "lose_serve", text: injuryText });
+    if (injuryText) newEvents.push({ id: Date.now() + random() + 5, type: "injury", text: injuryText });
 
     if (result.setComplete) {
       const winnerSets = result.setWonByPlayer ? m.pSets : m.oSets;
@@ -1832,7 +1835,7 @@ export default function TennisManager() {
       const evts = [{ id: Date.now() + random(), type: "dilemma", title, choice: zone !== null && zone !== undefined ? ZONES[zone] : (win ? "Réussi" : "Raté"), text: text + (win ? " Jeu !" : " Retour à égalité.") }];
       // Smash raté : réception difficile, petit risque de blessure.
       if (kind === "smash" && !win && random() < SMASH_INJURY_RISK * injuryRiskMul(player)) {
-        evts.unshift({ id: Date.now() + random() + 1, type: "lose_serve", text: "Mauvaise réception après le smash… " + inflictMatchInjury(m) });
+        evts.unshift({ id: Date.now() + random() + 1, type: "injury", text: "Mauvaise réception après le smash… " + inflictMatchInjury(m) });
       }
       return {
         ...ms,
@@ -3844,29 +3847,26 @@ export default function TennisManager() {
           )}
           {notification && <div style={{ ...styles.notif, background: notification.type === "success" ? T.bg2 : notification.type === "warn" ? T.bg2 : T.bg2, borderColor: notification.type === "success" ? T.green : notification.type === "warn" ? T.amber : T.brd2 }}>{withFlags(notification.msg)}</div>}
           <div style={{ ...styles.screen, height: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))", minHeight: 0, overflowY: "auto" }}>
+            {/* Bandeau du tournoi, à la couleur de la surface (comme l'avant-match) */}
             <div style={{
-              ...styles.header,
-              background: "transparent", borderBottom: "3px solid " + T.ink,
-              alignItems: "stretch",
+              background: LIVE_SURF_BG[tourn.surface] || T.ink, color: "#ffffff",
+              backgroundImage: "radial-gradient(rgba(255,255,255,0.16) 1.4px, transparent 1.6px)", backgroundSize: "7px 7px",
+              borderBottom: "3px solid " + T.ink, padding: "10px 16px 10px", display: "flex", alignItems: "flex-start", gap: 10,
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "inline-block", background: T.magenta, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", marginBottom: 4, textTransform: "uppercase" }}>En direct · {tierLabel(tourn.tier)}</div>
-                <div className="tm-display" style={{ color: T.fg, fontSize: 18, lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tourn.name}</div>
-                <div style={{ color: T.fg, fontSize: 11.5, fontWeight: 700, marginTop: 2 }}>{roundName}</div>
-              </div>
-              <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-                <div style={{ ...styles.momentumChip, color: m.playerMomentum > 0 ? T.green : m.playerMomentum < 0 ? T.red : T.fg3 }} title="Momentum : élan psychologique.">
-                  <span style={{ fontFamily: T.mono }}>{m.playerMomentum > 0 ? "+" : ""}{m.playerMomentum}</span>
-                </div>
-                <div style={{ ...styles.momentumChip, color: Math.round(m.playerEnergy) > 50 ? T.green : T.red }}>
-                  <Icon name="energy" size={11} /> <span style={{ fontFamily: T.mono }}>{Math.round(m.playerEnergy)}</span>
-                </div>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ffffff", animation: !matchPaused ? "tm-live-blink 1.2s ease-in-out infinite" : "none" }} />
+                  En direct · {tierLabel(tourn.tier)}
+                </span>
+                <div className="tm-display" style={{ fontSize: 21, lineHeight: 1.05, marginTop: 5, textShadow: "2px 2px 0 " + T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tourn.name}</div>
+                <span className="tm-lettering" style={{ display: "inline-block", marginTop: 4, background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 13 }}>{roundName}</span>
               </div>
             </div>
+            <style>{"@keyframes tm-live-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }"}</style>
 
             {/* Stadium scoreboard */}
             <div style={{
-              margin: "16px 16px 14px",
+              margin: "14px 16px 12px",
               background: T.bg1,
               border: "3px solid " + T.ink,
               overflow: "hidden",
@@ -3882,16 +3882,16 @@ export default function TennisManager() {
                 {setsPlayed.map((_, i) => (
                   <span key={i} style={{
                     width: 42, textAlign: "center",
-                    color: T.fg5, fontSize: 9, fontWeight: 700,
+                    color: "#ffffff", fontSize: 9.5, fontWeight: 800,
                     fontFamily: T.mono, letterSpacing: 0.2,
                   }}>SET {i + 1}</span>
                 ))}
                 <span style={{
                   width: 48, textAlign: "center",
-                  color: livePoint ? T.amber : T.fg5,
-                  fontSize: 9, fontWeight: 700,
+                  color: T.gold,
+                  fontSize: 9.5, fontWeight: 800,
                   fontFamily: T.mono, letterSpacing: 0.2,
-                  borderLeft: "1px solid " + T.brd, marginLeft: 4, paddingLeft: 4,
+                  marginLeft: 4, paddingLeft: 4,
                   transition: "color 0.2s",
                 }}>PT</span>
               </div>
@@ -3916,9 +3916,9 @@ export default function TennisManager() {
                 const isServing = !m.matchComplete && (row.isP ? nextIsPlayerServing : !nextIsPlayerServing);
                 return (
                 <div key={ri} style={{
-                  display: "flex", alignItems: "center", padding: "14px 16px",
-                  borderTop: ri === 1 ? "2px solid " + T.ink : "none",
-                  background: row.isP ? "transparent" : "transparent",
+                  display: "flex", alignItems: "center", padding: "8px 0 8px 12px",
+                  borderTop: ri === 1 ? "2.5px solid " + T.ink : "none",
+                  background: row.isP ? "rgba(214,239,60,0.22)" : "transparent",
                 }}>
                   <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                     {/* Tennis-ball glyph in front of the current server */}
@@ -3937,8 +3937,13 @@ export default function TennisManager() {
                         </svg>
                       )}
                     </span>
-                    <FlagFromEmoji emoji={row.flag} size={13} />
-                    <span style={{ color: T.fg, fontWeight: 700, fontSize: 13, letterSpacing: 0.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
+                    <span style={{ width: 34, height: 34, flexShrink: 0, border: "2px solid " + T.ink, background: row.isP ? T.gold : "#ffffff", overflow: "hidden" }}>
+                      <Avatar config={row.isP ? player.avatar : avatarFromName(ms.opponent.name, player.circuit === "wta")} size={30} bare />
+                    </span>
+                    <span style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+                      <span className="tm-display" style={{ color: T.fg, fontSize: 14, lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 800, color: T.fg3 }}><FlagFromEmoji emoji={row.flag} size={10} />#{row.isP ? ranking : ms.opponentRank}</span>
+                    </span>
                   </span>
                   {setsPlayed.map((s, i) => {
                     const display = row.isP ? s.pGames : s.oGames;
@@ -3964,8 +3969,9 @@ export default function TennisManager() {
                     fontSize: livePoint ? (((row.isP ? livePoint.p : livePoint.o) || "").length > 2 ? 16 : 22) : 18,
                     fontWeight: 400, fontFamily: T.display, fontVariantNumeric: "tabular-nums",
                     letterSpacing: -0.3, lineHeight: 1,
-                    color: livePoint ? T.blue : T.fg5,
-                    borderLeft: "2px solid " + T.ink, marginLeft: 4, paddingLeft: 4,
+                    color: "#141414", background: livePoint ? T.gold : T.bg2,
+                    alignSelf: "stretch", display: "flex", alignItems: "center", justifyContent: "center",
+                    borderLeft: "2.5px solid " + T.ink, marginLeft: 4, margin: "-8px 0",
                     textShadow: "none",
                     transition: "color 0.2s, font-size 0.15s",
                   }}>{livePoint ? (row.isP ? livePoint.p : livePoint.o) : "—"}</span>
@@ -3974,32 +3980,71 @@ export default function TennisManager() {
               })}
             </div>
 
-            {/* Le résultat des décisions apparaît désormais dans le fil des commentaires. */}
+            {/* Forme : énergie des deux joueurs et élan (−5 à +5) */}
+            <div style={{ margin: "0 16px 12px", background: T.bg1, border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "7px 10px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 92px minmax(0,1fr)", gap: 10, alignItems: "center" }}>
+              {[{ e: m.playerEnergy, l: "Vous" }, null, { e: m.oppEnergy, l: "Adv." }].map((it, i) => it ? (
+                <div key={i} style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 800, textTransform: "uppercase", marginBottom: 2 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}><Icon name="energy" size={10} />{it.l}</span>
+                    <span className="tm-num">{Math.round(it.e)}</span>
+                  </div>
+                  <div style={{ height: 9, border: "2px solid " + T.ink, background: "#ffffff", direction: i === 2 ? "rtl" : "ltr" }}>
+                    <div style={{ height: "100%", width: Math.round(it.e) + "%", background: it.e > 60 ? "#1f7a45" : it.e > 30 ? "#e0a21b" : "#c4302b" }} />
+                  </div>
+                </div>
+              ) : (
+                <div key={i} title="Élan : la dynamique du match" style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", marginBottom: 2 }}>Élan</div>
+                  <div style={{ position: "relative", height: 9, border: "2px solid " + T.ink, background: "linear-gradient(90deg, #c9b6ea 0 50%, #d6ef3c 50% 100%)" }}>
+                    <div style={{ position: "absolute", top: -4, width: 6, height: 13, marginLeft: -3, background: T.ink, left: (50 + (m.playerMomentum || 0) * 10) + "%", transition: "left 0.3s" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
 
-            {/* Event feed */}
-            <div ref={feedBoxRef} style={{ ...styles.eventFeed, flex: "1 1 0", minHeight: 160, maxHeight: "none", paddingBottom: 18 }}>
+            {/* Fil des commentaires : cases de BD, les temps forts en grand */}
+            <div ref={feedBoxRef} style={{ ...styles.eventFeed, flex: "1 1 0", minHeight: 160, maxHeight: "none", padding: "4px 16px 18px" }}>
               <BoxShade boxRef={feedBoxRef} side="top" />
               {ms.eventLog.length === 0 && (
-                <div style={{ color: T.fg4, fontSize: 13, textAlign: "center", padding: 16 }}>
+                <div className="tm-lettering" style={{ background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, fontSize: 16, textAlign: "center", padding: 14, margin: "6px 0" }}>
                   {matchPaused ? "Match en pause · appuyez sur Reprendre pour commencer."
-                    : startCountdown > 0 ? <>Préparez-vous… début du match dans <strong className="tm-num" style={{ color: T.ball }}>{startCountdown}</strong></>
+                    : startCountdown > 0 ? <>Préparez-vous… début du match dans <strong className="tm-num">{startCountdown}</strong></>
                     : "Premier jeu…"}
                 </div>
               )}
               {ms.eventLog.map((b, i) => {
+                const fade = Math.max(0.6, 1 - i * 0.05);
                 if (b.type === "dilemma") {
+                  const decisive = /Duel|Smash/.test(b.title || "");
                   return (
-                    <div key={b.id} style={{ ...styles.eventItem, opacity: Math.max(0.55, 1 - i * 0.05), borderLeft: "3px solid " + T.ball, background: T.bg2 }}>
-                      <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 4 }}>{/Duel|Smash/.test(b.title || "") ? "Point décisif" : "Décision"}{b.title ? " · " + b.title : ""}</div>
-                      {b.choice && <div style={{ fontSize: 12, color: T.fg3, marginBottom: 4 }}>Choix : <strong style={{ color: T.fg }}>{b.choice}</strong></div>}
-                      <span style={{ fontSize: 13, color: T.fg }}>{withFlags(b.text || "")}</span>
+                    <div key={b.id} className="tm-halftone-lilac" style={{ ...styles.eventItem, opacity: fade, border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, color: "#141414" }}>
+                      <span style={{ display: "inline-block", background: T.ink, color: T.gold, fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase", marginBottom: 5 }}>{decisive ? "Point décisif" : "Décision"}{b.title ? " · " + b.title : ""}</span>
+                      {b.choice && <div style={{ fontSize: 12, marginBottom: 3 }}>Choix : <strong>{b.choice}</strong></div>}
+                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>{withFlags(b.text || "")}</div>
                     </div>
                   );
                 }
-                const color = b.type === "lose_serve" || b.type === "tb_lost" || b.type === "set_lost" ? T.red
-                  : b.type === "break_clean" || b.type === "break_grind" || b.type === "tb_won" || b.type === "set_won" || b.type === "hold_easy" || b.type === "hold_tough" ? T.green
-                  : T.fg4;
-                return <div key={b.id} style={{ ...styles.eventItem, opacity: Math.max(0.55, 1 - i * 0.05), borderLeft: "3px solid " + color }}><span style={{ fontSize: 13, color: T.fg }}>{withFlags(b.text)}</span></div>;
+                const good = ["break_clean", "break_grind", "rebreak", "tb_won", "set_won", "hold_easy", "hold_tough"].includes(b.type);
+                const bad = ["lose_serve", "opp_rebreak", "tb_lost", "set_lost", "injury"].includes(b.type);
+                const big = b.type === "set_won" || b.type === "set_lost";
+                const tag = b.type === "set_won" ? "SET !" : b.type === "set_lost" ? "SET PERDU"
+                  : ["break_clean", "break_grind", "rebreak"].includes(b.type) ? "BREAK !"
+                  : ["lose_serve", "opp_rebreak"].includes(b.type) ? "BREAKÉ"
+                  : b.type === "tb_won" ? "TIE-BREAK !" : b.type === "tb_lost" ? "TIE-BREAK"
+                  : b.type === "injury" ? "AÏE !" : null;
+                const band = good ? "#1f7a45" : bad ? "#c4302b" : T.bg4;
+                return (
+                  <div key={b.id} style={{
+                    ...styles.eventItem, opacity: fade, position: "relative",
+                    background: big ? (good ? T.gold : "#ffffff") : "#ffffff", color: "#141414",
+                    border: "2.5px solid " + T.ink, borderLeft: "8px solid " + band,
+                    boxShadow: (big || tag ? "4px 4px 0 " : "2px 2px 0 ") + T.ink,
+                    padding: big ? "12px 14px" : "9px 12px",
+                  }}>
+                    {tag && <span className="tm-display" style={{ float: "right", marginLeft: 8, fontSize: big ? 18 : 13, color: good ? "#1f7a45" : "#c4302b", transform: "rotate(-4deg)", lineHeight: 1 }}>{tag}</span>}
+                    <span style={{ fontSize: big ? 14.5 : 13.5, fontWeight: big ? 800 : 600 }}>{withFlags(b.text)}</span>
+                  </div>
+                );
               })}
             </div>
 

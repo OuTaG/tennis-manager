@@ -37,7 +37,7 @@ function Burst({ x, y, text, color = BALL }) {
         <svg viewBox="0 0 124 80" width="124" height="80" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
           <polygon points="62,2 74,20 98,8 92,30 122,34 98,46 112,70 84,60 72,78 58,62 34,76 36,54 4,52 28,38 12,14 42,22" fill={color} stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
         </svg>
-        <div className="tm-display" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, color: INK, transform: "rotate(-6deg)", whiteSpace: "nowrap" }}>{text}</div>
+        <div className="tm-display" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: text.length > 8 ? 13 : 17, color: INK, transform: "rotate(-6deg)", whiteSpace: "nowrap" }}>{text}</div>
       </div>
     </div>
   );
