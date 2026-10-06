@@ -45,7 +45,8 @@ export function ShopScreen({ notify }) {
         <div key={cat} style={{ marginBottom: 16 }}>
           <div style={{ color: T.fg3, fontSize: 12, fontWeight: 600, margin: "0 2px 8px" }}>{cat}</div>
           {SHOP_ITEMS.filter(i => (i.category || "Options") === cat).map(item => {
-            const isOwned = owned.includes(item.id);
+            // L'accès complet inclut l'accès Classements.
+            const isOwned = owned.includes(item.id) || (item.id === "online_ranked" && owned.includes("online_full"));
             const soon = item.status === "soon";
             return (
               <div key={item.id} style={{ ...styles.skillsCard, marginBottom: 8, padding: 14, opacity: soon ? 0.85 : 1 }}>

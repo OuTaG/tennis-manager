@@ -11,31 +11,34 @@ import { getPlayerRanking, totalAtpPoints } from "./player.js";
 // l'appel à la plateforme (Google Play Billing / App Store) le moment venu.
 // status : "available" (achetable) ou "soon" (affiché, pas encore achetable).
 // perks : contenu de l'offre ; ready = déjà fonctionnel dans le jeu.
+// Modèle : jeu gratuit (circuit féminin et vitesse ×4 compris), achats
+// optionnels sans avantage en jeu. L'en ligne se paie une seule fois, en deux
+// niveaux : Classements (défis hebdo + classement mondial) ou Complet (+ coop),
+// le passage de l'un à l'autre coûtant la différence.
 // Prix indicatifs, à ajuster.
 export const SHOP_ITEMS = [
   {
-    id: "sub_perso", category: "Abonnement", type: "subscription", icon: "star",
-    name: "Abonnement Premium", price: "2,99 €", period: "/ mois", status: "soon",
-    desc: "Le confort et la personnalisation complète de votre carrière.",
+    id: "online_ranked", category: "En ligne", type: "once", icon: "trophy",
+    name: "Accès Classements", price: "2,99 €", status: "soon",
+    desc: "Payé une fois. Vos carrières comptent dans les classements en ligne. Aucun avantage en jeu.",
     perks: [
-      { label: "Staffs exclusifs", ready: false },
-      { label: "Noms et pays des joueurs personnalisables", ready: false },
-      { label: "Suppression des publicités", ready: false },
+      { label: "Défis hebdomadaires", ready: false },
+      { label: "Classement mondial de carrière (masculin, féminin, par style)", ready: false },
+    ],
+  },
+  {
+    id: "online_full", category: "En ligne", type: "once", icon: "users",
+    name: "Accès En ligne complet", price: "4,99 €", status: "soon",
+    desc: "Payé une fois. Tout l'accès Classements, plus les carrières coop à deux. Déjà l'accès Classements ? Le passage coûte la différence (2,00 €).",
+    perks: [
+      { label: "Défis hebdomadaires", ready: false },
+      { label: "Classement mondial de carrière (masculin, féminin, par style)", ready: false },
+      { label: "Carrières coop à deux", ready: false },
     ],
   },
   { id: "dlc_challenges", category: "Modes de jeu", type: "dlc", icon: "target", name: "Défis scénarisés", price: "2,99 €", status: "available",
     desc: "Des situations imposées à renverser : blessure, dette, remontée au classement…" },
-  {
-    id: "season_pass", category: "Pass de saison", type: "pass", icon: "calendar",
-    name: "Pass de saison", price: "4,99 €", period: "/ saison", status: "soon",
-    desc: "Une saison d'objectifs en plus, à jouer contre les autres joueurs.",
-    perks: [
-      { label: "Défis hebdomadaires", ready: false },
-      { label: "Classement entre joueurs", ready: false },
-      { label: "Gains de sponsors en récompense", ready: false },
-    ],
-  },
-  { id: "multi_careers", category: "Achat unique", type: "once", icon: "history", name: "Carrières multiples", price: "1,99 €", status: "available",
+  { id: "multi_careers", category: "Carrières", type: "once", icon: "history", name: "Carrières multiples", price: "1,99 €", status: "available",
     desc: "Deux emplacements de sauvegarde en plus, pour mener jusqu'à 3 carrières en parallèle." },
 ];
 export const SHOP_STORAGE_KEY = "tm-purchases";

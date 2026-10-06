@@ -223,7 +223,7 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
               );
             })}
             <div style={{ fontSize: 11.5, fontWeight: 600, color: T.fg3, lineHeight: 1.45 }}>
-              Énergie −{energyCost} quel que soit le programme. Raté, il ne rapporte rien.
+              Énergie −{energyCost} quel que soit le programme.
               Les chances montent avec {noStaff ? "votre énergie et votre bonheur" : "votre énergie, votre bonheur et un bon coach"}.
             </div>
             <button onClick={onClose} style={{ minHeight: 46, border: "2.5px solid " + INK, background: T.bg1, color: T.fg, fontFamily: T.body, fontWeight: 800, textTransform: "uppercase", cursor: "pointer" }}>Annuler</button>
