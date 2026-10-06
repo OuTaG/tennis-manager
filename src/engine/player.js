@@ -363,6 +363,12 @@ export function getEffectiveStats(player, matchCtx) {
 // 32-39 : decline (-0.05 to -0.15 per week per stat, compensable by training/tournaments)
 // 40+ : forced retirement
 export const RETIREMENT_AGE = 40;
+// Énergie récupérée entre deux matchs d'un même tournoi : 10 (endurance
+// 50 ou moins) à 20 (endurance 90 et plus).
+export function betweenMatchRecovery(stamina) {
+  return Math.round(Math.max(10, Math.min(20, 10 + ((stamina ?? 50) - 50) / 4)));
+}
+
 export function ageTrainingMultiplier(age) {
   if (age <= 28) return 1.0;
   if (age <= 31) return 0.5;

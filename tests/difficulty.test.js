@@ -63,3 +63,14 @@ describe("circuit secondaire hors Europe", () => {
     }
   });
 });
+
+describe("récupération entre deux matchs", () => {
+  it("de 10 à 20 selon l'endurance", async () => {
+    const { betweenMatchRecovery } = await import("../src/engine/player.js");
+    expect(betweenMatchRecovery(40)).toBe(10);
+    expect(betweenMatchRecovery(50)).toBe(10);
+    expect(betweenMatchRecovery(70)).toBe(15);
+    expect(betweenMatchRecovery(90)).toBe(20);
+    expect(betweenMatchRecovery(99)).toBe(20);
+  });
+});

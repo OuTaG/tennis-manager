@@ -26,6 +26,7 @@ export const PAGE_HELP = {
     ["Bienvenue", "Vous démarrez sans classement, avec l'argent de départ de votre ville. Objectif : grimper jusqu'au sommet du classement mondial. Cette fiche reste disponible à tout moment via le bouton « i » en haut à droite."],
     ["Vos ressources", "L'argent et l'énergie sont toujours affichés en haut. Le bonheur, la popularité et l'image se gèrent dans Joueur › Vie : ils dérivent doucement et influencent l'entraînement, le soutien du public et les sponsors."],
     ["Semaine suivante", "Fait avancer le temps d'une semaine : énergie récupérée, salaires et sponsors réglés, circuit simulé. Si vous êtes inscrit à un tournoi cette semaine-là, il se lance."],
+    ["Repos", "Une semaine sans match ni entraînement fait récupérer bien plus d'énergie. Entre deux matchs d'un tournoi, une bonne endurance aide à récupérer."],
     ["Votre tournoi", "L'encart d'inscription rappelle le tournoi prévu. Vous pouvez l'annuler (frais remboursés)."],
     ["Objectifs sponsors", "Chaque contrat fixe un objectif à tenir avant sa fin : prime si réussi, pénalité sinon."],
     ["Événements", "Des imprévus surviennent parfois : chaque choix a ses conséquences sur l'argent, l'énergie, le bonheur, la popularité ou l'image."],
