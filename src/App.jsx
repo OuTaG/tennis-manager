@@ -77,7 +77,7 @@ export default function TennisManager() {
   const [gameOptionsInput, setGameOptionsInput] = useState([]);
   const [surfaceInput, setSurfaceInput] = useState("Dur");
   const [nationalityInput, setNationalityInput] = useState(""); // chosen at step 1
-  const [createStep, setCreateStep] = useState(-1); // -1 = circuit, 0 = identity (name+avatar), 1 = profile (style+city)
+  const [createStep, setCreateStep] = useState(-1); // -2 = base de joueurs, -1 = circuit, 0 = identité, 1 = profil (style, surface), 2 = départ (ville, difficulté, options)
   const [avatarInput, setAvatarInput] = useState({
     skin: AVATAR_OPTIONS.skin[1],
     hair: AVATAR_OPTIONS.hair[0],
@@ -2899,7 +2899,7 @@ export default function TennisManager() {
           <div style={styles.menuBg}>
           <WindowShades />
             <div style={{ ...styles.menuCard, gap: 14, alignItems: "stretch", maxWidth: 380 }}>
-              <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 1/2 · Identité</h2>
+              <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 1/3 · Identité</h2>
 
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Nom du joueur</label>
@@ -2968,13 +2968,14 @@ export default function TennisManager() {
       );
     }
 
-    // STEP 1 : PROFILE (style + city)
+    // ÉTAPE 2 (createStep 1) : profil — style, surface, stats de départ.
+    // ÉTAPE 3 (createStep 2) : départ — ville, difficulté, options, récap.
     return (
       <div style={styles.root}>
         <div style={styles.menuBg}>
           <WindowShades />
           <div style={{ ...styles.menuCard, gap: 16, alignItems: "stretch", maxWidth: 380 }}>
-            <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 2/2 · Profil</h2>
+            <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>{createStep === 1 ? "Étape 2/3 · Profil" : "Étape 3/3 · Départ"}</h2>
             <div style={{
               background: T.bg1, borderRadius: 0, padding: "10px 12px",
               border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
@@ -2987,6 +2988,7 @@ export default function TennisManager() {
               </div>
             </div>
 
+            {createStep === 1 && (<>
             <div>
               <label style={styles.label}>Style de jeu</label>
               <div style={styles.styleGrid}>
@@ -3018,6 +3020,9 @@ export default function TennisManager() {
               </div>
             </div>
 
+            </>)}
+
+            {createStep === 2 && (<>
             <div>
               <label style={styles.label}>Ville de départ</label>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
@@ -3100,6 +3105,9 @@ export default function TennisManager() {
               </div>
             </div>
 
+            </>)}
+
+            {createStep === 1 && (
             <div style={styles.statPreview}>
               <p style={{ color: T.fg4, fontSize: 12, margin: "0 0 8px" }}>Stats de départ (variation aléatoire à chaque partie)</p>
               {Object.entries({ serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Filet" }).map(([k, label]) => {
@@ -3116,6 +3124,13 @@ export default function TennisManager() {
               })}
             </div>
 
+            )}
+
+            {createStep === 1 && (
+              <button style={styles.btnPrimary} onClick={() => setCreateStep(2)}>Suivant</button>
+            )}
+
+            {createStep === 2 && (<>
             {/* Récapitulatif BD : quatre cases encrées sous un bandeau noir */}
             <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
               <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px" }}>Votre départ</div>
@@ -3173,7 +3188,8 @@ export default function TennisManager() {
             >
               Lancer la carrière
             </button>
-            <button style={styles.btnSecondary} onClick={goBackToIdentity}>← Étape précédente</button>
+            </>)}
+            <button style={styles.btnSecondary} onClick={createStep === 2 ? () => setCreateStep(1) : goBackToIdentity}>← Étape précédente</button>
           </div>
         </div>
       </div>
