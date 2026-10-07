@@ -7,6 +7,25 @@ import { styles } from "../styles.js";
 import { T } from "../theme.js";
 import { random } from "../../engine/rng.js";
 
+// ── Style BD (bande dessinée) : encre, cases cernées, ombres décalées ──
+const INK = T.ink;
+const BD = {
+  green: "#1f7a45", purple: "#5b2d8e", ball: "#d6ef3c", lilac: "#c9b6ea",
+  red: "#c4302b", amber: "#e0a21b", blue: "#2c6fd1", paper: "#ffffff", text: "#141414",
+};
+const bdPanel = (shadow = 4) => ({ background: BD.paper, color: BD.text, border: "3px solid " + INK, boxShadow: shadow + "px " + shadow + "px 0 " + INK });
+const bdChip = (bg, fg) => ({ display: "inline-block", background: bg, color: fg, border: "2px solid " + INK, fontSize: 10.5, fontWeight: 800, padding: "0 6px", textTransform: "uppercase", letterSpacing: 0.3, lineHeight: 1.5, whiteSpace: "nowrap" });
+const catChip = (cat) => cat === "equipment" ? bdChip(BD.blue, "#ffffff") : bdChip(BD.ball, BD.text);
+function Band({ children, right, bg = INK, fg = "#ffffff" }) {
+  return (
+    <div style={{ background: bg, color: fg, padding: "5px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+      <span className="tm-display" style={{ fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}>{children}</span>{right}
+    </div>
+  );
+}
+const bdPrimary = { ...styles.btnPrimary, background: BD.green, color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK };
+const bdSecondary = { ...styles.btnSecondary, background: BD.paper, color: BD.text, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK };
+
 export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClose }) {
   const offers = player.sponsorOffers || [];
   const results = data.results || [];
@@ -34,45 +53,45 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
   if (showResults) {
     const total = data.objMoney || 0;
     return (
-      <div style={ovStyle()}>
-        <div style={{ maxWidth: 460, width: "100%", margin: "0 auto", padding: "32px 18px" }}>
-          <div style={{ textAlign: "center", marginBottom: 22 }}>
-            <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 6 }}>
-              <Icon name="briefcase" size={11} /> Bilan des contrats — {phaseLabel}
-            </div>
-            <div style={{ color: T.fg, fontSize: 22, fontWeight: 900 }}>Objectifs échus</div>
+      <div className="tm-paper" style={ovStyle()}>
+        <div style={{ maxWidth: 460, width: "100%", margin: "0 auto", padding: "28px 16px 32px", boxSizing: "border-box" }}>
+          <div className="tm-halftone-lilac" style={{ border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, padding: "12px 14px", marginBottom: 16, color: BD.text }}>
+            <span style={{ ...bdChip(INK, "#ffffff"), display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "normal" }}>
+              <Icon name="briefcase" size={11} color="#ffffff" /> Bilan des contrats — {phaseLabel}
+            </span>
+            <div className="tm-display" style={{ fontSize: 26, lineHeight: 1.05, marginTop: 6 }}>Objectifs échus</div>
           </div>
-          {results.map((r, i) => (
-            <div key={i} style={{
-              display: "flex", alignItems: "center", gap: 10,
-              background: T.bg1, border: "1px solid " + (r.met ? T.greenBrd : "var(--tm-redBrd)"),
-              borderRadius: 0, padding: "12px 14px", marginBottom: 8,
-            }}>
-              <div style={{
-                width: 22, height: 22, borderRadius: 0, flexShrink: 0,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: r.met ? T.greenSub : "var(--tm-redSub)",
-                border: "1px solid " + (r.met ? T.green : T.red),
-                color: r.met ? T.green : T.red, fontWeight: 900, fontSize: 13,
-              }}>{r.met ? "✓" : "✕"}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: T.fg, fontWeight: 700, fontSize: 14 }}>{r.brand}</div>
-                <div style={{ color: T.fg4, fontSize: 11 }}>
-                  {r.objective?.label}{r.met ? " · réussi" : r.broken ? " · contrat rompu" : " · manqué (fin de contrat)"}
+          <div style={{ ...bdPanel(4), marginBottom: 4 }}>
+            {results.map((r, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 12px", borderTop: i ? "2px dashed " + INK : 0,
+              }}>
+                <div className="tm-display" style={{
+                  width: 26, height: 26, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: r.met ? BD.green : BD.red, color: "#ffffff",
+                  border: "2px solid " + INK, fontSize: 14,
+                }}>{r.met ? "✓" : "✕"}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="tm-display" style={{ fontSize: 15 }}>{r.brand}</div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, lineHeight: 1.35 }}>
+                    {r.objective?.label}{r.met ? " · réussi" : r.broken ? " · contrat rompu" : " · manqué (fin de contrat)"}
+                  </div>
+                </div>
+                <div className="tm-display" style={{ color: r.amount >= 0 ? BD.green : BD.red, fontSize: 15, whiteSpace: "nowrap" }}>
+                  {r.amount >= 0 ? "+" : "−"}{Math.abs(r.amount).toLocaleString()} €
                 </div>
               </div>
-              <div style={{ color: r.amount >= 0 ? T.green : T.red, fontWeight: 800, fontSize: 14, fontFamily: T.mono, whiteSpace: "nowrap" }}>
-                {r.amount >= 0 ? "+" : "−"}{Math.abs(r.amount).toLocaleString()}€
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
           {results.length > 1 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", marginTop: 4, color: total >= 0 ? T.green : T.red, fontWeight: 800, fontSize: 15, borderTop: "1px solid " + T.brd }}>
-              <span>Total</span>
-              <span style={{ fontFamily: T.mono }}>{total >= 0 ? "+" : "−"}{Math.abs(total).toLocaleString()}€</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+              <span className="tm-display" style={{ fontSize: 15 }}>Total</span>
+              <span className="tm-display" style={{ fontSize: 16, background: total >= 0 ? BD.green : BD.red, color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "1px 8px" }}>{total >= 0 ? "+" : "−"}{Math.abs(total).toLocaleString()} €</span>
             </div>
           )}
-          <button style={{ ...styles.btnPrimary, width: "100%", marginTop: 18 }} onClick={() => setShowResults(false)}>
+          <button style={{ ...bdPrimary, width: "100%", marginTop: 20 }} onClick={() => setShowResults(false)}>
             Voir les offres →
           </button>
         </div>
@@ -104,14 +123,14 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
 
   // ── Offer table ──
   return (
-    <div style={ovStyle()}>
-      <div style={{ maxWidth: 460, width: "100%", margin: "0 auto", padding: "28px 18px 32px" }}>
-        <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 6 }}>
-            <Icon name="briefcase" size={11} /> Négociations sponsors
-          </div>
-          <div style={{ color: T.fg, fontSize: 24, fontWeight: 900, letterSpacing: -0.5 }}>{phaseLabel}</div>
-          <div style={{ color: T.fg4, fontSize: 13, marginTop: 4 }}>
+    <div className="tm-paper" style={ovStyle()}>
+      <div style={{ maxWidth: 460, width: "100%", margin: "0 auto", padding: "24px 16px 32px", boxSizing: "border-box" }}>
+        <div className="tm-halftone-yellow" style={{ border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, padding: "12px 14px", marginBottom: 16, color: BD.text }}>
+          <span style={{ ...bdChip(INK, "#ffffff"), display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <Icon name="briefcase" size={11} color="#ffffff" /> Négociations sponsors
+          </span>
+          <div className="tm-display" style={{ fontSize: 28, lineHeight: 1.05, marginTop: 6 }}>{phaseLabel}</div>
+          <div className="tm-lettering" style={{ fontSize: 16, marginTop: 6 }}>
             {data.phase === "intro"
               ? "Votre premier sponsor ! Touchez l'offre pour apprendre à négocier."
               : "Choisissez un sponsor pour entamer la négociation."}
@@ -122,34 +141,18 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
             Calls out the equipment-vs-partner colour code and the negotiate-
             all-then-sign workflow. */}
         {data.phase === "intro" && offers.length > 0 && (
-          <div style={{
-            background: T.bg1, border: "1px solid " + T.greenBrd,
-            borderLeft: "4px solid " + T.green,
-            borderRadius: 0, padding: 14, marginBottom: 14,
-            display: "flex", gap: 12, alignItems: "flex-start",
-          }}>
-            <div style={{
-              flexShrink: 0, width: 32, height: 32, borderRadius: 0,
-              background: T.greenSub, border: "1px solid " + T.greenBrd,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <Icon name="briefcase" size={16} color={T.green} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: T.fg, fontWeight: 800, fontSize: 13, marginBottom: 6, letterSpacing: 0.2 }}>
-                Comment ça marche
-              </div>
-              <ul style={{ margin: 0, paddingLeft: 16, color: T.fg3, fontSize: 12, lineHeight: 1.55 }}>
-                <li><strong style={{ color: "var(--tm-blue)" }}>Bandeau bleu</strong> = équipementier (un seul actif). <strong style={{ color: T.ball }}>Bandeau jaune</strong> = partenaire (jusqu'à 2 actifs).</li>
-                <li>Touchez une offre pour entrer en négociation. Vous pouvez en ouvrir plusieurs et revenir comparer avant de signer.</li>
-                <li>« Demander + » pousse les chiffres. Trop pousser fait baisser la patience du sponsor — il peut quitter.</li>
-              </ul>
-            </div>
+          <div style={{ ...bdPanel(4), marginBottom: 16 }}>
+            <Band><Icon name="briefcase" size={13} color={BD.ball} /> Comment ça marche</Band>
+            <ul style={{ margin: 0, padding: "10px 12px 10px 28px", fontSize: 12.5, fontWeight: 600, lineHeight: 1.5 }}>
+              <li><span style={bdChip(BD.blue, "#ffffff")}>Bandeau bleu</span> = équipementier (un seul actif). <span style={bdChip(BD.ball, BD.text)}>Bandeau jaune</span> = partenaire (jusqu'à 2 actifs).</li>
+              <li style={{ marginTop: 4 }}>Touchez une offre pour entrer en négociation. Vous pouvez en ouvrir plusieurs et revenir comparer avant de signer.</li>
+              <li style={{ marginTop: 4 }}>« Demander + » pousse les chiffres. Trop pousser fait baisser la patience du sponsor — il peut quitter.</li>
+            </ul>
           </div>
         )}
 
         {offers.length === 0 ? (
-          <div style={{ background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "24px 16px", textAlign: "center", color: T.fg4, fontSize: 13, marginBottom: 20 }}>
+          <div className="tm-lettering" style={{ ...bdPanel(4), padding: "22px 16px", textAlign: "center", fontSize: 17, marginBottom: 20 }}>
             {player.image < 20
               ? "Votre image est trop dégradée : aucun sponsor ne se présente."
               : "Aucune offre cette fois. Améliorez votre classement et votre image pour attirer les marques."}
@@ -164,9 +167,7 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
             const walked = neg && neg.walkedAway;
             // Visual category colour: equipment in blue, other partners in
             // yellow-ball. Helps the player tell categories apart at a glance.
-            const catColor = o.cat === "equipment" ? "var(--tm-blue)" : T.ball;
-            const catBg    = o.cat === "equipment" ? "var(--tm-blueSub)" : T.amberSub;
-            const catBrd   = o.cat === "equipment" ? "var(--tm-blueBrd)" : "var(--tm-amberBrd)";
+            const catColor = o.cat === "equipment" ? BD.blue : BD.ball;
             // On the first-ever negotiation, gently pulse the very first card
             // so the player knows where to tap. Only when no offer has been
             // opened yet (no negotiation state stored).
@@ -175,53 +176,65 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
             return (
               <button key={o.id} onClick={() => openNego(o)} style={{
                 width: "100%", textAlign: "left", cursor: "pointer",
-                background: walked ? T.bg2 : T.bg1,
-                border: "1px solid " + (walked ? "var(--tm-redBrd)" : wasNegotiated ? T.greenBrd : catBrd),
-                borderLeft: "4px solid " + (walked ? T.red : catColor),
-                borderRadius: 0, padding: 14, marginBottom: 12, fontFamily: T.body,
-                display: "block", opacity: walked ? 0.7 : 1,
-                boxShadow: introHighlight ? "0 0 0 2px " + T.green + ", 0 0 24px " + T.greenSub : "none",
-                animation: introHighlight ? "tm-pulse-green 1.8s infinite" : "none",
+                background: walked ? "#ebe8da" : BD.paper, color: BD.text,
+                border: "3px solid " + INK,
+                boxShadow: (introHighlight ? "5px 5px 0 " : "4px 4px 0 ") + INK,
+                borderRadius: 0, padding: 0, marginBottom: 16, fontFamily: T.body,
+                display: "block", opacity: walked ? 0.75 : 1, overflow: "visible",
                 position: "relative",
               }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                {/* Bandeau de catégorie : bleu = équipementier, jaune = partenaire */}
+                <div style={{ height: 8, background: walked ? BD.red : catColor, borderBottom: "2.5px solid " + INK }} />
+                {introHighlight && (
+                  <span className="tm-display" style={{
+                    position: "absolute", top: -12, right: 10, zIndex: 1,
+                    background: BD.red, color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK,
+                    fontSize: 11.5, padding: "1px 7px", transform: "rotate(3deg)",
+                    animation: "pulse 1.4s infinite",
+                  }}>Touchez ici !</span>
+                )}
+                <div style={{ padding: "10px 12px 12px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                      <span style={{ color: T.fg, fontWeight: 800, fontSize: 16 }}>{o.brand}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                      <span style={catChip(o.cat)}>{catLabel[o.cat] || "Partenaire"}</span>
+                      <span style={bdChip(BD.paper, BD.text)}>{tierLabel[o.tier] || o.tier}</span>
                       {wasNegotiated && !walked && (
-                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 0, background: T.greenSub, color: T.green, border: "1px solid " + T.greenBrd, textTransform: "none" }}>Négocié</span>
+                        <span style={bdChip(BD.green, "#ffffff")}>Négocié</span>
                       )}
                       {walked && (
-                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 0, background: "var(--tm-redSub)", color: T.red, border: "1px solid var(--tm-redBrd)", textTransform: "none" }}>Marque partie</span>
+                        <span style={bdChip(BD.red, "#ffffff")}>Marque partie</span>
                       )}
                       {o.nonNegotiable && !walked && (
-                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: "2px 6px", borderRadius: 0, background: T.bg3, color: T.fg3, border: "2px solid " + T.ink, textTransform: "none" }}>Non-négociable</span>
+                        <span style={bdChip(INK, "#ffffff")}>Non-négociable</span>
                       )}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                      <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 0, background: catColor }} />
-                      <span style={{ color: T.fg4, fontSize: 11 }}>
-                        {catLabel[o.cat] || "Partenaire"} · {tierLabel[o.tier] || o.tier}
-                      </span>
-                    </div>
+                    <div className="tm-display" style={{ fontSize: 18, marginTop: 5, overflowWrap: "anywhere" }}>{o.brand}</div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ color: walked ? T.fg5 : T.green, fontWeight: 800, fontSize: 15, fontFamily: T.mono }}>{currentPay.toLocaleString()}€</div>
-                    <div style={{ color: T.fg5, fontSize: 10 }}>/ sem.{wasNegotiated || o.nonNegotiable ? "" : " (négociable)"}</div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div className="tm-display" style={{ color: walked ? "#6b6b6b" : BD.green, fontSize: 17, textDecoration: walked ? "line-through" : "none" }}>{currentPay.toLocaleString()} €</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 800 }}>/ sem.{wasNegotiated || o.nonNegotiable ? "" : " (négociable)"}</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={styles.tournChip}><Icon name="trophy" size={10} /> Prime titre <span className="tm-num">{(currentBonus || 0).toLocaleString()}€</span></span>
-                  <span style={styles.tournChip}>Durée <span className="tm-num">{Math.round((o.durationWeeks || 0) / 52 * 12)}</span> mois</span>
-                  {med && <span style={{ ...styles.tournChip, color: T.ball }}><Icon name="target" size={10} /> {(neg && neg.levelId ? (o.objectiveLevels || []).find(l => l.level === neg.levelId) : med).label}</span>}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ ...bdChip(BD.paper, BD.text), textTransform: "none", fontSize: 11.5, display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="trophy" size={10} /> Prime titre <span className="tm-num">{(currentBonus || 0).toLocaleString()} €</span></span>
+                  <span style={{ ...bdChip(BD.paper, BD.text), textTransform: "none", fontSize: 11.5 }}>Durée <span className="tm-num">{Math.round((o.durationWeeks || 0) / 52 * 12)}</span> mois</span>
+                  {med && <span style={{ ...bdChip(BD.lilac, BD.text), textTransform: "none", fontSize: 11.5, whiteSpace: "normal", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="target" size={10} /> {(neg && neg.levelId ? (o.objectiveLevels || []).find(l => l.level === neg.levelId) : med).label}</span>}
                 </div>
                 {slotWarn && (
-                  <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 10, padding: "8px 10px", borderRadius: 0, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", color: T.red, fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
+                  <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 10, padding: "5px 8px", background: "#fff6c9", border: "2px solid " + INK, color: BD.text, fontSize: 11.5, lineHeight: 1.4, fontWeight: 700 }}>
+                    <Icon name="warning" size={13} color={BD.red} style={{ flexShrink: 0, marginTop: 1 }} />
                     <span>{slotWarn.short}</span>
                   </div>
                 )}
-                <div style={{ color: walked ? T.red : T.green, fontSize: 11, fontWeight: 700, marginTop: 10 }}>
-                  {walked ? "Voir le détail →" : wasNegotiated ? "Reprendre / signer →" : (o.nonNegotiable ? "Examiner →" : "Négocier →")}
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                  <span className="tm-display" style={{
+                    background: walked ? BD.paper : BD.green, color: walked ? BD.red : "#ffffff",
+                    border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontSize: 12.5, padding: "3px 10px",
+                  }}>
+                    {walked ? "Voir le détail →" : wasNegotiated ? "Reprendre / signer →" : (o.nonNegotiable ? "Examiner →" : "Négocier →")}
+                  </span>
+                </div>
                 </div>
               </button>
             );
@@ -231,12 +244,12 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
         {/* Premier sponsor : la signature est obligatoire, pas de sortie
             tant que l'offre est sur la table. */}
         {!(data.phase === "intro" && offers.length > 0) && (
-          <button style={{ ...styles.btnSecondary, width: "100%", marginTop: 8 }} onClick={onClose}>
+          <button style={{ ...bdSecondary, width: "100%", marginTop: 8 }} onClick={onClose}>
             {offers.length > 0 ? "Terminer les négociations" : "Continuer"}
           </button>
         )}
         {offers.length > 0 && data.phase !== "intro" && (
-          <div style={{ color: T.fg5, fontSize: 11, textAlign: "center", marginTop: 10 }}>
+          <div className="tm-lettering" style={{ color: BD.text, fontSize: 14, textAlign: "center", marginTop: 12 }}>
             Les offres non signées seront perdues. Prochaine session de négociation à la mi ou fin de saison.
           </div>
         )}
@@ -248,7 +261,7 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
 export function ovStyle() {
   return {
     position: "fixed", inset: 0, zIndex: 60,
-    background: T.bg0,
+    backgroundColor: T.bg0,
     display: "flex", flexDirection: "column",
     animation: "tm-fade-up 0.25s ease-out both",
     overflowY: "auto",
@@ -424,137 +437,151 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
     }
   };
 
-  return (
-    <div style={ovStyle()}>
-      <div style={{ maxWidth: 460, width: "100%", margin: "0 auto", padding: "24px 18px 32px" }}>
-        <button onClick={onCancel} style={{ background: "none", border: "none", color: T.fg4, fontSize: 13, cursor: "pointer", marginBottom: 12, fontFamily: T.body }}>← Retour aux offres</button>
+  const askLabel = offer.nonNegotiable || lastChance ? "Verrouillé" : "Demander +";
+  const introAsk = isFirstNegotiation && log.length <= 1 && !askLocked;
+  const termRow = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 12px" };
+  const termLabel = { fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3 };
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-          <div>
-            <div style={{ color: T.fg, fontSize: 22, fontWeight: 900 }}>{offer.brand}</div>
-            <div style={{ color: T.fg4, fontSize: 12 }}>{catLabel[offer.cat] || "Partenaire"} · {tierLabel[offer.tier] || offer.tier}</div>
+  return (
+    <div className="tm-paper" style={ovStyle()}>
+      <div style={{ maxWidth: 460, width: "100%", margin: "0 auto", padding: "18px 16px 32px", boxSizing: "border-box" }}>
+        <button onClick={onCancel} className="tm-display" style={{ background: BD.paper, color: BD.text, border: "2px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontSize: 12, padding: "4px 10px", cursor: "pointer", marginBottom: 14 }}>← Retour aux offres</button>
+
+        <div style={{ ...bdPanel(5), display: "flex", alignItems: "stretch", marginBottom: 4, overflow: "hidden" }}>
+          <div style={{ width: 10, flexShrink: 0, background: offer.cat === "equipment" ? BD.blue : BD.ball, borderRight: "2.5px solid " + INK }} />
+          <div style={{ flex: 1, minWidth: 0, padding: "10px 12px" }}>
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+              <span style={catChip(offer.cat)}>{catLabel[offer.cat] || "Partenaire"}</span>
+              <span style={bdChip(BD.paper, BD.text)}>{tierLabel[offer.tier] || offer.tier}</span>
+            </div>
+            <div className="tm-display" style={{ fontSize: 24, lineHeight: 1.05, marginTop: 6, overflowWrap: "anywhere" }}>{offer.brand}</div>
           </div>
-          <Icon name="briefcase" size={26} color={T.ball} />
+          <div className="tm-halftone-lilac" style={{ width: 58, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "2.5px solid " + INK }}>
+            <Icon name="briefcase" size={26} color={INK} />
+          </div>
         </div>
 
         {slotWarning && (
-          <div style={{
-            marginTop: 12, padding: "10px 12px", borderRadius: 0,
-            background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)",
-            borderLeft: "4px solid " + T.red, color: T.fg2, fontSize: 12, lineHeight: 1.5,
-          }}>
-            <div style={{ color: T.red, fontWeight: 800, fontSize: 11, letterSpacing: 0.2, textTransform: "none", marginBottom: 4 }}>Emplacements pleins</div>
-            {slotWarning.long}
+          <div style={{ ...bdPanel(3), marginTop: 14, overflow: "hidden" }}>
+            <Band bg={BD.red}><Icon name="warning" size={13} color="#ffffff" /> Emplacements pleins</Band>
+            <div style={{ padding: "8px 12px", fontSize: 12.5, fontWeight: 600, lineHeight: 1.5 }}>{slotWarning.long}</div>
           </div>
         )}
 
         {/* First-time-only coaching strip: explains the two "Demander +"
             buttons, the patience gauge and the sign/walk-away outcomes. */}
         {isFirstNegotiation && !offer.nonNegotiable && (
-          <div style={{
-            marginTop: 12, padding: "12px 14px", borderRadius: 0,
-            background: T.bg1, border: "1px solid " + T.greenBrd,
-            borderLeft: "4px solid " + T.green,
-            display: "flex", gap: 10, alignItems: "flex-start",
-          }}>
-            <div style={{
-              flexShrink: 0, width: 28, height: 28, borderRadius: 0,
-              background: T.greenSub, border: "1px solid " + T.greenBrd,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: T.green, fontWeight: 900, fontSize: 14, fontFamily: T.mono,
+          <div style={{ ...bdPanel(3), marginTop: 14, display: "flex", alignItems: "stretch", overflow: "hidden" }}>
+            <div className="tm-display" style={{
+              flexShrink: 0, width: 36, background: BD.ball, borderRight: "2.5px solid " + INK,
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
             }}>?</div>
-            <div style={{ flex: 1, color: T.fg3, fontSize: 12, lineHeight: 1.55 }}>
-              <strong style={{ color: T.fg }}>Comment négocier :</strong> appuyez sur « Demander + » pour pousser le salaire ou la prime. La jauge de patience baisse à chaque refus — si elle atteint zéro, la marque s'en va. Quand c'est bon, signez. Pour comparer avec d'autres offres avant de signer, touchez « ← Retour aux offres ».
+            <div style={{ flex: 1, minWidth: 0, padding: "9px 12px", fontSize: 12.5, fontWeight: 600, lineHeight: 1.5 }}>
+              <strong className="tm-display" style={{ fontSize: 12.5, fontWeight: 400 }}>Comment négocier :</strong> appuyez sur « Demander + » pour pousser le salaire ou la prime. La jauge de patience baisse à chaque refus — si elle atteint zéro, la marque s'en va. Quand c'est bon, signez. Pour comparer avec d'autres offres avant de signer, touchez « ← Retour aux offres ».
             </div>
           </div>
         )}
 
         {offer.nonNegotiable && (
-          <div style={{
-            marginTop: 12, padding: "10px 12px", borderRadius: 0,
-            background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, color: T.fg2, fontSize: 12, lineHeight: 1.5,
-          }}>
-            <div style={{ color: T.amber, fontWeight: 800, fontSize: 11, letterSpacing: 0.2, textTransform: "none", marginBottom: 4 }}>À prendre ou à laisser</div>
-            Cette marque ne négocie pas : les conditions ci-dessous sont fermes. Vous signez tel quel ou vous passez.
+          <div style={{ ...bdPanel(3), marginTop: 14, overflow: "hidden" }}>
+            <Band bg={BD.amber} fg={BD.text}>À prendre ou à laisser</Band>
+            <div style={{ padding: "8px 12px", fontSize: 12.5, fontWeight: 600, lineHeight: 1.5 }}>
+              Cette marque ne négocie pas : les conditions ci-dessous sont fermes. Vous signez tel quel ou vous passez.
+            </div>
           </div>
         )}
 
-        {/* Dialogue log */}
-        <div ref={logRef} style={{ background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: 14, margin: "12px 0", height: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-          {log.map((e, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: e.who === "player" ? "flex-end" : "flex-start" }}>
-              <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.2, textTransform: "none", color: e.who === "player" ? T.green : T.fg5, marginBottom: 3, padding: "0 4px" }}>
-                {e.who === "player" ? "Vous" : offer.brand}
-              </div>
-              <div style={{
-                maxWidth: "85%", fontSize: 13, lineHeight: 1.45, padding: "9px 13px", borderRadius: 0,
-                borderBottomRightRadius: e.who === "player" ? 3 : 12,
-                borderBottomLeftRadius: e.who === "player" ? 12 : 3,
-                background: e.who === "player" ? T.greenSub : T.bg3,
-                color: e.who === "player" ? T.green : T.fg,
-                border: "1px solid " + (e.who === "player" ? T.greenBrd : T.brd2),
-                fontWeight: 500,
-              }}>{withFlags(e.text)}</div>
-            </div>
-          ))}
+        {/* Dialogue log — cases de BD avec bulles */}
+        <div style={{ ...bdPanel(4), margin: "16px 0", overflow: "hidden" }}>
+          <Band right={<span style={bdChip(BD.ball, BD.text)}>{log.length} répl.</span>}>Le face-à-face</Band>
+          <div ref={logRef} className="tm-halftone-cyan" style={{ padding: "12px 12px 14px", height: 230, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", gap: 14 }}>
+            {log.map((e, i) => {
+              const me = e.who === "player";
+              return (
+                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: me ? "flex-end" : "flex-start" }}>
+                  <span style={{ ...bdChip(me ? BD.ball : INK, me ? BD.text : "#ffffff"), fontSize: 10, marginBottom: 4, maxWidth: "80%", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {me ? "Vous" : offer.brand}
+                  </span>
+                  <div className="tm-lettering" style={{
+                    position: "relative", maxWidth: "84%", fontSize: 16, lineHeight: 1.2, padding: "7px 11px 8px",
+                    background: me ? BD.ball : BD.paper, color: BD.text,
+                    border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK,
+                    overflowWrap: "anywhere",
+                  }}>
+                    {withFlags(e.text)}
+                    {/* Queue de bulle */}
+                    <span aria-hidden="true" style={{
+                      position: "absolute", bottom: -7, [me ? "right" : "left"]: 14,
+                      width: 11, height: 11, background: me ? BD.ball : BD.paper,
+                      borderRight: "2.5px solid " + INK, borderBottom: "2.5px solid " + INK,
+                      transform: "rotate(45deg)",
+                    }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Objective difficulty */}
-        <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 8 }}><Icon name="target" size={10} /> Niveau d'objectif</div>
-        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-          {levels.map(l => {
-            const active = l.level === levelId;
-            const lab = { easy: "Facile", medium: "Moyen", hard: "Ambitieux" }[l.level] || l.level;
-            return (
-              <button key={l.level} onClick={() => !closed && setLevelId(l.level)} style={{
-                flex: 1, padding: "8px 4px", borderRadius: 0, cursor: closed ? "default" : "pointer", fontFamily: T.body,
-                background: active ? T.greenSub : T.bg2, border: "1px solid " + (active ? T.green : T.brd2),
-                color: active ? T.green : T.fg3, fontWeight: 700, fontSize: 12,
-              }}>{lab}</button>
-            );
-          })}
-        </div>
-        {level && (
-          <div style={{ background: T.bg2, borderRadius: 0, padding: "10px 12px", marginBottom: 14, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
-            <div style={{ color: T.fg2, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{level.label}</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <div style={{ flex: 1, background: T.greenSub, border: "1px solid " + T.greenBrd, borderRadius: 0, padding: "6px 8px", textAlign: "center" }}>
-                <div style={{ color: T.fg5, fontSize: 9, fontWeight: 700 }}>Réussi</div>
-                <div style={{ color: T.green, fontWeight: 800, fontSize: 13, fontFamily: T.mono }}>+{reward.toLocaleString()}€</div>
-              </div>
-              <div style={{ flex: 1, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", borderRadius: 0, padding: "6px 8px", textAlign: "center" }}>
-                <div style={{ color: T.fg5, fontSize: 9, fontWeight: 700 }}>Échoué</div>
-                <div style={{ color: T.red, fontWeight: 800, fontSize: 13, fontFamily: T.mono }}>−{penalty.toLocaleString()}€</div>
-              </div>
+        <div style={{ ...bdPanel(4), marginBottom: 16, overflow: "hidden" }}>
+          <Band><Icon name="target" size={13} color={BD.ball} /> Niveau d'objectif</Band>
+          <div style={{ padding: "10px 12px 12px" }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              {levels.map(l => {
+                const active = l.level === levelId;
+                const lab = { easy: "Facile", medium: "Moyen", hard: "Ambitieux" }[l.level] || l.level;
+                return (
+                  <button key={l.level} className="tm-display" onClick={() => !closed && setLevelId(l.level)} style={{
+                    flex: 1, minWidth: 0, padding: "7px 2px", borderRadius: 0, cursor: closed ? "default" : "pointer",
+                    background: active ? BD.purple : BD.paper, color: active ? "#ffffff" : BD.text,
+                    border: "2.5px solid " + INK, boxShadow: active ? "none" : "2px 2px 0 " + INK,
+                    transform: active ? "translate(2px, 2px)" : "none", fontSize: 12.5,
+                  }}>{lab}</button>
+                );
+              })}
             </div>
-            <div style={{ color: T.fg5, fontSize: 10, marginTop: 6, fontStyle: "italic" }}>En cas d'échec, le contrat est rompu.</div>
-            <div style={{ color: T.amber, fontSize: 10, marginTop: 4, lineHeight: 1.4 }}>
-              À réaliser sur toute la durée du contrat ({offer.durationWeeks || 26} semaines).
-            </div>
+            {level && (
+              <>
+                <div style={{ fontSize: 13.5, fontWeight: 800, marginBottom: 8, lineHeight: 1.35 }}>{level.label}</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[["Réussi", "+" + reward.toLocaleString() + " €", BD.green], ["Échoué", "−" + penalty.toLocaleString() + " €", BD.red]].map(([l, v, c]) => (
+                    <div key={l} style={{ flex: 1, minWidth: 0, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, background: BD.paper, overflow: "hidden" }}>
+                      <div className="tm-display" style={{ background: c, color: "#ffffff", fontSize: 11, padding: "2px 8px", borderBottom: "2px solid " + INK }}>{l}</div>
+                      <div className="tm-display" style={{ color: c, fontSize: 16, padding: "5px 8px", textAlign: "center" }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="tm-lettering" style={{ fontSize: 14, marginTop: 8 }}>En cas d'échec, le contrat est rompu.</div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 4, lineHeight: 1.4 }}>
+                  À réaliser sur toute la durée du contrat ({offer.durationWeeks || 26} semaines).
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Patience gauge — only meaningful for negotiable offers. */}
         {!offer.nonNegotiable && (() => {
           const frac = Math.max(0, Math.min(1, patience / patienceMax));
-          const col = walkedAway ? T.red : frac > 0.66 ? T.green : frac > 0.33 ? T.amber : T.red;
+          const col = walkedAway ? BD.red : frac > 0.66 ? BD.green : frac > 0.33 ? BD.amber : BD.red;
           const mood = walkedAway ? "A quitté la table"
             : frac > 0.66 ? "Détendu" : frac > 0.33 ? "Sur ses gardes" : "À bout de patience";
           return (
-            <div style={{ marginTop: 2, marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                <span className="tm-eyebrow" style={{ color: T.fg5 }}>Patience du sponsor</span>
-                <span style={{ color: col, fontSize: 11, fontWeight: 700 }}>{mood}</span>
+            <div style={{ ...bdPanel(3), padding: "8px 12px 10px", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span className="tm-display" style={{ fontSize: 13 }}>Patience du sponsor</span>
+                <span style={{ ...bdChip(col, col === BD.amber ? BD.text : "#ffffff") }}>{mood}</span>
               </div>
-              <div style={{ height: 7, background: T.bg3, borderRadius: 0, overflow: "hidden", border: "2px solid " + T.ink }}>
-                <div style={{ width: (frac * 100).toFixed(0) + "%", height: "100%", background: col, borderRadius: 0, transition: "width 0.4s, background 0.4s" }} />
+              <div style={{ height: 14, background: BD.paper, border: "2.5px solid " + INK, overflow: "hidden" }}>
+                <div style={{ width: (frac * 100).toFixed(0) + "%", height: "100%", background: col, borderRight: frac > 0 && frac < 1 ? "2.5px solid " + INK : 0, boxSizing: "border-box", transition: "width 0.4s, background 0.4s" }} />
               </div>
             </div>
           );
         })()}
 
         {lastChance && (
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 12, padding: "10px 12px", background: "#fff6c9", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 16, padding: "10px 12px", background: "#fff6c9", color: "#141414", border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK }}>
             <Icon name="warning" size={18} color="#c4302b" style={{ flexShrink: 0, marginTop: 1 }} />
             <div style={{ fontSize: 12.5, lineHeight: 1.45 }}>
               <strong>Attention, la marque est à bout de patience.</strong> Une demande de plus et elle pourrait quitter la table. Pour votre premier contrat, mieux vaut ne pas prendre de risque : signez avec les conditions actuelles.
@@ -563,63 +590,63 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
         )}
 
         {/* Money terms */}
-        <div className="tm-eyebrow" style={{ marginBottom: 8 }}>Conditions financières</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "10px 12px" }}>
-            <div>
-              <div style={{ color: T.fg4, fontSize: 11 }}>Salaire hebdomadaire</div>
-              <div style={{ color: T.green, fontWeight: 800, fontSize: 15, fontFamily: T.mono }}>{weeklyPay.toLocaleString()}€</div>
+        <div style={{ ...bdPanel(4), marginBottom: 18, overflow: "hidden" }}>
+          <Band>Conditions financières</Band>
+          <div style={termRow}>
+            <div style={{ minWidth: 0 }}>
+              <div style={termLabel}>Salaire hebdomadaire</div>
+              <div className="tm-display" style={{ color: BD.green, fontSize: 19 }}>{weeklyPay.toLocaleString()} €</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {isFirstNegotiation && log.length <= 1 && !askLocked && (
-                <span style={{ color: T.green, fontSize: 16, animation: "tm-bounce-x 1.1s infinite" }}>→</span>
+              {introAsk && (
+                <span className="tm-display" style={{ color: BD.red, fontSize: 20, animation: "tm-bounce-x 1.1s infinite" }}>→</span>
               )}
               <button
                 disabled={askLocked}
                 onClick={() => demand("pay")}
                 style={{
                   ...negBtnStyle(askLocked),
-                  animation: isFirstNegotiation && log.length <= 1 && !askLocked ? "tm-pulse-green 1.6s infinite" : "none",
+                  ...(introAsk ? { background: BD.ball } : null),
                 }}
-              >{offer.nonNegotiable || lastChance ? "Verrouillé" : "Demander +"}</button>
+              >{askLabel}</button>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "10px 12px" }}>
-            <div>
-              <div style={{ color: T.fg4, fontSize: 11 }}>Prime par titre</div>
-              <div style={{ color: T.fg, fontWeight: 800, fontSize: 15, fontFamily: T.mono }}>{titleBonus.toLocaleString()}€</div>
+          <div style={{ ...termRow, borderTop: "2px dashed " + INK }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={termLabel}>Prime par titre</div>
+              <div className="tm-display" style={{ fontSize: 19 }}>{titleBonus.toLocaleString()} €</div>
             </div>
-            <button disabled={askLocked} onClick={() => demand("bonus")} style={negBtnStyle(askLocked)}>{offer.nonNegotiable || lastChance ? "Verrouillé" : "Demander +"}</button>
+            <button disabled={askLocked} onClick={() => demand("bonus")} style={negBtnStyle(askLocked)}>{askLabel}</button>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "10px 12px" }}>
-            <div>
-              <div style={{ color: T.fg4, fontSize: 11 }}>Durée du contrat</div>
-              <div style={{ color: T.fg, fontWeight: 800, fontSize: 15, fontFamily: T.mono }}>{offer.durationWeeks} sem. <span style={{ color: T.fg4, fontWeight: 600, fontSize: 12 }}>(objectif sur toute la durée)</span></div>
+          <div style={{ ...termRow, borderTop: "2px dashed " + INK }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={termLabel}>Durée du contrat</div>
+              <div className="tm-display" style={{ fontSize: 19 }}>{offer.durationWeeks} sem. <span className="tm-lettering" style={{ fontSize: 14, textTransform: "none", letterSpacing: 0 }}>(objectif sur toute la durée)</span></div>
             </div>
           </div>
         </div>
 
         {walkedAway ? (
           <div>
-            <div style={{ background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", borderRadius: 0, padding: "14px 16px", marginBottom: 12, textAlign: "center" }}>
-              <div style={{ marginBottom: 6 }}><Icon name="arrowLeft" size={26} color={T.fg3} /></div>
-              <div style={{ color: T.red, fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Négociation rompue</div>
-              <div style={{ color: T.fg3, fontSize: 12, lineHeight: 1.5 }}>
+            <div className="tm-halftone-magenta" style={{ border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "12px 14px", marginBottom: 14, textAlign: "center", color: "#ffffff" }}>
+              <div style={{ marginBottom: 4 }}><Icon name="arrowLeft" size={24} color="#ffffff" /></div>
+              <div className="tm-display" style={{ fontSize: 20, marginBottom: 6, textShadow: "2px 2px 0 " + INK }}>Négociation rompue</div>
+              <div className="tm-lettering" style={{ fontSize: 15, lineHeight: 1.25, background: BD.paper, color: BD.text, border: "2px solid " + INK, padding: "6px 8px" }}>
                 {offer.brand} a mis fin aux discussions. Vous avez été trop gourmand : cette offre est perdue.
               </div>
             </div>
-            <button style={{ ...styles.btnPrimary, width: "100%" }} onClick={onWalkAway}>
+            <button style={{ ...bdSecondary, width: "100%" }} onClick={onWalkAway}>
               Retour aux offres
             </button>
           </div>
         ) : (
           <>
-            <button style={{ ...styles.btnPrimary, width: "100%" }}
+            <button style={{ ...bdPrimary, width: "100%" }}
               onClick={() => onDeal({ weeklyPay, titleBonus, level })}>
               Signer le contrat
             </button>
             {!isFirstNegotiation && (
-              <button style={{ ...styles.btnSecondary, width: "100%", marginTop: 8 }} onClick={onCancel}>
+              <button style={{ ...bdSecondary, width: "100%", marginTop: 10, color: BD.red }} onClick={onCancel}>
                 Abandonner cette offre
               </button>
             )}
@@ -632,8 +659,9 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
 
 export function negBtnStyle(closed) {
   return {
-    background: closed ? T.bg3 : T.bg3, border: "2px solid " + T.ink, color: closed ? T.fg5 : T.fg,
-    borderRadius: 0, padding: "8px 12px", fontSize: 12, fontWeight: 700, fontFamily: T.body,
-    cursor: closed ? "default" : "pointer", whiteSpace: "nowrap",
+    background: closed ? "#ebe8da" : BD.paper, color: closed ? "#6b6b6b" : BD.text,
+    border: "2.5px solid " + INK, boxShadow: closed ? "none" : "2px 2px 0 " + INK,
+    borderRadius: 0, padding: "7px 10px", fontSize: 12.5, fontWeight: 400, fontFamily: T.display,
+    textTransform: "uppercase", cursor: closed ? "default" : "pointer", whiteSpace: "nowrap",
   };
 }

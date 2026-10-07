@@ -2659,29 +2659,20 @@ export default function TennisManager() {
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: 16, zIndex: 500,
     }} onClick={() => setConfirmDelete(null)}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: T.bg1, borderRadius: 0, padding: 22,
-        border: "1px solid " + T.redBrd,
-        maxWidth: 340, width: "100%",
-        boxShadow: "0 10px 30px var(--tm-shadow)",
-      }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 0, marginBottom: 12,
-          background: T.redSub, display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <Icon name="trash" size={20} color={T.red} />
+      <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 340, width: "100%" }}>
+        <div className="tm-display" style={{ background: "#c4302b", color: "#ffffff", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icon name="trash" size={18} color="#ffffff" /> Effacer la carrière ?
         </div>
-        <div style={{ color: T.fg, fontSize: 17, fontWeight: 600, marginBottom: 8 }}>
-          Effacer la carrière {slotMetas[confirmDelete]?.name ? "de " + slotMetas[confirmDelete].name : ""} ?
+        <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
+            {slotMetas[confirmDelete]?.name ? "La carrière de " + slotMetas[confirmDelete].name + " va disparaître…" : "Cette carrière va disparaître…"}
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>
+            Son classement, vos titres et votre argent seront définitivement supprimés. <strong style={{ color: "#c4302b" }}>Aucun retour en arrière ne sera possible.</strong>
+          </div>
+          <button style={{ ...styles.btnPrimary, background: "#c4302b" }} onClick={doDeleteSave}>Oui, tout effacer</button>
+          <button style={styles.btnSecondary} onClick={() => setConfirmDelete(null)}>Annuler</button>
         </div>
-        <div style={{ color: T.fg3, fontSize: 13, lineHeight: 1.5, marginBottom: 18 }}>
-          Cette carrière, son classement, vos titres et votre argent seront définitivement supprimés.
-          <strong style={{ color: T.red }}> Aucun retour en arrière ne sera possible.</strong>
-        </div>
-        <button style={{ ...styles.btnPrimary, background: T.red, boxShadow: "0 3px 0 " + T.redBrd }} onClick={doDeleteSave}>
-          Oui, tout effacer
-        </button>
-        <button style={{ ...styles.btnSecondary, marginTop: 8 }} onClick={() => setConfirmDelete(null)}>Annuler</button>
       </div>
     </div>
   );
@@ -2927,11 +2918,11 @@ export default function TennisManager() {
                     onClick={() => setNameInput(randomFullName(nationalityInput, circuitInput === "wta"))}
                     style={{
                       flexShrink: 0, width: 46, borderRadius: 0, cursor: "pointer",
-                      background: T.bg2, border: "1px solid " + T.greenBrd,
+                      background: "#d6ef3c", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}
                   >
-                    <Icon name="dice" size={20} color={T.green} />
+                    <Icon name="dice" size={20} color="#141414" />
                   </button>
                 </div>
               </div>
@@ -3210,80 +3201,87 @@ export default function TennisManager() {
         <div style={{ ...styles.menuBg, padding: 24, alignItems: "flex-start", paddingTop: 40 }}>
           <WindowShades />
           <div style={{ ...styles.menuCard, maxWidth: 380, alignItems: "stretch" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ marginBottom: 8 }}><Icon name={isRetirement ? "trophy" : "wallet"} size={56} color={isRetirement ? T.amber : T.red} /></div>
-              <h1 style={{ color: isRetirement ? T.amber : T.red, fontSize: 26, margin: 0, fontWeight: 900 }}>
+            {/* Une de fin de carrière : case BD tramée, onomatopée, sous-titre */}
+            <div className={isRetirement ? "tm-halftone-yellow" : "tm-halftone-magenta"} style={{ border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, padding: "14px 12px", textAlign: "center", marginBottom: 14, color: "#141414" }}>
+              <span style={{ display: "inline-flex", width: 52, height: 52, alignItems: "center", justifyContent: "center", background: "#ffffff", border: "3px solid " + T.ink, transform: "rotate(-4deg)" }}>
+                <Icon name={isRetirement ? "trophy" : "wallet"} size={30} color={isRetirement ? "#b8891f" : "#c4302b"} />
+              </span>
+              <h1 className="tm-display" style={{ fontSize: 30, margin: "8px 0 0", color: isRetirement ? "#141414" : "#ffffff", textShadow: isRetirement ? "none" : "2px 2px 0 " + T.ink }}>
                 {isRetirement ? "Retraite" : "Fin de carrière"}
               </h1>
-              <p style={{ color: T.fg4, fontSize: 13, margin: "8px 0 24px" }}>
+              <span style={{ display: "inline-block", marginTop: 6, background: T.ink, color: "#ffffff", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, padding: "2px 8px", textTransform: "uppercase" }}>
                 {isVoluntaryRetirement ? "Vous avez choisi de raccrocher" : isForcedRetirement ? "40 ans : il est temps de raccrocher" : "Banqueroute"}
-              </p>
+              </span>
             </div>
 
-            {/* Legacy score */}
-            <div style={{ background: T.bg1, borderRadius: 0, padding: "20px 16px", marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center", boxShadow: "0 0 30px " + tier.color + "22" }}>
-              <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 6 }}>Score de légende</div>
-              <div style={{ color: tier.color, fontWeight: 900, fontSize: 46, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{legacy.toLocaleString()}</div>
-              <div style={{ display: "inline-block", marginTop: 10, padding: "4px 14px", borderRadius: 0, background: tier.color + "22", border: "1px solid " + tier.color + "66", color: tier.color, fontWeight: 800, fontSize: 13, letterSpacing: 0.2 }}>{tier.label}</div>
+            {/* Score de légende */}
+            <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 12, textAlign: "center", overflow: "hidden" }}>
+              <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px" }}>Score de légende</div>
+              <div style={{ padding: "12px 10px 14px" }}>
+                <div className="tm-display" style={{ color: tier.color, fontSize: 46, lineHeight: 1, WebkitTextStroke: "1.5px " + T.ink }}>{legacy.toLocaleString()}</div>
+                <span className="tm-display" style={{ display: "inline-block", marginTop: 8, padding: "2px 12px", background: tier.color, color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontSize: 14, textShadow: "1px 1px 0 " + T.ink }}>{tier.label}</span>
+              </div>
             </div>
 
-            {/* Score breakdown */}
-            <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
-              <div style={{ color: T.fg4, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 10 }}>Détail du score</div>
-              {breakdown.rows.map((r, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "4px 0", fontSize: 12.5, borderBottom: "1px solid var(--tm-bg1)" }}>
-                  <span style={{ color: T.fg3 }}>{r.label} <span style={{ color: T.fg5, fontSize: 11 }}>({r.detail})</span></span>
-                  <strong style={{ color: T.fg, fontFamily: "monospace" }}>+{r.pts.toLocaleString()}</strong>
+            {/* Détail du score */}
+            <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 12 }}>
+              <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px" }}>Détail du score</div>
+              <div style={{ padding: "4px 12px 10px" }}>
+                {breakdown.rows.map((r, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, padding: "5px 0", fontSize: 12.5, fontWeight: 600, borderBottom: "1.5px dashed " + T.ink }}>
+                    <span>{r.label} <span style={{ fontSize: 11, opacity: 0.7 }}>({r.detail})</span></span>
+                    <strong className="tm-num">+{r.pts.toLocaleString()}</strong>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 4px", fontSize: 12.5, fontWeight: 700, borderBottom: "1.5px dashed " + T.ink }}>
+                  <span>Sous-total</span>
+                  <strong className="tm-num">{breakdown.subtotal.toLocaleString()}</strong>
                 </div>
-              ))}
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 4px", fontSize: 12.5, borderBottom: "1px solid var(--tm-bg1)", color: T.fg4 }}>
-                <span>Sous-total</span>
-                <strong style={{ color: T.fg3, fontFamily: "monospace" }}>{breakdown.subtotal.toLocaleString()}</strong>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12.5 }}>
-                <span style={{ color: T.amber }}>{breakdown.diffPct >= 0 ? "Bonus" : "Malus"} difficulté <span style={{ color: T.fg5, fontSize: 11 }}>({breakdown.mulLabel})</span></span>
-                <strong style={{ color: T.amber, fontFamily: "monospace" }}>{breakdown.difficultyBonus >= 0 ? "+" : "−"}{Math.abs(breakdown.difficultyBonus).toLocaleString()}</strong>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0 0", marginTop: 4, borderTop: "1px solid var(--tm-bg4)", fontSize: 14 }}>
-                <strong style={{ color: T.fg }}>Total</strong>
-                <strong style={{ color: tier.color, fontFamily: "monospace", fontSize: 16 }}>{breakdown.total.toLocaleString()}</strong>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 12.5, fontWeight: 700 }}>
+                  <span>{breakdown.diffPct >= 0 ? "Bonus" : "Malus"} difficulté <span style={{ fontSize: 11, opacity: 0.7 }}>({breakdown.mulLabel})</span></span>
+                  <strong className="tm-num" style={{ color: "#5b2d8e" }}>{breakdown.difficultyBonus >= 0 ? "+" : "−"}{Math.abs(breakdown.difficultyBonus).toLocaleString()}</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                  <span className="tm-display" style={{ fontSize: 14 }}>Total</span>
+                  <span className="tm-display" style={{ background: tier.color, color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px", fontSize: 15, textShadow: "1px 1px 0 " + T.ink }}>{breakdown.total.toLocaleString()}</span>
+                </div>
               </div>
             </div>
 
-            <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, textAlign: "center" }}>
-              <div style={{ color: T.fg, fontSize: 13, lineHeight: 1.5, fontStyle: "italic" }}>
-                {isRetirement
-                  ? `Après une longue carrière sur le circuit, ${player.name} décide de prendre une retraite bien méritée. Place à la nouvelle génération !`
-                  : `Le tennis professionnel est impitoyable. Faute de moyens pour continuer, ${player.name} a dû mettre un terme à son rêve.`}
-              </div>
+            {/* Récit, en bulle manuscrite */}
+            <div className="tm-lettering" style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, padding: "12px 14px", marginBottom: 12, fontSize: 16, lineHeight: 1.3, textAlign: "center" }}>
+              {isRetirement
+                ? `Après une longue carrière sur le circuit, ${player.name} décide de prendre une retraite bien méritée. Place à la nouvelle génération !`
+                : `Le tennis professionnel est impitoyable. Faute de moyens pour continuer, ${player.name} a dû mettre un terme à son rêve.`}
             </div>
 
-            {/* Career records */}
-            <div style={{ background: T.bg1, borderRadius: 0, padding: 16, marginBottom: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
-              <div style={{ color: T.amber, fontWeight: 800, fontSize: 13, marginBottom: 12, textAlign: "center" }}><Icon name="chart" size={11} /> Bilan de carrière</div>
-              {[
-                { l: "Âge final", v: player.age + " ans", c: T.fg },
-                { l: "Meilleur classement", v: "#" + (summary.bestRank === 9999 ? "—" : summary.bestRank), c: T.amber },
-                { l: "Semaines n°1", v: summary.weeksNo1, c: summary.weeksNo1 > 0 ? "#b8891f" : T.fg4, hide: summary.weeksNo1 === 0 },
-                { l: "Semaines top 10", v: summary.weeksTop10, c: T.green, hide: summary.weeksTop10 === 0 },
-                { l: "Titres remportés", v: player.titlesWon, c: T.amber },
-                { l: "Dont Grands Chelems", v: summary.gsTitles, c: "#b8891f", hide: summary.gsTitles === 0 },
-                { l: "Victoires en carrière", v: player.careerWins, c: T.green },
-                { l: "Meilleure série", v: summary.bestStreak + " v.", c: T.green, hide: summary.bestStreak < 2 },
-                { l: "Objectifs sponsors atteints", v: (player.careerObjectivesMet || 0), c: "var(--tm-blue)", hide: (player.careerObjectivesMet || 0) === 0 },
-                { l: "Gains totaux", v: (player.totalEarnings || 0).toLocaleString() + "€", c: T.green },
-                { l: "Saisons jouées", v: summary.seasons, c: T.fg },
-              ].filter(row => !row.hide).map((row, i, arr) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", color: T.fg4, fontSize: 13, borderBottom: i < arr.length - 1 ? "1px solid var(--tm-bg1)" : "none" }}>
-                  <span>{row.l}</span><strong style={{ color: row.c }}>{row.v}</strong>
-                </div>
-              ))}
-              {summary.bestRivalry && (
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--tm-bg4)", color: T.fg4, fontSize: 12, textAlign: "center" }}>
-                  Plus grande rivalité : <strong style={{ color: T.fg }}>{summary.bestRivalry.name}</strong>
-                  <span style={{ color: T.fg5 }}> ({summary.bestRivalry.wins}V–{summary.bestRivalry.losses}D)</span>
-                </div>
-              )}
+            {/* Bilan de carrière */}
+            <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 12 }}>
+              <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px", display: "flex", alignItems: "center", gap: 6 }}><Icon name="chart" size={13} color="#d6ef3c" /> Bilan de carrière</div>
+              <div style={{ padding: "4px 12px 10px" }}>
+                {[
+                  { l: "Âge final", v: player.age + " ans" },
+                  { l: "Meilleur classement", v: "#" + (summary.bestRank === 9999 ? "—" : summary.bestRank) },
+                  { l: "Semaines n°1", v: summary.weeksNo1, hide: summary.weeksNo1 === 0 },
+                  { l: "Semaines top 10", v: summary.weeksTop10, hide: summary.weeksTop10 === 0 },
+                  { l: "Titres remportés", v: player.titlesWon },
+                  { l: "Dont Grands Chelems", v: summary.gsTitles, hide: summary.gsTitles === 0 },
+                  { l: "Victoires en carrière", v: player.careerWins, c: "#1f7a45" },
+                  { l: "Meilleure série", v: summary.bestStreak + " v.", hide: summary.bestStreak < 2 },
+                  { l: "Objectifs sponsors atteints", v: (player.careerObjectivesMet || 0), hide: (player.careerObjectivesMet || 0) === 0 },
+                  { l: "Gains totaux", v: (player.totalEarnings || 0).toLocaleString() + " €", c: "#1f7a45" },
+                  { l: "Saisons jouées", v: summary.seasons },
+                ].filter(row => !row.hide).map((row, i, arr) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13, fontWeight: 600, borderBottom: i < arr.length - 1 ? "1.5px dashed " + T.ink : "none" }}>
+                    <span>{row.l}</span><strong className="tm-num" style={{ color: row.c || "#141414" }}>{row.v}</strong>
+                  </div>
+                ))}
+                {summary.bestRivalry && (
+                  <div className="tm-lettering" style={{ marginTop: 8, padding: "6px 8px", background: "#c9b6ea", border: "2px solid " + T.ink, fontSize: 15, textAlign: "center" }}>
+                    Plus grande rivalité : {summary.bestRivalry.name} ({summary.bestRivalry.wins}V–{summary.bestRivalry.losses}D)
+                  </div>
+                )}
+              </div>
             </div>
 
             <button style={{ ...styles.btnPrimary, marginTop: 4 }} onClick={() => {
@@ -3512,11 +3510,11 @@ export default function TennisManager() {
                 const nameOf = id => id === "__me" ? rankingName(player.name) : ms.rr.players[id].name;
                 const table = (label, ids) => (
                   <div style={{ flex: 1, minWidth: 150 }}>
-                    <div className="tm-eyebrow" style={{ marginBottom: 6 }}>Poule {label}</div>
+                    <div className="tm-display" style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 12.5, padding: "2px 8px", marginBottom: 6 }}>Poule {label}</div>
                     {ids.map((id, i) => {
                       const r = ms.rr.table[id];
                       return (
-                        <div key={id} style={{ display: "flex", justifyContent: "space-between", gap: 6, fontSize: 12, padding: "3px 0", color: id === "__me" ? T.green : T.fg2, fontWeight: id === "__me" ? 700 : 500, borderTop: i === 2 ? "1px dashed " + T.brd2 : "none" }}>
+                        <div key={id} style={{ display: "flex", justifyContent: "space-between", gap: 6, fontSize: 12, padding: "3px 0", color: id === "__me" ? "#1f7a45" : "#141414", fontWeight: id === "__me" ? 800 : 600, borderTop: i === 2 ? "2px dashed " + T.ink : "none" }}>
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i + 1}. {nameOf(id)}</span>
                           <span className="tm-num">{r.w}-{r.l}</span>
                         </div>
@@ -4186,11 +4184,11 @@ export default function TennisManager() {
             {ms.pendingDilemma && !ms.pendingDilemma.minigame && (
               <div style={styles.dilemmaOverlay}>
                 <div style={styles.dilemmaCard}>
-                  <div className="tm-eyebrow" style={{ color: ms.pendingDilemma.isMatchFix ? T.red : T.ball, marginBottom: 6 }}>{ms.pendingDilemma.isMatchFix ? "Proposition illégale" : "Décision · Choix tactique"}</div>
-                  <div style={{ color: T.fg, fontWeight: 700, fontSize: 17, letterSpacing: 0.2 }}>{ms.pendingDilemma.title}</div>
-                  <div style={{ color: T.fg3, fontSize: 13, margin: "8px 0 18px", lineHeight: 1.5 }}>{ms.pendingDilemma.desc.replace("{o}", ms.opponent.name)}</div>
+                  <span style={{ display: "inline-block", background: ms.pendingDilemma.isMatchFix ? "#c4302b" : T.ink, color: "#ffffff", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, padding: "1px 7px", textTransform: "uppercase", marginBottom: 6 }}>{ms.pendingDilemma.isMatchFix ? "Proposition illégale" : "Décision · Choix tactique"}</span>
+                  <div className="tm-display" style={{ color: "#141414", fontSize: 18, lineHeight: 1.15 }}>{ms.pendingDilemma.title}</div>
+                  <div className="tm-lettering" style={{ color: "#141414", fontSize: 16, margin: "8px 0 16px", lineHeight: 1.3 }}>{ms.pendingDilemma.desc.replace("{o}", ms.opponent.name)}</div>
                   {ms.pendingDilemma.isMatchFix && (
-                    <div style={{ margin: "-8px 0 16px", padding: "8px 10px", borderRadius: 0, background: "var(--tm-redSub)", border: "1px solid var(--tm-redBrd)", color: T.red, fontSize: 11.5, lineHeight: 1.4 }}>
+                    <div style={{ margin: "-6px 0 16px", padding: "8px 10px", background: "#fff6c9", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, color: "#c4302b", fontSize: 12, fontWeight: 700, lineHeight: 1.4 }}>
                       Truquer un match est passible d'une suspension de 10 à 12 semaines et ruine votre réputation si vous êtes démasqué.
                     </div>
                   )}
@@ -4461,7 +4459,21 @@ export default function TennisManager() {
                 <span>Sem. {player.week}</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 3, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}><FlagFromEmoji emoji={CITIES[player.location]?.flag} size={9} />{player.location}</span>
                 <span style={{ color: player.money >= 0 ? T.fg : T.red }}>{Math.round(player.money).toLocaleString("fr-FR")} €</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 2, color: player.energy > 60 ? T.green : player.energy > 30 ? T.amber : T.red }}><Icon name="energy" size={12} />{Math.round(player.energy)}</span>
+                {/* Énergie en tampon BD : couleur selon le niveau, jauge sous le chiffre */}
+                {(() => {
+                  const e = Math.max(0, Math.min(100, Math.round(player.energy)));
+                  const c = e > 60 ? "#1f7a45" : e > 30 ? "#e0a21b" : "#c4302b";
+                  return (
+                    <span title="Énergie" style={{ display: "inline-flex", flexDirection: "column", flexShrink: 0, border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, background: "#ffffff", transform: "rotate(-2deg)" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 2, background: c, color: c === "#e0a21b" ? "#141414" : "#ffffff", padding: "0 5px 0 3px", fontFamily: T.display, fontSize: 12, lineHeight: "16px" }}>
+                        <Icon name="energy" size={11} strokeWidth={2.6} />{e}
+                      </span>
+                      <span style={{ height: 3, background: "#ffffff", borderTop: "1.5px solid " + T.ink }}>
+                        <span style={{ display: "block", height: "100%", width: e + "%", background: T.ink }} />
+                      </span>
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -4596,90 +4608,98 @@ export default function TennisManager() {
         const rankDelta = prev ? prev.endOfYearRanking - r.endOfYearRanking : null;
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 250, padding: 16 }}>
-            <div style={{ background: T.bg1, borderRadius: 0, padding: 22, border: "1px solid " + T.amber, maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
-              <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <div><Icon name="flag" size={44} color={T.green} /></div>
-                <div style={{ color: T.amber, fontWeight: 900, fontSize: 22 }}>Bilan saison {r.year}</div>
-                <div style={{ color: T.fg4, fontSize: 12 }}>Bienvenue dans la saison {r.year + 1} !</div>
+            <div className="tm-paper" style={{ border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto", color: "#141414" }}>
+              {/* En-tête : case tramée avec drapeau d'arrivée */}
+              <div className="tm-halftone-yellow" style={{ borderBottom: "3px solid " + T.ink, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 40, height: 40, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2.5px solid " + T.ink, transform: "rotate(-4deg)" }}>
+                  <Icon name="flag" size={22} color="#1f7a45" />
+                </span>
+                <div>
+                  <div className="tm-display" style={{ fontSize: 22, lineHeight: 1 }}>Bilan saison {r.year}</div>
+                  <div className="tm-lettering" style={{ fontSize: 15, marginTop: 2 }}>Bienvenue dans la saison {r.year + 1} !</div>
+                </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                <div style={{ background: T.bg0, borderRadius: 0, padding: 12, textAlign: "center", border: "2px solid " + T.ink }}>
-                  <div style={{ color: T.fg4, fontSize: 11 }}>Classement final</div>
-                  <div style={{ color: T.amber, fontWeight: 800, fontSize: 20 }}>#{r.endOfYearRanking}</div>
+              <div style={{ padding: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "8px 10px", textAlign: "center" }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Classement final</div>
+                  <div className="tm-display" style={{ fontSize: 22, color: "#5b2d8e" }}>#{r.endOfYearRanking}</div>
                   {rankDelta !== null && (
-                    <div style={{ color: rankDelta > 0 ? T.green : rankDelta < 0 ? T.red : T.fg4, fontSize: 11 }}>
+                    <span style={{ display: "inline-block", background: rankDelta > 0 ? "#1f7a45" : rankDelta < 0 ? "#c4302b" : "#ffffff", color: rankDelta ? "#ffffff" : "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "0 6px" }}>
                       {rankDelta > 0 ? "↑ +" + rankDelta : rankDelta < 0 ? "↓ " + rankDelta : "→ 0"} place{Math.abs(rankDelta) > 1 ? "s" : ""}
-                    </div>
+                    </span>
                   )}
                 </div>
-                <div style={{ background: T.bg0, borderRadius: 0, padding: 12, textAlign: "center", border: "2px solid " + T.ink }}>
-                  <div style={{ color: T.fg4, fontSize: 11 }}>Points ATP</div>
-                  <div style={{ color: T.green, fontWeight: 800, fontSize: 20 }}>{r.endOfYearPoints}</div>
+                <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "8px 10px", textAlign: "center" }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Points</div>
+                  <div className="tm-display" style={{ fontSize: 22, color: "#1f7a45" }}>{r.endOfYearPoints}</div>
                 </div>
               </div>
-              <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12, border: "2px solid " + T.ink }}>
-                <div style={{ display: "flex", justifyContent: "space-between", color: T.fg3, fontSize: 13, padding: "4px 0", borderBottom: "1px solid " + T.brd }}>
-                  <span>Victoires</span><strong style={{ color: T.green }}>{r.wins}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", color: T.fg3, fontSize: 13, padding: "4px 0", borderBottom: "1px solid " + T.brd }}>
-                  <span>Défaites</span><strong style={{ color: T.red }}>{r.losses}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", color: T.fg3, fontSize: 13, padding: "4px 0", borderBottom: "1px solid " + T.brd }}>
-                  <span>Taux de victoire</span><strong style={{ color: winRate >= 50 ? T.green : T.red }}>{winRate}%</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", color: T.fg3, fontSize: 13, padding: "4px 0", borderBottom: "1px solid " + T.brd }}>
-                  <span>Titres</span><strong style={{ color: T.amber }}><Icon name="trophy" size={11} /> {r.titles}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", color: T.fg3, fontSize: 13, padding: "4px 0" }}>
-                  <span>Gains saison</span><strong style={{ color: T.green }}>+{r.earnings.toLocaleString()}€</strong>
+              <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12 }}>
+                <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px" }}>La saison</div>
+                <div style={{ padding: "2px 10px 6px" }}>
+                  {[
+                    ["Victoires", r.wins, "#1f7a45"],
+                    ["Défaites", r.losses, "#c4302b"],
+                    ["Taux de victoire", winRate + " %", winRate >= 50 ? "#1f7a45" : "#c4302b"],
+                    ["Titres", r.titles, "#5b2d8e"],
+                    ["Gains saison", "+" + r.earnings.toLocaleString() + " €", "#1f7a45"],
+                  ].map(([l, v, c], i, arr) => (
+                    <div key={l} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, padding: "5px 0", borderBottom: i < arr.length - 1 ? "1.5px dashed " + T.ink : "none" }}>
+                      <span>{l}</span><strong className="tm-num" style={{ color: c }}>{v}</strong>
+                    </div>
+                  ))}
                 </div>
               </div>
               {typeof r.legacyScore === "number" && (() => {
                 const prevScore = prev && typeof prev.legacyScore === "number" ? prev.legacyScore : null;
                 const delta = prevScore !== null ? r.legacyScore - prevScore : null;
                 const tier = legacyTier(r.legacyScore);
-                // Detailed legacy breakdown — same data structure as the end of career screen.
+                // Même détail que l'écran de fin de carrière.
                 const breakdown = computeLegacyBreakdown(player);
                 return (
                   <>
-                    <div style={{ background: T.bg0, borderRadius: 0, padding: 14, marginBottom: 12, border: "1px solid " + tier.color + "55", textAlign: "center" }}>
-                      <div style={{ color: T.fg4, fontSize: 10, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 4 }}>Score de légende</div>
-                      <div style={{ color: tier.color, fontWeight: 900, fontSize: 30, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{r.legacyScore.toLocaleString()}</div>
-                      <div style={{ display: "inline-block", marginTop: 6, padding: "2px 10px", borderRadius: 0, background: tier.color + "22", border: "1px solid " + tier.color + "55", color: tier.color, fontWeight: 700, fontSize: 11, letterSpacing: 0.5 }}>{tier.label}</div>
-                      {delta !== null && (
-                        <div style={{ color: delta > 0 ? T.green : delta < 0 ? T.red : T.fg4, fontSize: 12, fontWeight: 700, marginTop: 8 }}>
-                          {delta > 0 ? "↑ +" + delta.toLocaleString() : delta < 0 ? "↓ " + delta.toLocaleString() : "→ 0"} cette saison
-                        </div>
-                      )}
-                    </div>
-                    {/* Legacy score breakdown — same rows as the end-of-career
-                        reveal, so the player can track how each component grows. */}
-                    <div style={{ background: T.bg0, borderRadius: 0, padding: 12, marginBottom: 12, border: "2px solid " + T.ink }}>
-                      <div style={{ color: T.fg4, fontSize: 10, fontWeight: 700, letterSpacing: 0.2, textTransform: "none", marginBottom: 8 }}>Détail du score</div>
-                      {breakdown.rows.map((row, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 0", borderBottom: i < breakdown.rows.length - 1 ? "1px dashed " + T.brd : "none" }}>
-                          <span style={{ color: T.fg3, fontSize: 12 }}>{row.label}</span>
-                          <span style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                            <span style={{ color: T.fg5, fontSize: 10, fontFamily: T.mono }}>{row.detail}</span>
-                            <strong style={{ color: T.fg, fontSize: 12, fontFamily: T.mono, fontVariantNumeric: "tabular-nums", minWidth: 50, textAlign: "right" }}>{row.pts.toLocaleString()}</strong>
-                          </span>
-                        </div>
-                      ))}
-                      <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0 2px", marginTop: 4, borderTop: "1px solid " + T.brd2, color: T.fg3, fontSize: 12 }}>
-                        <span>Sous-total</span>
-                        <strong style={{ color: T.fg, fontFamily: T.mono }}>{breakdown.subtotal.toLocaleString()}</strong>
+                    <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12, textAlign: "center" }}>
+                      <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px" }}>Score de légende</div>
+                      <div style={{ padding: "8px 10px 10px" }}>
+                        <div className="tm-display" style={{ color: tier.color, fontSize: 32, lineHeight: 1, WebkitTextStroke: "1.2px " + T.ink }}>{r.legacyScore.toLocaleString()}</div>
+                        <span className="tm-display" style={{ display: "inline-block", marginTop: 6, padding: "1px 10px", background: tier.color, color: "#ffffff", border: "2px solid " + T.ink, fontSize: 12.5, textShadow: "1px 1px 0 " + T.ink }}>{tier.label}</span>
+                        {delta !== null && (
+                          <div className="tm-lettering" style={{ color: delta > 0 ? "#1f7a45" : delta < 0 ? "#c4302b" : "#141414", fontSize: 15, marginTop: 6 }}>
+                            {delta > 0 ? "↑ +" + delta.toLocaleString() : delta < 0 ? "↓ " + delta.toLocaleString() : "→ 0"} cette saison
+                          </div>
+                        )}
                       </div>
-                      {breakdown.difficultyBonus !== 0 && (
-                        <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", color: breakdown.difficultyBonus > 0 ? T.green : T.red, fontSize: 12 }}>
-                          <span>{breakdown.diffPct > 0 ? "Bonus" : "Malus"} difficulté ({breakdown.mulLabel})</span>
-                          <strong style={{ fontFamily: T.mono }}>{breakdown.difficultyBonus > 0 ? "+" : ""}{breakdown.difficultyBonus.toLocaleString()}</strong>
+                    </div>
+                    <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12 }}>
+                      <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px" }}>Détail du score</div>
+                      <div style={{ padding: "2px 10px 8px" }}>
+                        {breakdown.rows.map((row, i) => (
+                          <div key={i} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, padding: "4px 0", borderBottom: "1.5px dashed " + T.ink, fontSize: 12, fontWeight: 600 }}>
+                            <span>{row.label}</span>
+                            <span style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                              <span style={{ fontSize: 10.5, opacity: 0.7 }}>{row.detail}</span>
+                              <strong className="tm-num" style={{ minWidth: 50, textAlign: "right" }}>{row.pts.toLocaleString()}</strong>
+                            </span>
+                          </div>
+                        ))}
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 2px", fontSize: 12.5, fontWeight: 700 }}>
+                          <span>Sous-total</span>
+                          <strong className="tm-num">{breakdown.subtotal.toLocaleString()}</strong>
                         </div>
-                      )}
+                        {breakdown.difficultyBonus !== 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", color: breakdown.difficultyBonus > 0 ? "#1f7a45" : "#c4302b", fontSize: 12.5, fontWeight: 700 }}>
+                            <span>{breakdown.diffPct > 0 ? "Bonus" : "Malus"} difficulté ({breakdown.mulLabel})</span>
+                            <strong className="tm-num">{breakdown.difficultyBonus > 0 ? "+" : ""}{breakdown.difficultyBonus.toLocaleString()}</strong>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </>
                 );
               })()}
               <button style={styles.btnPrimary} onClick={dismissSeasonRecap}>Continuer →</button>
+              </div>
             </div>
           </div>
         );
@@ -4692,20 +4712,24 @@ export default function TennisManager() {
         if (!def) return null;
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 0, padding: 20, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderTop: "3px solid " + T.clay, maxWidth: 400, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
-              <div className="tm-eyebrow" style={{ color: T.clay, marginBottom: 6 }}>Défi</div>
-              <div style={{ color: T.fg, fontSize: 22, fontWeight: 700, fontFamily: T.display, marginBottom: 10 }}>{def.name}</div>
-              <div style={{ color: T.fg2, fontSize: 13.5, lineHeight: 1.6, marginBottom: 14 }}>{def.context}</div>
-              <div style={{ background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: 12, marginBottom: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.fg, fontWeight: 700 }}><Icon name="target" size={16} color={T.green} /> {def.objectiveLabel}</div>
-                <div style={{ color: T.fg4, fontSize: 12, marginTop: 4, marginLeft: 24 }}>{def.deadlineLabel}</div>
+            <div className="tm-fade-up tm-paper" style={{ border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, color: "#141414", maxWidth: 400, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+              <div className="tm-halftone-magenta" style={{ borderBottom: "3px solid " + T.ink, padding: "10px 14px" }}>
+                <span style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase" }}>Défi</span>
+                <div className="tm-display" style={{ fontSize: 22, lineHeight: 1.05, marginTop: 5, color: "#ffffff", textShadow: "2px 2px 0 " + T.ink }}>{def.name}</div>
+              </div>
+              <div style={{ padding: 14 }}>
+              <div className="tm-lettering" style={{ fontSize: 16, lineHeight: 1.3, marginBottom: 12 }}>{def.context}</div>
+              <div className="tm-halftone-yellow" style={{ border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "10px 12px", marginBottom: 12 }}>
+                <div className="tm-display" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}><Icon name="target" size={16} color="#141414" /> {def.objectiveLabel}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4, marginLeft: 24 }}>{def.deadlineLabel}</div>
               </div>
               {def.perks.map((pk, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, color: T.fg2, fontSize: 13, lineHeight: 1.45, marginBottom: 6 }}>
-                  <Icon name="chevronRight" size={14} color={T.clay} style={{ marginTop: 2 }} /> <span>{pk}</span>
+                <div key={i} style={{ display: "flex", gap: 8, fontSize: 13, fontWeight: 600, lineHeight: 1.45, marginBottom: 6 }}>
+                  <span style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#c9b6ea", border: "2px solid " + T.ink }}><Icon name="chevronRight" size={10} color="#141414" /></span> <span>{pk}</span>
                 </div>
               ))}
               <button style={{ ...styles.btnPrimary, marginTop: 10 }} onClick={() => setPlayer(p => ({ ...p, challenge: { ...p.challenge, introSeen: true } }))}>C'est parti</button>
+              </div>
             </div>
           </div>
         );
@@ -4717,10 +4741,12 @@ export default function TennisManager() {
         const seen = { ...player, challenge: { ...player.challenge, resultSeen: true } };
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div className="tm-fade-up" style={{ background: T.bg1, borderRadius: 0, padding: 22, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderTop: "3px solid " + (ok ? T.green : T.red), maxWidth: 380, width: "100%", textAlign: "center" }}>
-              <Icon name={ok ? "trophy" : "fail"} size={40} color={ok ? (MEDAL_INFO[res.medal] || {}).color || T.ball : T.red} />
-              <div className="tm-eyebrow" style={{ marginTop: 10 }}>{def ? def.name : "Défi"}</div>
-              <div style={{ color: T.fg, fontSize: 24, fontWeight: 700, fontFamily: T.display, margin: "4px 0 8px" }}>{ok ? "Défi réussi !" : "Défi échoué"}</div>
+            <div className="tm-fade-up tm-paper" style={{ padding: 18, border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, color: "#141414", maxWidth: 380, width: "100%", textAlign: "center" }}>
+              <span style={{ display: "inline-flex", width: 56, height: 56, alignItems: "center", justifyContent: "center", background: ok ? "#d6ef3c" : "#c4302b", border: "3px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, transform: "rotate(-4deg)" }}>
+                <Icon name={ok ? "trophy" : "fail"} size={32} color={ok ? "#141414" : "#ffffff"} />
+              </span>
+              <div style={{ marginTop: 10 }}><span style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 1, padding: "1px 7px", textTransform: "uppercase" }}>{def ? def.name : "Défi"}</span></div>
+              <div className="tm-display" style={{ fontSize: 26, margin: "6px 0 8px", color: ok ? "#1f7a45" : "#c4302b" }}>{ok ? "Défi réussi !" : "Défi échoué"}</div>
               {ok ? (
                 <div style={{ color: T.fg2, fontSize: 14, marginBottom: 12 }}>
                   Médaille <strong style={{ color: (MEDAL_INFO[res.medal] || {}).color }}>{(MEDAL_INFO[res.medal] || {}).label}</strong> · {res.weeks} semaine{res.weeks > 1 ? "s" : ""}
@@ -4730,7 +4756,7 @@ export default function TennisManager() {
               )}
               <div style={{ background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "8px 12px", marginBottom: 14, textAlign: "left" }}>
                 {(res.rows || []).map((r, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderBottom: "1px solid " + T.brd }}>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderBottom: "1.5px dashed " + T.ink }}>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ color: T.fg2, fontSize: 12.5, fontWeight: 600 }}>{r.label}</span>
                       <span style={{ display: "block", color: T.fg5, fontSize: 11 }}>{r.detail}</span>
@@ -4763,17 +4789,16 @@ export default function TennisManager() {
             zIndex: 240, display: "flex", alignItems: "center", justifyContent: "center",
             padding: 16,
           }}>
-            <div className="tm-fade-up" style={{
-              background: T.bg1, borderRadius: 0, padding: 20,
-              border: "2px solid " + T.ink, borderTop: "3px solid " + T.ball,
-              maxWidth: 380, width: "100%",
-              boxShadow: "0 10px 30px var(--tm-shadow)",
+            <div className="tm-fade-up tm-paper" style={{
+              border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, color: "#141414",
+              maxWidth: 380, width: "100%", maxHeight: "88vh", overflowY: "auto",
             }}>
-              <div className="tm-eyebrow" style={{ color: evDef ? T.clay : T.ball, marginBottom: 6 }}>{evDef ? "Défi · " + evDef.name : "Événement de la semaine"}</div>
-              <div style={{ color: T.fg, fontSize: 17, fontWeight: 800, marginBottom: 10, letterSpacing: 0.3 }}>
-                {ev.title}
+              <div className={evDef ? "tm-halftone-magenta" : "tm-halftone-yellow"} style={{ borderBottom: "3px solid " + T.ink, padding: "10px 14px" }}>
+                <span style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase" }}>{evDef ? "Défi · " + evDef.name : "Événement de la semaine"}</span>
+                <div className="tm-display" style={{ fontSize: 19, lineHeight: 1.1, marginTop: 5, color: evDef ? "#ffffff" : "#141414", textShadow: evDef ? "2px 2px 0 " + T.ink : "none" }}>{ev.title}</div>
               </div>
-              <div style={{ color: T.fg3, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+              <div style={{ padding: 14 }}>
+              <div className="tm-lettering" style={{ fontSize: 16, lineHeight: 1.3, marginBottom: 14 }}>
                 {typeof ev.body === "function" ? ev.body(player) : ev.body}
               </div>
               {ev.options.map((opt, i) => {
@@ -4794,17 +4819,17 @@ export default function TennisManager() {
                 return (
                   <button key={i} onClick={() => resolveLifeEvent(opt)} style={{
                     width: "100%", padding: "12px 14px",
-                    background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
-                    borderRadius: 0, color: T.fg, textAlign: "left",
-                    cursor: "pointer", marginBottom: 8, fontFamily: T.body,
+                    background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+                    borderRadius: 0, color: "#141414", textAlign: "left",
+                    cursor: "pointer", marginBottom: 10, fontFamily: T.body,
                     fontSize: 13,
                   }}>
-                    <div style={{ fontWeight: 700, marginBottom: 6 }}>{opt.label}</div>
+                    <div className="tm-display" style={{ fontSize: 14, lineHeight: 1.15, marginBottom: 7 }}>{opt.label}</div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {chips.map((c, j) => (
                         <span key={j} style={{
-                          fontSize: 10, fontWeight: 700, padding: "2px 6px",
-                          borderRadius: 0, background: T.bg3, color: c.color,
+                          fontSize: 10.5, fontWeight: 800, padding: "1px 6px",
+                          borderRadius: 0, background: "#ffffff", color: c.color, border: "2px solid " + T.ink,
                           display: "inline-flex", alignItems: "center", gap: 3,
                         }}>
                           {c.label}
@@ -4815,6 +4840,7 @@ export default function TennisManager() {
                   </button>
                 );
               })}
+              </div>
             </div>
           </div>
         );
@@ -4857,80 +4883,46 @@ export default function TennisManager() {
         };
 
         return (
-          <div style={{
-            position: "fixed", inset: 0, background: T.bg0,
-            backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-            zIndex: 250,
-            overflowY: "auto",
-          }} onClick={() => setShowHallOfFame(false)}>
-            <div onClick={e => e.stopPropagation()} style={{
-              maxWidth: 440, margin: "0 auto",
-              minHeight: "100vh",
-              background: T.bg0,
-            }}>
-              {/* Header */}
-              <div style={{
-                position: "sticky", top: 0, zIndex: 2,
-                background: T.bg0,
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                padding: "14px 18px",
-                borderBottom: "1px solid " + T.brd,
-                display: "flex", alignItems: "center", gap: 12,
-              }}>
-                <button onClick={() => setShowHallOfFame(false)} style={{
-                  background: "none", border: "none", color: T.fg2,
-                  cursor: "pointer", padding: 4, display: "flex", alignItems: "center",
-                }}>
-                  <Icon name="x" size={20} />
+          <div className="tm-paper" style={{ position: "fixed", inset: 0, zIndex: 250, overflowY: "auto" }} onClick={() => setShowHallOfFame(false)}>
+            <div onClick={e => e.stopPropagation()} style={{ maxWidth: 440, margin: "0 auto", minHeight: "100vh", color: "#141414" }}>
+              {/* En-tête BD : bandeau noir collant, compteur en tampon */}
+              <div style={{ position: "sticky", top: 0, zIndex: 2, background: T.ink, color: "#ffffff", padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, borderBottom: "3px solid " + T.ink }}>
+                <button aria-label="Fermer" onClick={() => setShowHallOfFame(false)} style={{ width: 34, height: 34, flexShrink: 0, background: "#ffffff", border: "2.5px solid " + T.ink, color: T.ink, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="x" size={18} strokeWidth={2.6} />
                 </button>
-                <div style={{ flex: 1 }}>
-                  <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 2 }}>Hall of Fame</div>
-                  <div className="tm-display" style={{ color: T.fg, fontSize: 20, lineHeight: 1, letterSpacing: 0.2 }}>
-                    {got} <span style={{ color: T.fg5 }}>/ {total}</span>
-                  </div>
+                <div className="tm-display" style={{ flex: 1, fontSize: 22, lineHeight: 1, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Icon name="trophy" size={20} color="#d6ef3c" /> Hall of Fame
                 </div>
+                <span className="tm-display" style={{ background: "#d6ef3c", color: "#141414", border: "2.5px solid #ffffff", padding: "1px 8px", fontSize: 16, transform: "rotate(3deg)" }}>{got} / {total}</span>
               </div>
 
-              {/* Claimable rewards banner */}
+              {/* Récompenses à réclamer */}
               {claimableCount > 0 && (
-                <div style={{
-                  margin: "12px 16px 0",
-                  padding: 12, borderRadius: 0,
-                  background: "linear-gradient(135deg, var(--tm-greenSub), var(--tm-amberSub))",
-                  border: "1px solid " + T.green,
-                  display: "flex", alignItems: "center", gap: 10,
-                }}>
-                  <Icon name="money" size={18} color={T.green} />
+                <div className="tm-halftone-yellow" style={{ margin: "14px 16px 0", padding: "10px 12px", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ width: 34, height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2.5px solid " + T.ink, transform: "rotate(-4deg)" }}>
+                    <Icon name="money" size={18} color="#1f7a45" />
+                  </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: T.fg, fontSize: 13, fontWeight: 700 }}>
-                      {claimableTotal.toLocaleString()}€ à réclamer
-                    </div>
-                    <div style={{ color: T.fg4, fontSize: 10, marginTop: 2 }}>
-                      {claimableCount} récompense{claimableCount > 1 ? "s" : ""} en attente
-                    </div>
+                    <div className="tm-display" style={{ fontSize: 16 }}>{claimableTotal.toLocaleString()} € à réclamer</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 1 }}>{claimableCount} récompense{claimableCount > 1 ? "s" : ""} en attente</div>
                   </div>
-                  <button onClick={claimAll} style={{
-                    background: T.green, color: T.bg0, border: "none",
-                    borderRadius: 0, padding: "8px 14px",
-                    fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: "none",
-                    cursor: "pointer",
-                  }}>Tout réclamer</button>
+                  <button className="tm-display" onClick={claimAll} style={{ background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "7px 10px", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>Tout réclamer</button>
                 </div>
               )}
 
-              {/* Categories */}
+              {/* Catégories */}
               <div style={{ padding: 16 }}>
                 {Object.entries(byCategory).map(([catKey, trophies]) => {
                   const cat = TROPHY_CATEGORIES[catKey];
                   const catGot = trophies.filter(t => unlocked.has(t.id)).length;
                   return (
-                    <div key={catKey} style={{ marginBottom: 24 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                        <Icon name={cat.iconName} size={14} color={T.green} />
-                        <div className="tm-eyebrow" style={{ color: T.fg2 }}>{cat.label}</div>
-                        <div style={{ flex: 1, height: 1, background: T.brd }} />
-                        <div className="tm-num" style={{ color: T.fg5, fontSize: 11 }}>{catGot} / {trophies.length}</div>
+                    <div key={catKey} style={{ marginBottom: 22 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span className="tm-display" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.ink, color: "#ffffff", padding: "2px 9px", fontSize: 13 }}>
+                          <Icon name={cat.iconName} size={13} color="#d6ef3c" /> {cat.label}
+                        </span>
+                        <div style={{ flex: 1, borderTop: "2px dashed " + T.ink }} />
+                        <span className="tm-num" style={{ fontSize: 12, fontWeight: 800 }}>{catGot} / {trophies.length}</span>
                       </div>
 
                       {trophies.map(t => {
@@ -4938,82 +4930,42 @@ export default function TennisManager() {
                         const result = isUnlocked ? { unlocked: true } : t.check(player);
                         const rarity = RARITY[t.rarity];
                         const hasProgress = result.progress && !isUnlocked;
-
+                        const reward = RARITY_REWARD[t.rarity] || 0;
+                        const isClaimed = claimed.has(t.id);
                         return (
                           <div key={t.id} style={{
-                            background: isUnlocked ? T.bg1 : T.bg2,
-                            borderRadius: 0, padding: 12, marginBottom: 8,
-                            border: "1px solid " + (isUnlocked ? "var(--tm-amberSub)" : T.brd),
-                            borderLeft: "3px solid " + (isUnlocked ? rarity.color : T.brd2),
-                            opacity: isUnlocked ? 1 : 0.65,
-                            display: "flex", alignItems: "center", gap: 12,
-                            transition: "all 0.2s",
-                            boxShadow: isUnlocked ? "0 2px 12px " + rarity.glow : "none",
+                            background: isUnlocked ? "#ffffff" : "#eeeae0", marginBottom: 10,
+                            border: "2.5px solid " + T.ink, boxShadow: isUnlocked ? "3px 3px 0 " + T.ink : "none",
+                            opacity: isUnlocked ? 1 : 0.75, display: "flex", alignItems: "stretch",
                           }}>
-                            <div style={{
-                              width: 40, height: 40, borderRadius: 0,
-                              background: isUnlocked ? "var(--tm-amberSub)" : T.bg3,
-                              border: "1px solid " + (isUnlocked ? rarity.color : T.brd2),
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              flexShrink: 0,
-                            }}>
-                              <Icon
-                                name={isUnlocked ? "trophy" : "ban"}
-                                size={20}
-                                color={isUnlocked ? rarity.color : T.fg5}
-                                strokeWidth={isUnlocked ? 2 : 1.5}
-                              />
+                            {/* Médaille à la couleur de la rareté */}
+                            <div style={{ width: 52, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: isUnlocked ? rarity.color : "#d9d4c7", borderRight: "2.5px solid " + T.ink }}>
+                              <span style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2.5px solid " + T.ink }}>
+                                <Icon name={isUnlocked ? "trophy" : "lock"} size={17} color={isUnlocked ? rarity.color : "#8a8478"} strokeWidth={2.2} />
+                              </span>
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ color: isUnlocked ? T.fg : T.fg3, fontSize: 13, fontWeight: 700, letterSpacing: 0.2 }}>
-                                {t.name}
+                            <div style={{ flex: 1, minWidth: 0, padding: "8px 10px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                <span className="tm-display" style={{ fontSize: 14, lineHeight: 1.15 }}>{t.name}</span>
+                                <span style={{ background: isUnlocked ? rarity.color : "#ffffff", color: isUnlocked ? "#ffffff" : "#141414", border: "1.5px solid " + T.ink, fontSize: 9.5, fontWeight: 800, padding: "0 5px", textTransform: "uppercase" }}>{rarity.label}</span>
                               </div>
-                              <div style={{ color: T.fg4, fontSize: 11, marginTop: 2, lineHeight: 1.4 }}>{t.desc}</div>
+                              <div style={{ fontSize: 11.5, fontWeight: 600, marginTop: 3, lineHeight: 1.4 }}>{t.desc}</div>
                               {hasProgress && (
-                                <div style={{ marginTop: 6 }}>
-                                  <div style={{ height: 3, background: T.bg4, borderRadius: 2, overflow: "hidden", marginBottom: 2 }}>
-                                    <div style={{ height: "100%", width: (result.progress.current / result.progress.target * 100) + "%", background: T.green, borderRadius: 2 }} />
+                                <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                                  <div style={{ flex: 1, height: 9, background: "#ffffff", border: "2px solid " + T.ink }}>
+                                    <div style={{ height: "100%", width: Math.min(100, result.progress.current / result.progress.target * 100) + "%", background: "#d6ef3c", borderRight: "2px solid " + T.ink }} />
                                   </div>
-                                  <div className="tm-num" style={{ color: T.fg5, fontSize: 9 }}>
-                                    {result.progress.current.toLocaleString()} / {result.progress.target.toLocaleString()}
-                                  </div>
+                                  <span className="tm-num" style={{ fontSize: 10.5, fontWeight: 800 }}>{result.progress.current.toLocaleString()} / {result.progress.target.toLocaleString()}</span>
                                 </div>
                               )}
                             </div>
-                            <div style={{
-                              display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4,
-                              flexShrink: 0,
-                            }}>
-                              <div style={{
-                                fontSize: 9, fontWeight: 700, letterSpacing: 0.2, textTransform: "none",
-                                color: isUnlocked ? rarity.color : T.fg5,
-                              }}>{rarity.label}</div>
-                              {isUnlocked && (() => {
-                                const reward = RARITY_REWARD[t.rarity] || 0;
-                                const isClaimed = claimed.has(t.id);
-                                if (isClaimed) {
-                                  return (
-                                    <div style={{ display: "flex", alignItems: "center", gap: 3, color: T.fg5, fontSize: 10, fontWeight: 700 }}>
-                                      <Icon name="check" size={10} color={T.fg5} /> {reward}€
-                                    </div>
-                                  );
-                                }
-                                return (
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); claimTrophy(t.id, reward); }}
-                                    style={{
-                                      background: T.green, color: T.bg0, border: "none",
-                                      borderRadius: 0, padding: "4px 8px",
-                                      fontSize: 10, fontWeight: 800, letterSpacing: 0.3,
-                                      cursor: "pointer", whiteSpace: "nowrap",
-                                    }}
-                                  >+{reward}€</button>
-                                );
-                              })()}
-                              {!isUnlocked && (
-                                <div style={{ color: T.fg5, fontSize: 10, fontWeight: 600 }}>
-                                  +{RARITY_REWARD[t.rarity] || 0}€
-                                </div>
+                            <div style={{ display: "flex", alignItems: "center", padding: "0 10px 0 4px", flexShrink: 0 }}>
+                              {isUnlocked && !isClaimed ? (
+                                <button className="tm-display" onClick={(e) => { e.stopPropagation(); claimTrophy(t.id, reward); }} style={{ background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "5px 8px", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>+{reward} €</button>
+                              ) : isUnlocked ? (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 800 }}><Icon name="check" size={12} color="#1f7a45" strokeWidth={3} /> {reward} €</span>
+                              ) : (
+                                <span style={{ fontSize: 11, fontWeight: 800, color: "#6f6a5f" }}>+{reward} €</span>
                               )}
                             </div>
                           </div>
@@ -5033,34 +4985,30 @@ export default function TennisManager() {
         const s = confirmCancelSponsor;
         const { rupture, objective: objPenalty, total: penalty } = sponsorCancelBreakdown(s);
         return (
-          <div style={{
-            position: "fixed", inset: 0, background: T.overlay,
-            backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 16, zIndex: 300,
-          }} onClick={() => setConfirmCancelSponsor(null)}>
-            <div onClick={e => e.stopPropagation()} style={{
-              background: T.bg1, borderRadius: 0, padding: 22,
-              border: "1px solid " + T.red, borderTop: "3px solid " + T.red,
-              maxWidth: 340, width: "100%",
-              boxShadow: "0 10px 30px var(--tm-shadow)",
-            }}>
-              <div className="tm-eyebrow" style={{ color: T.red, marginBottom: 8 }}>Résiliation</div>
-              <div style={{ color: T.fg, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Résilier le contrat avec {s.brand} ?</div>
-              <div style={{ color: T.fg3, fontSize: 13, lineHeight: 1.5, marginBottom: 18 }}>
-                Indemnité de rupture : <span className="tm-num" style={{ color: T.red }}>−{rupture.toLocaleString()} €</span> (6 mois de contrat au plus).
-                <br />
-                {objPenalty > 0 && (<>Objectif non atteint : <span className="tm-num" style={{ color: T.red }}>−{objPenalty.toLocaleString()} €</span><br /></>)}
-                Total : <strong className="tm-num" style={{ color: T.red }}>−{penalty.toLocaleString()} €</strong>
-                <br />
-                Vous perdrez le revenu hebdomadaire de <span className="tm-num">{s.weeklyPay}€</span> et le bonus titre de <span className="tm-num">{s.titleBonus.toLocaleString()}€</span>.
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button style={{ ...styles.btnSmall, flex: 1 }} onClick={() => setConfirmCancelSponsor(null)}>Annuler</button>
-                <button
-                  style={{ ...styles.btnSmall, flex: 1, background: T.red, color: T.fg, borderColor: T.red }}
-                  onClick={() => { cancelSponsor(s); setConfirmCancelSponsor(null); }}
-                >Confirmer la résiliation</button>
+          <div style={{ position: "fixed", inset: 0, background: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 300 }} onClick={() => setConfirmCancelSponsor(null)}>
+            <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 360, width: "100%" }}>
+              <div className="tm-display" style={{ background: "#c4302b", color: "#ffffff", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink }}>Résiliation</div>
+              <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>Résilier le contrat avec {s.brand} ?</div>
+                <div style={{ border: "2px solid " + T.ink, padding: "4px 10px" }}>
+                  {[
+                    ["Indemnité de rupture (6 mois au plus)", rupture],
+                    ...(objPenalty > 0 ? [["Objectif non atteint", objPenalty]] : []),
+                  ].map(([l, v]) => (
+                    <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, fontWeight: 600, padding: "5px 0", borderBottom: "1.5px dashed " + T.ink }}>
+                      <span>{l}</span><span className="tm-num" style={{ color: "#c4302b", fontWeight: 800 }}>−{v.toLocaleString()} €</span>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+                    <span className="tm-display" style={{ fontSize: 13.5 }}>Total</span>
+                    <span className="tm-display" style={{ background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 14 }}>−{penalty.toLocaleString()} €</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.45 }}>
+                  Vous perdrez le revenu hebdomadaire de {s.weeklyPay} € et le bonus titre de {s.titleBonus.toLocaleString()} €.
+                </div>
+                <button style={{ ...styles.btnPrimary, background: "#c4302b" }} onClick={() => { cancelSponsor(s); setConfirmCancelSponsor(null); }}>Confirmer la résiliation</button>
+                <button style={styles.btnSecondary} onClick={() => setConfirmCancelSponsor(null)}>Annuler</button>
               </div>
             </div>
           </div>
@@ -5072,72 +5020,42 @@ export default function TennisManager() {
         const { offer, candidates } = sponsorReplaceModal;
         const catLabel = (offer.cat === "equipment") ? "équipementier" : "autre sponsor";
         return (
-          <div style={{
-            position: "fixed", inset: 0, background: T.overlay,
-            backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 16, zIndex: 300,
-          }} onClick={() => setSponsorReplaceModal(null)}>
-            <div onClick={e => e.stopPropagation()} style={{
-              background: T.bg1, borderRadius: 0, padding: 22,
-              border: "1px solid " + T.ball, borderTop: "3px solid " + T.ball,
-              maxWidth: 400, width: "100%",
-              boxShadow: "0 10px 30px var(--tm-shadow)",
-            }}>
-              <div className="tm-eyebrow" style={{ color: T.ball, marginBottom: 8 }}>Remplacer un sponsor</div>
-              <div style={{ color: T.fg, fontSize: 15, fontWeight: 700, marginBottom: 6 }}>
-                Vous avez déjà atteint la limite d'{catLabel}{(offer.cat === "other") ? "s" : ""}.
-              </div>
-              <div style={{ color: T.fg3, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
-                Pour signer avec <strong style={{ color: T.fg }}>{offer.brand}</strong>, choisissez un sponsor à résilier. Le coût de résiliation sera prélevé (indemnité de rupture, plus la pénalité d'objectif si celui-ci n'est pas atteint).
-              </div>
-
-              {candidates.map(s => {
-                const penalty = sponsorCancelCost(s);
-                const canAfford = player.money >= penalty;
-                return (
-                  <button
-                    key={s.id}
-                    disabled={!canAfford}
-                    onClick={() => confirmSponsorReplacement(s)}
-                    style={{
-                      width: "100%", textAlign: "left",
-                      background: T.bg2, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
-                      borderRadius: 0, padding: 12, marginBottom: 8,
-                      cursor: canAfford ? "pointer" : "not-allowed",
-                      opacity: canAfford ? 1 : 0.5,
-                      display: "flex", alignItems: "center", gap: 10,
-                    }}
-                  >
-                    <div style={{
-                      width: 28, height: 28, borderRadius: 0,
-                      background: T.red,
-                      color: T.fg, fontWeight: 800, fontSize: 14,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      flexShrink: 0,
-                    }}>✕</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: T.fg, fontWeight: 700, fontSize: 13 }}>{s.brand}</div>
-                      <div style={{ color: T.fg4, fontSize: 11, marginTop: 2 }}>
-                        <span className="tm-num">{s.weeklyPay}€/sem</span>
-                        <span style={{ color: T.fg5, margin: "0 6px" }}>·</span>
-                        <span className="tm-num">{s.weeksLeft}</span> sem restantes
+          <div style={{ position: "fixed", inset: 0, background: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 300 }} onClick={() => setSponsorReplaceModal(null)}>
+            <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 400, width: "100%" }}>
+              <div className="tm-display" style={{ background: "#e0a21b", color: "#141414", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink }}>Remplacer un sponsor</div>
+              <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
+                  Vous avez déjà atteint la limite d'{catLabel}{(offer.cat === "other") ? "s" : ""}…
+                </div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.45 }}>
+                  Pour signer avec <strong>{offer.brand}</strong>, choisissez un sponsor à résilier. Le coût de résiliation sera prélevé (indemnité de rupture, plus la pénalité d'objectif si celui-ci n'est pas atteint).
+                </div>
+                {candidates.map(s => {
+                  const penalty = sponsorCancelCost(s);
+                  const canAfford = player.money >= penalty;
+                  return (
+                    <button
+                      key={s.id}
+                      disabled={!canAfford}
+                      onClick={() => confirmSponsorReplacement(s)}
+                      style={{
+                        width: "100%", textAlign: "left", fontFamily: T.body, color: "#141414",
+                        background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+                        borderRadius: 0, padding: 10, cursor: canAfford ? "pointer" : "not-allowed",
+                        opacity: canAfford ? 1 : 0.5, display: "flex", alignItems: "center", gap: 10,
+                      }}
+                    >
+                      <span style={{ width: 28, height: 28, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, fontWeight: 800, fontSize: 14 }}>✕</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="tm-display" style={{ fontSize: 14 }}>{s.brand}</div>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 2 }}>{s.weeklyPay} €/sem · {s.weeksLeft} sem. restantes</div>
                       </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div className="tm-eyebrow" style={{ color: T.red }}>Résil.</div>
-                      <div className="tm-num" style={{ color: T.red, fontWeight: 800, fontSize: 13 }}>
-                        −{penalty.toLocaleString()}€
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-
-              <button
-                style={{ ...styles.btnSmall, width: "100%", marginTop: 4 }}
-                onClick={() => setSponsorReplaceModal(null)}
-              >Annuler</button>
+                      <span className="tm-display" style={{ flexShrink: 0, background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontSize: 13 }}>−{penalty.toLocaleString()} €</span>
+                    </button>
+                  );
+                })}
+                <button style={styles.btnSecondary} onClick={() => setSponsorReplaceModal(null)}>Annuler</button>
+              </div>
             </div>
           </div>
         );
