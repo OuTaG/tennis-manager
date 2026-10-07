@@ -8,15 +8,20 @@ import { setCircuit } from "../src/engine/circuit.js";
 afterEach(() => vi.restoreAllMocks());
 
 describe("points de départ hors du top 1000", () => {
-  it("les rangs 1001-1200 démarrent entre 0 et 5 points, le top 1000 est inchangé", () => {
+  it("les rangs 1001-1200 font un dégradé régulier du niveau du 1000e à 1 point", () => {
     seedRandom(11);
     setCircuit("atp");
     const db = generateAtpDatabase();
     for (let i = 1000; i < 1200; i++) {
-      expect(db[i].points).toBeGreaterThanOrEqual(0);
-      expect(db[i].points).toBeLessThanOrEqual(5);
+      expect(db[i].points).toBeGreaterThanOrEqual(1);
+      expect(db[i].points).toBeLessThanOrEqual(36);
     }
     expect(db[1199].points).toBeLessThanOrEqual(2);
+    expect(db[1000].points).toBeGreaterThanOrEqual(28);
+    // Milieu de la tranche (~1100e) : environ la moitié.
+    const mid = db.slice(1090, 1110).reduce((a, p) => a + p.points, 0) / 20;
+    expect(mid).toBeGreaterThan(13);
+    expect(mid).toBeLessThan(21);
     // Le 1000e garde ses ~34 points de départ (barème inchangé jusqu'au 1000e).
     expect(db[999].points).toBeGreaterThanOrEqual(25);
   });

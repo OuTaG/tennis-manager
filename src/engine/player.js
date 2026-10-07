@@ -86,7 +86,7 @@ export function createInitialPlayer(name, styleId, startCity, startNationality, 
     difficulty: difficulty || 3,
     gameOptions: [...gameOptions],
     favoriteSurface: favoriteSurface || pickFavoriteSurface(styleId),
-    location: city, week: 1, year: 2026,
+    location: city, startCity: city, week: 1, year: 2026,
     money: startMoney(city, gameOptions), energy: 100,
     atpPointsLog: [], // carrière ATP démarrée de zéro : aucun point au départ
     stats, staff: [],

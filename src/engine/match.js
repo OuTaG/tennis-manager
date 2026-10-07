@@ -320,8 +320,8 @@ export function advanceMatchOneGame(matchData, playerStats, oppStats, opts = {})
       tbResumeFrom = resume.seq.length;
       tb = playOneTiebreak(tbCtx, tbTarget, tbFirstServer, !!m.matchFixThrown, { start: { pPts: resume.pPts, oPts: resume.oPts, seq: resume.seq, next: resume.miniGameWon ? "p" : "o" } });
     } else {
-      // Au plus un mini-jeu mental par tie-break, 20 % par balle de set.
-      tb = playOneTiebreak(tbCtx, tbTarget, tbFirstServer, !!m.matchFixThrown, { mentalChance: opts.allowTiebreakMental ? 0.2 : 0 });
+      // Au plus un mini-jeu mental par tie-break, 50 % par balle de set.
+      tb = playOneTiebreak(tbCtx, tbTarget, tbFirstServer, !!m.matchFixThrown, { mentalChance: opts.allowTiebreakMental ? 0.5 : 0 });
       if (tb.pending) {
         m.nextServerIsPlayer = isPlayerServing;
         m.pendingGame = { isTiebreak: true, isPlayerServing, pPts: tb.pPts, oPts: tb.oPts, seq: tb.seq, target: tbTarget };
