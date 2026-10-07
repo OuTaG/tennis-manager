@@ -2,7 +2,6 @@
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 export const SURFACES = ["Dur", "Terre battue", "Gazon", "Indoor"];
-export const SURFACE_EMOJI = { "Dur": "🔵", "Terre battue": "🟤", "Gazon": "🟢", "Indoor": "🏟️" };
 
 export const CITIES = {
   "Paris": { lat: 48.85, lon: 2.35, country: "France", flag: "🇫🇷" },

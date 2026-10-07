@@ -2332,11 +2332,11 @@ export default function TennisManager() {
           const playerWinner = {
             id: "human_player",
             name: rankingName(player.name),
-            nat: { flag: player.nationalityFlag || CITIES[player.location]?.flag || "🎾", country: player.nationality, code: "" },
+            nat: { flag: player.nationalityFlag || CITIES[player.location]?.flag || "", country: player.nationality, code: "" },
           };
           const runnerUp = ms.opponent ? {
             name: ms.opponent.name,
-            nat: ms.opponent.nat || { flag: "🎾", country: "" },
+            nat: ms.opponent.nat || { flag: "", country: "" },
           } : null;
           const article = generateTournamentArticle(tourn, playerWinner, runnerUp, [], [], fmtForArticle);
           // Convert into a journalist-style social post (world feed)
@@ -3991,8 +3991,8 @@ export default function TennisManager() {
                   uses to advance (m.nextServerIsPlayer). */}
               {(() => null)()}
               {[
-                { name: player.name, flag: player.nationalityFlag || "🎾", isP: true },
-                { name: ms.opponent.name, flag: ms.opponent.nat?.flag || "🎾", isP: false },
+                { name: player.name, flag: player.nationalityFlag || "", isP: true },
+                { name: ms.opponent.name, flag: ms.opponent.nat?.flag || "", isP: false },
               ].map((row, ri) => {
                 const lastS = setsPlayed[setsPlayed.length - 1];
                 // When the last set is finished, the next game opens a new set.
@@ -4379,7 +4379,7 @@ export default function TennisManager() {
                         <button
                           style={{ ...styles.btnPrimary, marginTop: "auto", background: T.green }}
                           onClick={() => { setTacticsOpen(false); if (!running) togglePause(); }}
-                        >Reprendre le match ▶</button>
+                        >Reprendre le match ▶&#xFE0E;</button>
                         <BoxShade boxRef={tacticsBoxRef} side="bottom" />
                       </div>
                     );

@@ -313,7 +313,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
         <button onClick={() => onDone(res.win, res.text, res.zone, res.label)} style={{
           minHeight: 52, border: "3px solid " + INK, background: PURPLE, color: "#ffffff", cursor: "pointer",
           fontFamily: T.display, fontSize: 19, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
-        }}>Continuer ▶</button>
+        }}>Continuer ▶︎</button>
       )}
     </div>
   );
@@ -569,7 +569,7 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
               <button onClick={() => onPick(chosen.card.id, chosen.outcome)} style={{
                 minHeight: 52, border: "3px solid " + INK, background: PURPLE, color: "#ffffff", cursor: "pointer",
                 fontFamily: T.display, fontSize: 19, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
-              }}>Continuer ▶</button>
+              }}>Continuer ▶︎</button>
             )}
           </div>
         )}

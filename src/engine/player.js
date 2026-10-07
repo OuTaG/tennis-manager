@@ -76,7 +76,7 @@ export function createInitialPlayer(name, styleId, startCity, startNationality, 
   const city = startCity || "Paris";
   const nationality = startNationality || CITIES[city]?.country || "France";
   // Flag of the chosen nationality (the start city is only a starting place).
-  const nationalityFlag = (Object.values(CITIES).find(c => c.country === nationality) || CITIES[city])?.flag || "🎾";
+  const nationalityFlag = (Object.values(CITIES).find(c => c.country === nationality) || CITIES[city])?.flag || "";
   return {
     careerId: "c" + Date.now().toString(36) + random().toString(36).slice(2, 6),
     name, age: 18, nationality, nationalityFlag, styleId, avatar: avatar || null,
@@ -255,12 +255,13 @@ export function totalAtpPoints(log) { return log.reduce((a, e) => a + e.points, 
 // severe (8-16 weeks, cannot play). Triggered with low probability when player picks
 // a risky dilemma option that has riskInjury set.
 export const INJURY_TYPES = [
-  { part: "mollet", emoji: "🦵" },
-  { part: "épaule", emoji: "💪" },
-  { part: "poignet", emoji: "✋" },
-  { part: "genou", emoji: "🦿" },
-  { part: "dos", emoji: "🔙" },
-  { part: "cheville", emoji: "🦶" },
+  // icon : nom d'un émoji BD (src/ui/bdEmoji.jsx).
+  { part: "mollet", icon: "leg" },
+  { part: "épaule", icon: "muscle" },
+  { part: "poignet", icon: "hand" },
+  { part: "genou", icon: "knee" },
+  { part: "dos", icon: "back" },
+  { part: "cheville", icon: "foot" },
 ];
 
 export function rollInjury() {
@@ -272,7 +273,7 @@ export function rollInjury() {
     return {
       severity: "minor",
       label: "Légère gêne au " + part.part,
-      emoji: part.emoji,
+      icon: part.icon,
       weeksRemaining: 1 + Math.floor(random() * 3), // 1-3
       statPenalty: 0.05,
       canPlay: true,
@@ -282,7 +283,7 @@ export function rollInjury() {
     return {
       severity: "moderate",
       label: "Blessure au " + part.part,
-      emoji: part.emoji,
+      icon: part.icon,
       weeksRemaining: 4 + Math.floor(random() * 5), // 4-8
       statPenalty: 0.15,
       canPlay: true,
@@ -291,7 +292,7 @@ export function rollInjury() {
   return {
     severity: "severe",
     label: "Blessure sévère au " + part.part,
-    emoji: part.emoji,
+    icon: part.icon,
     weeksRemaining: 8 + Math.floor(random() * 9), // 8-16
     statPenalty: 0.30,
     canPlay: false,

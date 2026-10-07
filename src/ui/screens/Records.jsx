@@ -45,7 +45,7 @@ export function RecordsScreen({ onBack }) {
                       {career ? (
                         <>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, minWidth: 0 }}>
-                            <FlagFromEmoji emoji={career.flag || "🎾"} size={12} />
+                            <FlagFromEmoji emoji={career.flag} size={12} />
                             <span className="tm-display" style={{ color: "#141414", fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{career.name}</span>
                           </div>
                           <div style={{ color: "#141414", fontSize: 11, fontWeight: 600, marginTop: 1 }}>
