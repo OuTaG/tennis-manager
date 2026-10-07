@@ -35,7 +35,8 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
     return ALL_TOURNAMENTS
       .filter(t => selSurfaces.length === 0 || selSurfaces.includes(t.surface))
       .filter(t => selTiers.length === 0 || selTiers.includes(t.tier))
-      .filter(t => !(playedThisWeek && t.week === player.week))
+      // Les tournois de la semaine en cours ne sont plus proposés.
+      .filter(t => t.week !== player.week)
       .filter(t => {
         // Filtre de distance depuis la ville actuelle (« all » = mondial).
         const maxKm = { r3000: 3000, r1000: 1000 }[calFilters.region];

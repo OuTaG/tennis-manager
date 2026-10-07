@@ -54,36 +54,93 @@ const BOX = { x: 180, y: 112, w: 140, h: 98 }; // carré de service visé
 const ORDER = [2, 1, 0]; // de la ligne médiane au couloir : Au T, Corps, Extérieur
 const CELL = BOX.w / 3;
 const zoneX = (zi) => BOX.x + ORDER.indexOf(zi) * CELL + CELL / 2;
-const LAND_Y = 168;
+const LAND_Y = 140;      // rebond du service, au fond du carré
 const TOP_Y = 70;      // relanceur
 const BOT_Y = 372;     // serveur
-const SERVER_X = 130;
+const SERVER_X = 165;  // le serveur se place près de la marque centrale
+const SINGLES = { x0: 40, x1: 320, y0: 16, y1: 404 }; // lignes du simple
 const pct = (v, total) => (v / total * 100) + "%";
 const rnd = (a, b) => a + Math.random() * (b - a); // cosmétique : trajectoires des échanges
+
+// Après un rebond, la balle garde son axe : prolonge le segment from → at
+// d'une longueur dist, ou (dist absent) jusqu'à sortir franchement du cadre.
+const EXIT = 40;
+function carryOn(from, at, dist) {
+  const dx = at.x - from.x, dy = at.y - from.y, L = Math.hypot(dx, dy) || 1;
+  const ux = dx / L, uy = dy / L;
+  let t = dist;
+  if (t === undefined) {
+    const tx = ux > 0 ? (VW + EXIT - at.x) / ux : ux < 0 ? (-EXIT - at.x) / ux : Infinity;
+    const ty = uy > 0 ? (VH + EXIT - at.y) / uy : uy < 0 ? (-EXIT - at.y) / uy : Infinity;
+    t = Math.min(tx, ty);
+  }
+  return { x: at.x + ux * t, y: at.y + uy * t };
+}
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+// Distance du point p au segment [a, b].
+const segDist = (p, a, b) => {
+  const dx = b.x - a.x, dy = b.y - a.y, L2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / L2));
+  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+};
+// Durée d'un segment après rebond : même vitesse qu'avant, freinée (×slow).
+const durAfter = (before, beforeDur, after, slow = 1.3) => Math.max(160, Math.round(dist(after.from, after.to) / (dist(before.from, before.to) / beforeDur) * slow));
+// Point de l'axe du service (départ → rebond) à la hauteur y.
+const serveAxisX = (lx, y) => lx + (lx - SERVER_X) * (LAND_Y - y) / (BOT_Y - 6 - LAND_Y);
 
 // Construit la suite des positions de la balle (et des joueurs) pour un duel.
 // r = résultat de resolveServeDuel (+ serveZone, readZone).
 export function buildDuelSteps(r) {
   const steps = [];
   const lx = zoneX(r.serveZone);
+  const serveFrom = { x: SERVER_X, y: BOT_Y - 6 };
+  const serveLand = { x: lx, y: LAND_Y };
   // 1. Le relanceur s'est placé là où il lit le service, le service part.
-  steps.push({ ball: { x: SERVER_X, y: BOT_Y - 6 }, dur: 0, ret: zoneX(r.readZone), srv: SERVER_X, hideZones: true });
+  steps.push({ ball: serveFrom, dur: 0, ret: zoneX(r.readZone), srv: SERVER_X, hideZones: true });
   // Le relanceur reste sur sa lecture pendant le service…
-  steps.push({ ball: { x: lx, y: LAND_Y }, dur: 430, bounce: true });
+  steps.push({ ball: serveLand, dur: 430, bounce: true });
+  const serveSeg = { from: serveFrom, to: serveLand };
   if (r.kind === "ace") {
-    // …et ne se jette d'une case qu'au dernier moment : trop tard, ace.
-    const k = (TOP_Y - 70 - LAND_Y) / (LAND_Y - BOT_Y);
-    steps.push({ ball: { x: lx + (lx - SERVER_X) * k, y: -40 }, dur: 380, ret: zoneX(r.shift), burst: { text: "ACE !", at: { x: lx, y: 96 } } });
+    // …et ne se jette d'une case qu'au dernier moment : trop tard. La balle
+    // garde l'axe du service et passe hors de portée (≥ 46 du relanceur).
+    const out = carryOn(serveFrom, serveLand);
+    const passX = serveAxisX(lx, TOP_Y);
+    const readX = zoneX(r.readZone);
+    let lunge = zoneX(r.shift);
+    const away = Math.sign(readX - passX) || 1;
+    if ((lunge - passX) * away < 46) lunge = passX + away * 46;
+    steps.push({ ball: out, dur: durAfter(serveSeg, 430, { from: serveLand, to: out }, 1.1), ret: lunge, burst: { text: "ACE !", at: { x: Math.min(290, Math.max(70, lx)), y: 96 } } });
     return steps;
   }
   // …puis se décale au dernier moment (s'il n'était pas sur la bonne
-  // zone) et touche la balle.
-  steps.push({ ball: { x: lx, y: TOP_Y + 18 }, dur: 260, ret: zoneX(r.shift) });
+  // zone) et touche la balle, toujours sur l'axe du service.
+  const contact = { x: serveAxisX(lx, TOP_Y + 18), y: TOP_Y + 18 };
+  steps.push({ ball: contact, dur: durAfter(serveSeg, 430, { from: serveLand, to: contact }), ret: contact.x });
+  // Coup gagnant de `from` : rebond dans le simple, du côté opposé à
+  // l'adversaire (en oppX), puis la balle file hors du cadre dans le même axe.
+  // L'adversaire esquisse un pas vers la balle, trop tard.
+  const winnerSteps = (from, toBottom, oppX, opts = {}) => {
+    const side = oppX < VW / 2 ? 1 : -1;
+    const depth = opts.lob ? 18 : 52; // distance à la ligne de fond
+    const land = { x: VW / 2 + side * (opts.drop ? 70 : 118), y: opts.drop ? (toBottom ? NET_Y + 30 : NET_Y - 30) : toBottom ? SINGLES.y1 - depth : SINGLES.y0 + depth };
+    const next = opts.drop ? carryOn(from, land, 26) : carryOn(from, land);
+    // Le pas (≤ 16) ne doit jamais ramener l'adversaire à moins de 90 de la
+    // trajectoire : adversaire au centre + frappe croisée très diagonale
+    // = pas réduit, voire nul. (Le lob, lui, passe au-dessus : seul son
+    // rebond et sa sortie comptent.)
+    const oppY = toBottom ? BOT_Y : TOP_Y;
+    const clearance = (x) => Math.min(opts.lob ? Infinity : segDist({ x, y: oppY }, from, land), segDist({ x, y: oppY }, land, next));
+    let stepLen = 16;
+    while (stepLen > 0 && clearance(oppX + side * stepLen) < 90) stepLen -= 4;
+    const reach = oppX + side * stepLen;
+    const hit = { ball: land, dur: opts.drop ? 520 : 430, bounce: true, [toBottom ? "srv" : "ret"]: reach };
+    const after = { ball: next, dur: opts.drop ? 520 : durAfter({ from, to: land }, 430, { from: land, to: next }) };
+    return [hit, after];
+  };
   if (r.kind === "return_winner") {
-    // Bien lu : retour gagnant à l'opposé du serveur. La balle rebondit
-    // d'abord dans le terrain (côté serveur, loin de lui), puis file hors du cadre.
-    steps.push({ ball: { x: 292, y: 352 }, dur: 430, srv: SERVER_X - 20, bounce: true });
-    steps.push({ ball: { x: VW + 50, y: VH + 50 }, dur: 260, burst: { text: "RETOUR GAGNANT !", at: { x: 250, y: 290 } } });
+    // Bien lu : retour gagnant loin du serveur.
+    const [hit, after] = winnerSteps(contact, true, SERVER_X);
+    steps.push(hit, { ...after, burst: { text: "RETOUR GAGNANT !", at: { x: 250, y: 290 } } });
     return steps;
   }
   // 2. Un point se joue : échanges, puis le dernier coup.
@@ -95,27 +152,38 @@ export function buildDuelSteps(r) {
   let shots = rally.rallies;
   if (shots % 2 !== finalHitter) shots++;
   let hitterTop = true; // le relanceur (en haut) frappe en premier
+  let retX = contact.x, srvX = SERVER_X;
   for (let i = 0; i < shots; i++) {
     const x = rnd(70, 290);
-    if (hitterTop) steps.push({ ball: { x, y: BOT_Y - 14 }, dur: 430, srv: x });
-    else steps.push({ ball: { x, y: TOP_Y + 18 }, dur: 430, ret: x });
+    if (hitterTop) { steps.push({ ball: { x, y: BOT_Y - 14 }, dur: 430, srv: x }); srvX = x; }
+    else { steps.push({ ball: { x, y: TOP_Y + 18 }, dur: 430, ret: x }); retX = x; }
     hitterTop = !hitterTop;
   }
   // Dernier coup, frappé par hitterTop ? relanceur : serveur.
   const toBottom = hitterTop; // la balle part vers le bas si le relanceur frappe
-  const labels = { winner: "GAGNANT !", net: "FILET !", out: "FAUTE !", drop: "AMORTIE !" };
-  let end;
-  if (rally.end === "winner") {
-    // Coup gagnant : rebond dans le terrain adverse, loin du joueur, puis hors cadre.
-    const side = rnd(0, 1) < 0.5 ? -1 : 1;
-    steps.push({ ball: { x: 180 + side * 112, y: toBottom ? 352 : 68 }, dur: 430, bounce: true });
-    end = { x: side < 0 ? -50 : VW + 50, y: toBottom ? VH + 50 : -50 };
+  const oppX = toBottom ? srvX : retX;
+  const prev = steps[steps.length - 1];
+  // Direction imposée par le texte : le frappeur se place du bon côté
+  // (le long de la ligne = même côté que la cible, croisé = côté opposé).
+  if (rally.dir && shots > 0) {
+    const side = oppX < VW / 2 ? 1 : -1;
+    const hx = VW / 2 + (rally.dir === "line" ? side : -side) * rnd(60, 110);
+    prev.ball = { ...prev.ball, x: hx };
+    if (prev.ret !== undefined) prev.ret = hx; else prev.srv = hx;
   }
-  else if (rally.end === "net") end = { x: rnd(90, 270), y: toBottom ? NET_Y - 8 : NET_Y + 8 };
-  else if (rally.end === "out") end = { x: rnd(0, 1) < 0.5 ? 8 : VW - 8, y: toBottom ? 330 : 90 };
-  else end = { x: rnd(110, 250), y: toBottom ? NET_Y + 22 : NET_Y - 22 };
-  const burstAt = { x: Math.min(290, Math.max(70, end.x)), y: toBottom ? 300 : 110 };
-  steps.push({ ball: end, dur: rally.end === "drop" ? 600 : rally.end === "winner" ? 260 : 460, bounce: rally.end !== "winner", burst: { text: labels[rally.end], at: burstAt } });
+  const from = prev.ball;
+  const labels = { winner: "GAGNANT !", net: "FILET !", out: "FAUTE !", drop: "AMORTIE !" };
+  const burstY = toBottom ? 300 : 110;
+  if (rally.end === "winner" || rally.end === "drop") {
+    const [hit, after] = winnerSteps(from, toBottom, oppX, { lob: rally.shot === "lob", drop: rally.end === "drop" });
+    steps.push(hit, { ...after, burst: { text: labels[rally.end], at: { x: Math.min(290, Math.max(70, hit.ball.x)), y: burstY } } });
+    return steps;
+  }
+  // Fautes : filet (la balle s'arrête au filet) ou dehors (rebond hors des lignes).
+  const end = rally.end === "net"
+    ? { x: rnd(90, 270), y: toBottom ? NET_Y - 8 : NET_Y + 8 }
+    : { x: rnd(0, 1) < 0.5 ? 8 : VW - 8, y: toBottom ? 330 : 90 };
+  steps.push({ ball: end, dur: 460, bounce: rally.end === "out", burst: { text: labels[rally.end], at: { x: Math.min(290, Math.max(70, end.x)), y: burstY } } });
   return steps;
 }
 
@@ -245,7 +313,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
         <button onClick={() => onDone(res.win, res.text, res.zone, res.label)} style={{
           minHeight: 52, border: "3px solid " + INK, background: PURPLE, color: "#ffffff", cursor: "pointer",
           fontFamily: T.display, fontSize: 19, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
-        }}>Continuer ▶</button>
+        }}>Continuer ▶︎</button>
       )}
     </div>
   );
@@ -254,12 +322,15 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
 // Mini-jeu mental (balle de set au tie-break) : le cœur bat, il faut
 // toucher trois fois quand il est au plus calme (cercle au plus petit,
 // dans l'anneau vert). Le mental du joueur élargit la marge. 2 sur 3 = gagné.
+const MENTAL_SPEED0 = 1.4, MENTAL_ACCEL = 1.22;
 function MentalGame({ mental = 60, done, onEnd }) {
   const [t, setT] = useState(0);
   const [taps, setTaps] = useState([]);
   const tRef = useRef(0);
   const rafRef = useRef(null);
-  const speed = useRef(1);
+  // Le cœur bat d'abord à 1,4× (un battement ≈ 0,75 s), puis s'emballe à
+  // chaque toucher (×1,22) : ≈ 0,61 s au 2e, ≈ 0,50 s au 3e.
+  const speed = useRef(MENTAL_SPEED0);
   const tol = Math.max(0.1, Math.min(0.3, 0.18 + ((mental ?? 60) - 60) / 400));
   useEffect(() => {
     if (done) return undefined;
@@ -286,7 +357,7 @@ function MentalGame({ mental = 60, done, onEnd }) {
     const good = d <= tol;
     const next = [...taps, good];
     setTaps(next);
-    speed.current *= 1.18; // le cœur s'emballe
+    speed.current *= MENTAL_ACCEL; // le cœur s'emballe
     if (next.length === 3) {
       cancelAnimationFrame(rafRef.current);
       const n = next.filter(Boolean).length;
@@ -322,7 +393,7 @@ function MentalGame({ mental = 60, done, onEnd }) {
 
 // Jauge de timing : l'aiguille fait des allers-retours, il faut frapper
 // quand elle traverse la zone verte.
-const GREEN_CENTER = 0.5, GREEN_HALF = 0.08, NEAR_HALF = 0.18;
+const GREEN_CENTER = 0.5, GREEN_HALF = 0.066, NEAR_HALF = 0.18;
 // Réactivité (mobile) : l'aiguille est déplacée directement dans le DOM
 // (transform, sans re-rendu React à chaque image) et la frappe part au
 // contact du doigt (pointerdown), pas au relâchement. La position est
@@ -498,7 +569,7 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
               <button onClick={() => onPick(chosen.card.id, chosen.outcome)} style={{
                 minHeight: 52, border: "3px solid " + INK, background: PURPLE, color: "#ffffff", cursor: "pointer",
                 fontFamily: T.display, fontSize: 19, textTransform: "uppercase", boxShadow: "4px 4px 0 " + INK,
-              }}>Continuer ▶</button>
+              }}>Continuer ▶︎</button>
             )}
           </div>
         )}

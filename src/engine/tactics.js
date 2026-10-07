@@ -1,5 +1,5 @@
 // Plan de jeu du joueur pendant un match (pause tactique).
-// Cinq réglages à trois positions. Chacun déplace la note effective du
+// Six réglages à trois positions. Chacun déplace la note effective du
 // joueur selon le duel de profils (ses points forts contre les points faibles
 // adverses) et la surface, et change la fatigue et l'allure des points.
 // Aucun réglage n'est bon partout : c'est le duel qui décide.
@@ -13,11 +13,13 @@ export const TACTIC_DEFS = [
     hints: ["use l'adversaire, coûte de l'énergie", "le juste milieu", "points courts, économise l'énergie"] },
   { key: "net",    label: "Filet",     options: ["Fond de court", "Parfois", "Monter"],
     hints: ["solide face à un bon passeur", "le juste milieu", "payant contre un passing faible, surtout sur gazon"] },
+  { key: "depth",  label: "Longueur",  options: ["Court", "Varier", "Long"],
+    hints: ["amorties : contre une volée faible", "imprévisible", "profond : contre un attaquant, pas un défenseur"] },
   { key: "target", label: "Cible",     options: ["Varier", "Son revers", "Son coup droit"],
     hints: ["imprévisible", "insister sur son revers", "insister sur son coup droit"] },
 ];
 
-export const DEFAULT_TACTICS = { style: 1, first: 1, rally: 1, net: 1, target: 0 };
+export const DEFAULT_TACTICS = { style: 1, first: 1, rally: 1, net: 1, depth: 1, target: 0 };
 
 const NET_SURFACE = { "Gazon": 1.4, "Indoor": 1.15, "Dur": 1, "Terre battue": 0.6 };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -50,6 +52,16 @@ export function tacticsBonus(tactics, me, opp, surface, serving) {
   const netK = NET_SURFACE[surface] ?? 1;
   if (t.net === 2) b += ((me.net ?? 50) - passing) * 0.10 * netK;
   if (t.net === 0) b += (passing - (opp.net ?? 50)) * 0.03;
+  // Longueur. Court : amorties et balles courtes qui attirent l'adversaire
+  // au filet, payant si sa volée est faible, puni si elle est forte.
+  // Long : balles profondes qui le repoussent loin de sa ligne, payant contre
+  // un attaquant qui aime prendre la balle tôt (service / coup droit au-dessus
+  // de sa défense), inutile voire puni contre un défenseur endurant à l'aise
+  // en fond de court. Varier : référence, sans bonus.
+  // (la volée se juge par rapport à ses coups de fond : un écart de 10 points
+  // est la norme du circuit, donc neutre).
+  if (t.depth === 0) b += (avg(opp.forehand, opp.backhand) - (opp.net ?? 50) - 10) * 0.12;
+  if (t.depth === 2) b += (oppAttack - oppDefense) * 0.12;
   // Cible : insister sur la faiblesse… ou sur la force.
   const wing = (opp.forehand ?? 50) - (opp.backhand ?? 50);
   if (t.target === 1) b += wing * 0.12;
@@ -81,6 +93,8 @@ export function tacticsEnergy(tactics) {
   if (t.rally === 0) { self *= 1.25; opp *= 1.2; }
   if (t.rally === 2) self *= 0.85;
   if (t.net === 2) self *= 1.08;
+  if (t.depth === 0) opp *= 1.06;  // l'adversaire court vers l'avant
+  if (t.depth === 2) self *= 1.04; // frapper profond demande plus d'effort
   return { self, opp };
 }
 
@@ -94,6 +108,8 @@ export function tacticsShape(tactics) {
   if (t.style === 0) longMul *= 1.3;
   if (t.rally === 0) longMul *= 1.4;
   if (t.rally === 2) longMul *= 0.6;
+  if (t.depth === 0) longMul *= 0.85;
+  if (t.depth === 2) longMul *= 1.15;
   return { aceMul, longMul };
 }
 
@@ -140,6 +156,8 @@ export function coachAdvice(me, opp, surface) {
     "style:0": "Il frappe fort. Défends, laisse-le faire la faute.",
     "first:2": "Ton service peut faire mal. Prends des risques en première.",
     "first:0": "Assure la première, ne lui offre pas de points.",
+    "depth:0": "Sa volée est faible. Joue court, attire-le au filet.",
+    "depth:2": "Il aime prendre la balle tôt. Joue long, repousse-le.",
   };
   if (!best || best.gain < 0.4) {
     return { text: "Match équilibré. Garde ton plan et reste solide.", key: null, value: null };

@@ -25,6 +25,23 @@ describe("plan de jeu", () => {
     expect(tacticsBonus(t, me, opp, "Gazon", false)).toBeGreaterThan(tacticsBonus(t, me, opp, "Terre battue", false));
   });
 
+  it("jouer court paie contre une volée faible, pas contre une volée forte", () => {
+    const t = { ...DEFAULT_TACTICS, depth: 0 };
+    expect(tacticsBonus(t, S(), S({ net: 42 }), "Dur", false)).toBeGreaterThan(1.5);
+    expect(tacticsBonus(t, S(), S({ net: 82 }), "Dur", false)).toBeLessThan(-1.5);
+  });
+
+  it("jouer long paie contre un attaquant, pas contre un défenseur endurant", () => {
+    const t = { ...DEFAULT_TACTICS, depth: 2 };
+    expect(tacticsBonus(t, S(), S({ serve: 82, forehand: 82, backhand: 62, stamina: 58 }), "Dur", false)).toBeGreaterThan(1.5);
+    expect(tacticsBonus(t, S(), S({ serve: 60, forehand: 62, backhand: 80, stamina: 82 }), "Dur", false)).toBeLessThan(-1.5);
+  });
+
+  it("varier la longueur est le réglage neutre (au milieu)", () => {
+    expect(DEFAULT_TACTICS.depth).toBe(1);
+    expect(normalizeTactics({}).depth).toBe(1);
+  });
+
   it("risquer la 1re balle : plus de doubles fautes, surtout fatigué", () => {
     const risk = { ...DEFAULT_TACTICS, first: 2 };
     expect(doubleFaultRate(risk, 90)).toBeGreaterThan(doubleFaultRate(DEFAULT_TACTICS, 90));

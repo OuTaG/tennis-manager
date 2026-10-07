@@ -70,7 +70,10 @@ export function generateAtpDatabase(roster = null) {
     else if (i < 250) points = Math.round(500 - (i - 100) * 1.8 + random() * 30);
     else if (i < 500) points = Math.round(230 - (i - 250) * 0.55 + random() * 20);
     else if (i < 800) points = Math.round(95 - (i - 500) * 0.18 + random() * 10);
-    else points = Math.max(5, Math.round(40 - (i - 800) * 0.045 + random() * 6));
+    else if (i < 1000) points = Math.max(5, Math.round(40 - (i - 800) * 0.045 + random() * 6));
+    // Au-delà du 1000e : dégradé régulier du niveau du 1000e (~34 pts) jusqu'à
+    // 1 point au 1200e, sans marche à la frontière du top 1000.
+    else points = Math.max(1, Math.round(1 + (1199 - i) * (33 / 199) + (random() - 0.5) * 2));
     const ratingBase = atpRatingForRank(i);
     players.push(makeAtpPlayer(name, nat, points, ratingBase));
     if (roster && roster[i].avatar) players[players.length - 1].avatar = roster[i].avatar;

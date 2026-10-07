@@ -101,10 +101,8 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Favourite surface */}
       {player.favoriteSurface && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffff", color: "#141414", border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "12px 14px", marginBottom: 14 }}>
-          <div className="tm-halftone-cyan" style={{ width: 38, height: 38, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <SurfaceIcon name={player.favoriteSurface} />
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", color: "#141414", border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "12px 14px", marginBottom: 14 }}>
+          <SurfaceIcon name={player.favoriteSurface} size={48} />
           <div style={{ minWidth: 0 }}>
             <span style={chip(INK, "#ffffff")}>Surface de prédilection</span>
             <div className="tm-display" style={{ color: "#141414", fontSize: 16, marginTop: 4 }}>{player.favoriteSurface} <span style={{ ...chip("#1f7a45", "#ffffff"), fontFamily: T.body, textTransform: "none", marginLeft: 4, verticalAlign: 2 }}>+{SURFACE_BONUS} en match</span></div>

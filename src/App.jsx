@@ -13,6 +13,7 @@ import { pickComment, pickDebrief } from "./engine/commentary.js";
 import { generateAtpDatabase, getPlayerProfile, getRating, pickOpponentForMatch } from "./engine/database.js";
 import { MATCH_FIX_DILEMMA, resolveDilemmaOption } from "./engine/dilemmas.js";
 import { feminizeText } from "./engine/feminize.js";
+import { firstSentence } from "./engine/text.js";
 import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/history.js";
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
 import { advanceMatchOneGame, aiMatchProb, clampMomentum, createInitialMatchData } from "./engine/match.js";
@@ -957,7 +958,7 @@ export default function TennisManager() {
     const tournamentPosts = (articles || []).map(a => {
       const author = pickRandom(SOCIAL_AUTHORS.journalists);
       // Use the article title as a tweet headline, body as continuation
-      const content = a.title + (a.body ? " — " + a.body.split(". ")[0] + "." : "");
+      const content = a.title + (a.body ? " — " + firstSentence(a.body) : "");
       return {
         id: a.id,
         author,
@@ -1838,7 +1839,10 @@ export default function TennisManager() {
     setMatchState(ms => {
       if (!ms) return ms;
       const m = { ...ms.matchData };
-      m.playerMomentum = clampMomentum((m.playerMomentum || 0) + miniGameEffect(win).momentumDelta);
+      // Élan symétrique : le vainqueur du mini-jeu prend l'élan (joueur ou adversaire).
+      const swing = miniGameEffect(true).momentumDelta;
+      if (win) m.playerMomentum = clampMomentum((m.playerMomentum || 0) + swing);
+      else m.oppMomentum = clampMomentum((m.oppMomentum || 0) + swing);
       if (zone !== null && zone !== undefined) m.serveZones = [...(m.serveZones || []), zone].slice(-8);
       // Le jeu interrompu reprend : gagné → jeu pour le joueur, perdu → égalité.
       if (m.pendingGame) m.pendingGame = { ...m.pendingGame, miniGameWon: !!win };
@@ -2328,11 +2332,11 @@ export default function TennisManager() {
           const playerWinner = {
             id: "human_player",
             name: rankingName(player.name),
-            nat: { flag: player.nationalityFlag || CITIES[player.location]?.flag || "🎾", country: player.nationality, code: "" },
+            nat: { flag: player.nationalityFlag || CITIES[player.location]?.flag || "", country: player.nationality, code: "" },
           };
           const runnerUp = ms.opponent ? {
             name: ms.opponent.name,
-            nat: ms.opponent.nat || { flag: "🎾", country: "" },
+            nat: ms.opponent.nat || { flag: "", country: "" },
           } : null;
           const article = generateTournamentArticle(tourn, playerWinner, runnerUp, [], [], fmtForArticle);
           // Convert into a journalist-style social post (world feed)
@@ -2340,7 +2344,7 @@ export default function TennisManager() {
           const journoPost = {
             id: article.id,
             author: journoAuthor,
-            content: article.title + (article.body ? " — " + article.body.split(". ")[0] + "." : ""),
+            content: article.title + (article.body ? " — " + firstSentence(article.body) : ""),
             likes: randomLikes(1500, 8000),
             retweets: randomLikes(200, 1200),
             week: player.week, year: player.year,
@@ -3987,8 +3991,8 @@ export default function TennisManager() {
                   uses to advance (m.nextServerIsPlayer). */}
               {(() => null)()}
               {[
-                { name: player.name, flag: player.nationalityFlag || "🎾", isP: true },
-                { name: ms.opponent.name, flag: ms.opponent.nat?.flag || "🎾", isP: false },
+                { name: player.name, flag: player.nationalityFlag || "", isP: true },
+                { name: ms.opponent.name, flag: ms.opponent.nat?.flag || "", isP: false },
               ].map((row, ri) => {
                 const lastS = setsPlayed[setsPlayed.length - 1];
                 // When the last set is finished, the next game opens a new set.
@@ -4084,8 +4088,9 @@ export default function TennisManager() {
                 <div key={i} title="Élan : la dynamique du match" style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", marginBottom: 2 }}>Élan</div>
                   <div style={{ position: "relative", height: 9, border: "2px solid " + T.ink, background: "linear-gradient(90deg, #d6ef3c 0 50%, #c9b6ea 50% 100%)" }}>
-                    {/* Votre élan pousse le curseur de votre côté (à gauche, sous votre énergie). */}
-                    <div style={{ position: "absolute", top: -4, width: 6, height: 13, marginLeft: -3, background: T.ink, left: (50 - (m.playerMomentum || 0) * 10) + "%", transition: "left 0.3s" }} />
+                    {/* Élan net (le vôtre moins celui de l'adversaire) : à gauche s'il est
+                        pour vous, à droite s'il est pour lui, avec la même amplitude. */}
+                    <div style={{ position: "absolute", top: -4, width: 6, height: 13, marginLeft: -3, background: T.ink, left: (50 - clampMomentum((m.playerMomentum || 0) - (m.oppMomentum || 0)) * 10) + "%", transition: "left 0.3s" }} />
                   </div>
                 </div>
               ))}
@@ -4164,7 +4169,28 @@ export default function TennisManager() {
                     <div style={{ width: "100%", maxWidth: 400, background: "#ffffff", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, flexShrink: 0 }}>
                       {[{ name: player.name, isP: true }, { name: ms.opponent.name, isP: false }].map((row, ri) => (
                         <div key={ri} style={{ display: "flex", alignItems: "center", borderTop: ri ? "2px solid " + T.ink : "none", background: row.isP ? "rgba(214,239,60,0.22)" : "transparent" }}>
-                          <span className="tm-display" style={{ flex: 1, minWidth: 0, padding: "5px 10px", fontSize: 13, color: "#141414", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
+                          <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 7, padding: "5px 10px" }}>
+                            {/* Balle devant le serveur, comme sur l'écran du match */}
+                            {(() => {
+                              // Au tie-break, isPlayerServing est le premier serveur :
+                              // 1 point puis 2 chacun (même règle que le moteur).
+                              const playerServes = !pg ? false : pg.isTiebreak
+                                ? ((Math.floor(((pg.seq || []).length + 1) / 2) % 2) === 0) === !!pg.isPlayerServing
+                                : !!pg.isPlayerServing;
+                              const isServing = !!pg && (row.isP ? playerServes : !playerServes);
+                              return (
+                                <span style={{ width: 14, height: 14, borderRadius: 7, flexShrink: 0, position: "relative", background: isServing ? "#d6ef3c" : "transparent", border: isServing ? "2px solid " + T.ink : "none" }}>
+                                  {isServing && (
+                                    <svg viewBox="0 0 14 14" style={{ position: "absolute", inset: 0 }}>
+                                      <path d="M 1 5 Q 7 7 13 5" fill="none" stroke="#000" strokeWidth="0.6" opacity="0.6" />
+                                      <path d="M 1 9 Q 7 11 13 9" fill="none" stroke="#000" strokeWidth="0.6" opacity="0.6" />
+                                    </svg>
+                                  )}
+                                </span>
+                              );
+                            })()}
+                            <span className="tm-display" style={{ minWidth: 0, fontSize: 13, color: "#141414", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
+                          </span>
                           {setsPlayed.map((st, i) => (
                             <span key={i} className="tm-display" style={{ width: 30, textAlign: "center", fontSize: 17, color: !st.completed ? T.magenta : "#141414" }}>{row.isP ? st.pGames : st.oGames}</span>
                           ))}
@@ -4353,7 +4379,7 @@ export default function TennisManager() {
                         <button
                           style={{ ...styles.btnPrimary, marginTop: "auto", background: T.green }}
                           onClick={() => { setTacticsOpen(false); if (!running) togglePause(); }}
-                        >Reprendre le match ▶</button>
+                        >Reprendre le match ▶&#xFE0E;</button>
                         <BoxShade boxRef={tacticsBoxRef} side="bottom" />
                       </div>
                     );

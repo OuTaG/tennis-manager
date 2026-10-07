@@ -4,7 +4,7 @@ import { FlagFromEmoji } from "../icons.jsx";
 import { T } from "../theme.js";
 
 // Plays out a single game (or tiebreak) point-by-point on a top-down tennis
-// court. The ball shuttles left↔right across the net for a number of exchanges
+// court. The ball shuttles left/right across the net for a number of exchanges
 // proportional to the point's rally length, then "lands" on the loser's side.
 // The live game score (0/15/30/40/AV) updates after each point. Designed to
 // build tension: break/set points pulse red, the final point lingers, and the
@@ -23,8 +23,8 @@ export function RallyOverlay({
   points = [],
   playerName = "Vous",
   oppName = "Adversaire",
-  playerFlag = "🎾",
-  oppFlag = "🎾",
+  playerFlag = "",
+  oppFlag = "",
   isTiebreak = false,
   contextLabel = "",
   finalGameWinner = "p",

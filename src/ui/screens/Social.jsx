@@ -1,7 +1,8 @@
 // Écran Bureau › Social.
 import { useState } from "react";
 import { adjustLife } from "../../engine/player.js";
-import { FlagFromEmoji, Icon, SurfaceIcon, withFlags } from "../icons.jsx";
+import { withBdEmoji } from "../bdEmoji.jsx";
+import { FlagFromEmoji, Icon, SurfaceIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
@@ -128,7 +129,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
             background: "#ffffff", borderLeft: "2.5px solid " + INK, borderTop: "2.5px solid " + INK,
             transform: "rotate(45deg) skew(8deg, 8deg)",
           }} />
-          {withFlags(p.content)}
+          {withBdEmoji(p.content, 17)}
         </div>
 
         {/* Tournament chips if any */}
@@ -177,7 +178,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
                     color: "#141414", fontSize: 12.5, fontWeight: 700, fontFamily: T.body,
                     textAlign: "left", cursor: "pointer",
                   }}
-                >« {opt.label} »</button>
+                >« {withBdEmoji(opt.label, 16)} »</button>
               ))}
             </div>
           </div>
@@ -190,7 +191,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
             borderRadius: 0, padding: "8px 12px",
             color: "#141414", fontSize: 12.5, fontWeight: 600, fontStyle: "italic",
           }}>
-            Votre réponse : « {p.repliedWith} »
+            Votre réponse : « {withBdEmoji(p.repliedWith, 16)} »
           </div>
         )}
       </div>
@@ -212,7 +213,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
         </div>
 
         {/* Choix du fil : contrôle segmenté cerné d'encre */}
-        <div style={{ display: "flex", borderBottom: "3px solid " + INK }}>
+        <div style={{ display: "flex" }}>
           {[
             { id: "world", label: "Monde", icon: "news" },
             { id: "personal", label: "Pour vous", icon: "chat" },
@@ -236,11 +237,6 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
               </button>
             );
           })}
-        </div>
-        <div className="tm-lettering" style={{ color: "#141414", fontSize: 14.5, padding: "7px 12px" }}>
-          {activeFeed === "personal"
-            ? "Fans et presse vous interpellent. Vos réponses comptent."
-            : "L'actualité du circuit : résultats, rumeurs, annonces."}
         </div>
       </div>
 

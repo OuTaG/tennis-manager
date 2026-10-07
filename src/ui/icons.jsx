@@ -103,19 +103,161 @@ export function FlagFromEmoji({ emoji, size = 14, style }) {
 }
 
 
+// Logos de surface version BD : un court vu en plongée, cerné d'encre avec
+// une ombre portée, et une texture propre à chaque surface (bandes de tonte
+// et touffes pour le gazon, traces de glissade et poussière pour la terre
+// battue, liseré et reflet pour le dur, toit et projecteur pour l'indoor).
+const SURFACE_STYLE = {
+  "Gazon": { fill: "#1f7a45", light: "#2f9a5a", dark: "#145c33" },
+  "Terre battue": { fill: "#c4622d", light: "#e48a52", dark: "#8f4219" },
+  "Dur": { fill: "#2c6fd1", light: "#7fb0f0", dark: "#1d4f9c" },
+  "Indoor": { fill: "#5b2d8e", light: "#c9b6ea", dark: "#3d1d63" },
+};
+
 export function SurfaceIcon({ name, size = 14 }) {
-  const colors = {
-    "Dur": "#4a7896",          // bleu ardoise
-    "Terre battue": "#b95d38", // terre battue
-    "Gazon": "#5b8a45",        // gazon
-    "Indoor": "#7a6a8e",       // salle (lilas grisé)
-  };
-  const c = colors[name] || T.fg5;
+  const clipId = "tm-surf-" + useId().replace(/:/g, "");
+  const s = SURFACE_STYLE[name] || { fill: "#8a8a8a", light: "#c2c2c2", dark: "#5a5a5a" };
+  const INK = "#141414";
+  const indoor = name === "Indoor";
+  // Trapèze du court : haut (t, demi-largeur a), bas (b, demi-largeur c).
+  const t = indoor ? 10.5 : 4.6, b = indoor ? 21 : 19.6;
+  const a = indoor ? 6.2 : 7.2, c = indoor ? 9.6 : 10.4;
+  const hw = (y) => a + (c - a) * (y - t) / (b - t);
+  const pts = (tt, bb, k) => [
+    [12 - hw(tt) * k, tt], [12 + hw(tt) * k, tt], [12 + hw(bb) * k, bb], [12 - hw(bb) * k, bb],
+  ].map(p => p.map(n => n.toFixed(2)).join(",")).join(" ");
+  const outer = pts(t, b, 1);
+  const L = b - t;
+  const yNet = t + 0.44 * L, ySvT = t + 0.2 * L, ySvB = t + 0.72 * L;
+  const k = 0.8; // couloirs : lignes de simple en retrait
+  const hline = (y, kk) => `M${(12 - hw(y) * kk).toFixed(2)} ${y.toFixed(2)}H${(12 + hw(y) * kk).toFixed(2)}`;
+  const lw = 0.9;
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle" }}>
-      <rect x="1" y="3" width="14" height="10" rx="1" fill={c} stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
-      <line x1="8" y1="3" x2="8" y2="13" stroke="white" strokeWidth="0.6" opacity="0.7" />
-      <line x1="1" y1="8" x2="15" y2="8" stroke="white" strokeWidth="0.4" opacity="0.5" />
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"
+      style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle", overflow: "visible" }}>
+      <defs>
+        <clipPath id={clipId}><polygon points={outer} /></clipPath>
+      </defs>
+      {indoor && (
+        <>
+          {/* Toit de la salle */}
+          <path d="M1.2 11.6 Q12 -2.6 22.8 11.6" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" />
+          <path d="M4.6 7.4 L19.4 7.4" stroke={INK} strokeWidth="1" opacity="0.55" />
+        </>
+      )}
+      {/* Ombre portée encrée */}
+      <polygon points={outer} fill={INK} transform="translate(1.1 1.1)" />
+      <polygon points={outer} fill={s.fill} />
+      <g clipPath={`url(#${clipId})`}>
+        {name === "Gazon" && [0, 2, 4].map(i => (
+          <rect key={i} x="0" y={t + (i + 0.5) * L / 6} width="24" height={L / 6} fill={s.light} />
+        ))}
+        {name === "Terre battue" && (
+          <>
+            <path d={`M5.6 ${b - 2.2} Q9 ${b - 4.4} 13.5 ${b - 3.2}`} fill="none" stroke={s.light} strokeWidth="1.5" strokeLinecap="round" />
+            <path d={`M6.4 ${b - 1} Q10 ${b - 2.8} 14.4 ${b - 1.9}`} fill="none" stroke={s.light} strokeWidth="1" strokeLinecap="round" />
+            <circle cx="16.6" cy={t + 3} r="0.6" fill={s.dark} />
+            <circle cx="8" cy={t + 2.2} r="0.5" fill={s.dark} />
+            <circle cx="17.6" cy={b - 4.4} r="0.55" fill={s.dark} />
+          </>
+        )}
+        {name === "Dur" && (
+          <polygon points={pts(t + 0.4, b - 0.6, 0.9)} fill={s.dark} opacity="0.55" />
+        )}
+        {indoor && (
+          <polygon points={`12,${t - 6} ${12 - hw(b) * 0.7},${b} ${12 + hw(b) * 0.7},${b}`} fill={s.light} opacity="0.35" />
+        )}
+        {/* Lignes blanches */}
+        <g fill="none" stroke="#ffffff" strokeWidth={lw} strokeLinecap="square">
+          <polygon points={pts(t + 0.9, b - 1.1, k)} />
+          <path d={hline(ySvT, k) + hline(ySvB, k)} />
+          <path d={`M12 ${ySvT.toFixed(2)}V${ySvB.toFixed(2)}`} />
+        </g>
+      </g>
+      {/* Contour d'encre */}
+      <polygon points={outer} fill="none" stroke={INK} strokeWidth="1.6" strokeLinejoin="round" />
+      {/* Filet */}
+      <path d={hline(yNet, 1.08)} stroke={INK} strokeWidth="1.7" strokeLinecap="round" />
+      {name === "Gazon" && (
+        // Touffes d'herbe qui débordent du court
+        <g fill={s.fill} stroke={INK} strokeWidth="0.9" strokeLinejoin="round">
+          <path d="M0.6 21.8 L1.4 17.6 L2.4 20.4 L3.4 16.8 L4.2 20.6 L5.2 18.4 L5.6 21.8 Z" />
+          <path d="M17.8 21.8 L18.4 18.6 L19.4 20.6 L20.4 17 L21.2 20.4 L22.4 17.8 L23.2 21.8 Z" />
+        </g>
+      )}
+      {name === "Terre battue" && (
+        // Nuage de poussière de glissade
+        <g fill="#f3c9a4" stroke={INK} strokeWidth="0.9">
+          <circle cx="19.6" cy="20.4" r="1.6" />
+          <circle cx="21.9" cy="19.6" r="1.25" />
+        </g>
+      )}
+      {name === "Dur" && (
+        // Reflet : la surface brille
+        <path d="M15.4 7.4 L17.4 6.4 M15.8 9 L18.6 7.6" stroke="#ffffff" strokeWidth="1.1" strokeLinecap="round" />
+      )}
+      {indoor && (
+        // Projecteur au plafond
+        <circle cx="12" cy="4.6" r="1.7" fill="#d6ef3c" stroke={INK} strokeWidth="1" />
+      )}
+    </svg>
+  );
+}
+
+// Pictos BD des jauges de vie (Bonheur, Popularité, Image) et des coûts
+// d'activité (énergie, argent) : aplats de couleur cernés d'encre avec une
+// ombre portée décalée, lisibles de 12 à 32 px.
+const STAT_SHAPES = {
+  happiness: [
+    { d: "M12 20.6C5 15.6 2.5 12.1 2.5 8.7 2.5 5.7 4.8 3.6 7.4 3.6c2 0 3.6 1.2 4.6 3 1-1.8 2.6-3 4.6-3 2.6 0 4.9 2.1 4.9 5.1 0 3.4-2.5 6.9-9.5 11.9z", fill: "#c4302b" },
+  ],
+  popularity: [
+    { d: "M10 1.2Q11.3 8.7 18.8 10 11.3 11.3 10 18.8 8.7 11.3 1.2 10 8.7 8.7 10 1.2z", fill: "#d6ef3c" },
+    { d: "M18.6 12.8Q19.2 16.8 23 17.4 19.2 18 18.6 22 18 18 14.2 17.4 18 16.8 18.6 12.8z", fill: "#c9b6ea" },
+  ],
+  image: [
+    { d: "M10.6 20.4c0-4.4 2.4-7 5.4-7s5.4 2.6 5.4 7z", fill: "#c9b6ea" },
+    { circle: [16, 8, 3], fill: "#c9b6ea" },
+    { d: "M2.4 21.6c0-5 2.9-7.8 6.6-7.8s6.6 2.8 6.6 7.8z", fill: "#2c6fd1" },
+    { circle: [9, 8.8, 3.5], fill: "#2c6fd1" },
+  ],
+  energy: [
+    { d: "M13.8 1.8 4.4 13.6h6.4l-1.6 8.6 10.4-12.8h-6.6z", fill: "#d6ef3c" },
+  ],
+  money: [
+    { circle: [12, 12, 9], fill: "#e0a21b" },
+  ],
+};
+const STAT_DECOR = {
+  happiness: <path d="M5.4 8.6Q5.6 6.4 7.6 6" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />,
+  popularity: <path d="M17.6 4.4l2-2M19.4 7.2l2.6-.6" fill="none" stroke="#141414" strokeWidth="1.6" strokeLinecap="round" />,
+  image: <path d="M6.6 7.4Q7.2 6 8.6 5.8" fill="none" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round" />,
+  money: (
+    <g fill="none" stroke="#141414" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="12" cy="12" r="6.6" strokeWidth="0.8" opacity="0.5" />
+      <path d="M15 8.6a4 4 0 1 0 0 6.8" />
+      <path d="M7.6 11h5.2M7.6 13.2h5.2" />
+    </g>
+  ),
+};
+
+export function StatIcon({ name, size = 16, style }) {
+  const shapes = STAT_SHAPES[name];
+  if (!shapes) return null;
+  const draw = (sh, i, shadow) => {
+    const p = shadow
+      ? { fill: "#141414", transform: "translate(1.2 1.2)" }
+      : { fill: sh.fill, stroke: "#141414", strokeWidth: 1.6, strokeLinejoin: "round" };
+    return sh.circle
+      ? <circle key={(shadow ? "s" : "f") + i} cx={sh.circle[0]} cy={sh.circle[1]} r={sh.circle[2]} {...p} />
+      : <path key={(shadow ? "s" : "f") + i} d={sh.d} {...p} />;
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"
+      style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle", overflow: "visible", ...style }}>
+      {shapes.map((sh, i) => draw(sh, i, true))}
+      {shapes.map((sh, i) => draw(sh, i, false))}
+      {STAT_DECOR[name]}
     </svg>
   );
 }
@@ -208,6 +350,9 @@ export const HAND_ICONS = {
   ),
 };
 
+// Pictos BD accessibles via <Icon name="happiness" /> etc.
+const STAT_ICON_NAMES = { happiness: "happiness", popularity: "popularity", image: "image" };
+
 export function Icon({ name, size = 14, color = "currentColor", strokeWidth = 1.8, style }) {
   if (HAND_ICONS[name]) {
     return (
@@ -244,6 +389,7 @@ export function Icon({ name, size = 14, color = "currentColor", strokeWidth = 1.
     dice: Dices,
     lock: Lock, plus: Plus,
   };
+  if (STAT_ICON_NAMES[name]) return <StatIcon name={STAT_ICON_NAMES[name]} size={size} style={style} />;
   if (name === "glove") return <BoxingGloveIcon size={size} color={color} strokeWidth={strokeWidth} style={style} />;
   const C = map[name];
   if (!C) return null;

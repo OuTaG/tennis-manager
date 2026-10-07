@@ -31,6 +31,9 @@ export function opponentRead(history, oppStats) {
 // rallies = nombre d'allers-retours avant le dernier coup ;
 // end = fin visuelle : "winner" (passe l'adversaire et sort du cadre),
 // "net" (dans le filet), "out" (dehors), "drop" (amortie qui meurt).
+// dir (facultatif) : direction imposée par le texte du coup gagnant
+// ("line" = le long de la ligne, "cross" = croisé) ; shot : "lob" (rebond
+// profond). Sans dir, le gagnant part simplement loin de l'adversaire.
 export const RALLY_POINTS = [
   { serverWins: true,  rallies: 0, end: "net",    text: "Retour dans le filet." },
   { serverWins: true,  rallies: 1, end: "winner", text: "Service-volée : volée gagnante." },
@@ -38,10 +41,10 @@ export const RALLY_POINTS = [
   { serverWins: true,  rallies: 3, end: "drop",   text: "Amortie gagnante du serveur." },
   { serverWins: true,  rallies: 3, end: "winner", text: "Lob trop court, smash du serveur." },
   { serverWins: true,  rallies: 5, end: "out",    text: "Long échange, le relanceur finit par sortir la balle." },
-  { serverWins: false, rallies: 2, end: "winner", text: "Passing-shot le long de la ligne !" },
+  { serverWins: false, rallies: 2, end: "winner", dir: "line", text: "Passing-shot le long de la ligne !" },
   { serverWins: false, rallies: 3, end: "net",    text: "Faute directe du serveur dans le filet." },
-  { serverWins: false, rallies: 2, end: "winner", text: "Lob gagnant par-dessus le serveur !" },
-  { serverWins: false, rallies: 4, end: "winner", text: "Revers croisé gagnant du relanceur !" },
+  { serverWins: false, rallies: 2, end: "winner", shot: "lob", text: "Lob gagnant par-dessus le serveur !" },
+  { serverWins: false, rallies: 4, end: "winner", dir: "cross", text: "Revers croisé gagnant du relanceur !" },
 ];
 
 // Duel service / retour : serveZone = où part le service, readZone = où

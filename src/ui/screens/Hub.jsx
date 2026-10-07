@@ -1,10 +1,12 @@
 // Écran Accueil : la une du journal.
+import { useState } from "react";
 import { PLAYER_STYLES } from "../../data/staff.js";
 import { ALL_TOURNAMENTS, tierColor, tierLabel } from "../../engine/circuit.js";
-import { difficultyLevel, formatMultiplier, scoreMultiplier } from "../../engine/difficulty.js";
+import { GAME_OPTIONS, difficultyLevel, formatMultiplier, scoreMultiplier } from "../../engine/difficulty.js";
+import { CITIES } from "../../data/geo.js";
 import { buildFrontPage } from "../../engine/frontpage.js";
 import { Avatar } from "../avatar.jsx";
-import { FlagFromEmoji, Icon } from "../icons.jsx";
+import { FlagFromEmoji, Icon, StatIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
@@ -25,9 +27,9 @@ function MoodGauge({ icon, label, value, color, words }) {
   const v = Math.max(0, Math.min(100, Math.round(value)));
   const word = v >= 75 ? words[3] : v >= 50 ? words[2] : v >= 25 ? words[1] : words[0];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "26px minmax(0, 1fr) 40px", alignItems: "center", gap: 8 }}>
-      <span style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", background: color, border: "2px solid " + T.ink }}>
-        <Icon name={icon} size={14} color="#ffffff" />
+    <div style={{ display: "grid", gridTemplateColumns: "28px minmax(0, 1fr) 40px", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, transform: "rotate(-4deg)" }}>
+        <StatIcon name={icon} size={20} />
       </span>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6, marginBottom: 3 }}>
@@ -53,6 +55,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
   const story = buildFrontPage({ player, ranking, enrolled });
   const level = difficultyLevel(player.difficulty ?? 3);
   const mul = scoreMultiplier(player);
+  const [showSetup, setShowSetup] = useState(false);
   const ss = (player.seasonStats && player.seasonStats.year === player.year) ? player.seasonStats : { wins: 0, losses: 0, titles: 0 };
 
   return (
@@ -93,7 +96,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
               {player.nationalityFlag && <FlagFromEmoji emoji={player.nationalityFlag} size={13} />}{player.age} ans
             </span>
           </span>
-          <span style={{ background: T.magenta, color: "#ffffff", fontSize: 11, fontWeight: 800, padding: "2px 6px", transform: "rotate(-3deg)", whiteSpace: "nowrap", textTransform: "uppercase" }}>{level.name} {formatMultiplier(mul)}</span>
+          <button onClick={() => setShowSetup(true)} title="Voir les réglages de la partie" style={{ background: T.magenta, color: "#ffffff", fontSize: 11, fontWeight: 800, padding: "2px 6px", transform: "rotate(-3deg)", whiteSpace: "nowrap", textTransform: "uppercase", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, cursor: "pointer", fontFamily: T.body }}>{level.name} {formatMultiplier(mul)}</button>
         </div>
         {[
           { label: "Rang", value: ranking > 1000 ? "—" : ranking },
@@ -282,7 +285,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
                   </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <span style={{ color: met ? T.green : T.fg4, fontSize: 11 }}>{met ? "✓ " : ""}{o.label}</span>
+                  <span style={{ color: met ? T.green : T.fg4, fontSize: 11 }}>{met && <Icon name="check" size={11} strokeWidth={3} style={{ marginRight: 3, verticalAlign: -1 }} />}{o.label}</span>
                   <span style={{ color: T.green, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", marginLeft: 8 }}>+{(s.objectiveReward || 0).toLocaleString()}€ / −{(s.objectivePenalty || 0).toLocaleString()}€</span>
                 </div>
                 <div style={{ height: 12, background: "#ffffff", border: "2px solid " + T.ink, overflow: "hidden" }}>
@@ -298,15 +301,63 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       <section aria-label="Moral et réputation" className="tm-fade-up" style={{ background: T.bg1, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, marginBottom: 14 }}>
         <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, padding: "5px 10px", letterSpacing: 0.5 }}>Moral et réputation</div>
         <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
-          <MoodGauge icon="heart" label="Bonheur" value={player.happiness ?? 70} color="#1f7a45" words={["Au fond du trou", "Morose", "Serein", "Aux anges"]} />
-          <MoodGauge icon="megaphone" label="Popularité" value={player.popularity ?? 20} color="#5b2d8e" words={["Inconnu", "Remarqué", "Apprécié", "Star"]} />
-          <MoodGauge icon="star" label="Image" value={player.image ?? 60} color="#c4572b" words={["Sulfureuse", "Fragile", "Correcte", "Exemplaire"]} />
+          <MoodGauge icon="happiness" label="Bonheur" value={player.happiness ?? 70} color="#1f7a45" words={["Au fond du trou", "Morose", "Serein", "Aux anges"]} />
+          <MoodGauge icon="popularity" label="Popularité" value={player.popularity ?? 20} color="#5b2d8e" words={["Inconnu", "Remarqué", "Apprécié", "Star"]} />
+          <MoodGauge icon="image" label="Image" value={player.image ?? 60} color="#c4572b" words={["Sulfureuse", "Fragile", "Correcte", "Exemplaire"]} />
         </div>
       </section>
 
       <button style={{ ...styles.btnPrimary, opacity: isAdvancingWeek ? 0.5 : 1 }} disabled={isAdvancingWeek} onClick={advanceWeek}>
         {isAdvancingWeek ? "Simulation en cours…" : "Semaine suivante →"}
       </button>
+
+      {/* Réglages de la partie (lecture seule) : difficulté, options, ville de départ */}
+      {showSetup && (() => {
+        const opts = GAME_OPTIONS.filter(o => (player.gameOptions || []).includes(o.id));
+        const city = player.startCity;
+        return (
+          <div onClick={() => setShowSetup(false)} style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 380, width: "100%" }}>
+              <div className="tm-display" style={{ background: T.magenta, color: "#ffffff", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <span>Réglages de la partie</span>
+                <span style={{ background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, fontSize: 14, padding: "0 6px" }}>{formatMultiplier(mul)}</span>
+              </div>
+              <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}>
+                  <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 12.5, padding: "3px 9px" }}>Difficulté</div>
+                  <div style={{ padding: "6px 9px" }}>
+                    <div className="tm-display" style={{ fontSize: 16 }}>{level.name} <span style={{ color: T.magenta }}>{formatMultiplier(level.scoreMul)}</span></div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 2 }}>{level.desc}</div>
+                  </div>
+                </div>
+                <div style={{ border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}>
+                  <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 12.5, padding: "3px 9px" }}>Options de partie</div>
+                  <div style={{ padding: "4px 9px 6px" }}>
+                    {opts.length === 0 ? (
+                      <div className="tm-lettering" style={{ fontSize: 15 }}>Aucune option.</div>
+                    ) : opts.map((o, i) => (
+                      <div key={o.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderTop: i ? "1.5px dashed " + T.ink : "none" }}>
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ display: "block", fontWeight: 800, fontSize: 13 }}>{o.name}</span>
+                          <span style={{ display: "block", fontSize: 11.5, fontWeight: 600 }}>{o.desc}</span>
+                        </span>
+                        <span className="tm-num" style={{ fontWeight: 800, fontSize: 12.5, color: "#1f7a45", flexShrink: 0 }}>+{Math.round(o.bonus * 100)} %</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}>
+                  <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 12.5, padding: "3px 9px" }}>Ville de départ</div>
+                  <div className="tm-display" style={{ padding: "6px 9px", fontSize: 15, display: "flex", alignItems: "center", gap: 7 }}>
+                    {city ? <><FlagFromEmoji emoji={CITIES[city]?.flag} size={15} />{city}{CITIES[city]?.country ? <span style={{ fontFamily: T.body, fontSize: 12, fontWeight: 700 }}>· {CITIES[city].country}</span> : null}</> : <span className="tm-lettering" style={{ fontSize: 15, fontWeight: 400 }}>Non enregistrée pour cette carrière.</span>}
+                  </div>
+                </div>
+                <button style={styles.btnSecondary} onClick={() => setShowSetup(false)}>Fermer</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {canRetire && (
         <button style={{ ...styles.btnSecondary, marginTop: 10 }} onClick={retire}>
