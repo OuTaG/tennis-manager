@@ -321,7 +321,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
 
 // Mini-jeu mental (balle de set au tie-break) : le cœur bat, il faut
 // toucher trois fois quand il est au plus calme (cercle au plus petit,
-// dans l'anneau vert). Le mental du joueur élargit la marge. 2 sur 3 = gagné.
+// dans l'anneau vert). Le mental du joueur élargit la marge. 3 sur 3 = gagné.
 const MENTAL_SPEED0 = 1.4, MENTAL_ACCEL = 1.22;
 function MentalGame({ mental = 60, done, onEnd }) {
   const [t, setT] = useState(0);
@@ -361,13 +361,13 @@ function MentalGame({ mental = 60, done, onEnd }) {
     if (next.length === 3) {
       cancelAnimationFrame(rafRef.current);
       const n = next.filter(Boolean).length;
-      onEnd(n >= 2, n);
+      onEnd(n === 3, n);
     }
   };
   const R = 70;
   return (
     <>
-      <div style={{ fontSize: 13, fontWeight: 700, color: T.fg }}>Touchez « Respirer » quand le cœur est au plus calme (dans l'anneau vert). Trois fois.</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: T.fg }}>Touchez « Respirer » quand le cœur est au plus calme (dans l'anneau vert). Trois fois, sans en rater une.</div>
       <div onPointerDown={tap} style={{ position: "relative", height: 210, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, background: LILAC, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", touchAction: "manipulation", userSelect: "none", overflow: "hidden" }}>
         <svg viewBox="-100 -100 200 200" width="200" height="200" aria-hidden="true">
           <circle r={R * (0.35 + 0.65 * tol * 1.2)} fill="none" stroke={GRASS} strokeWidth={R * 0.65 * tol * 2.4} opacity="0.55" />

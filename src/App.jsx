@@ -1592,7 +1592,7 @@ export default function TennisManager() {
 
     // Build commentary
     const vars = {
-      p: player.name,
+      p: rankingName(player.name),
       o: ms.opponent.name,
       score: result.setComplete ? (result.setWonByPlayer ? result.score.p + "-" + result.score.o : result.score.o + "-" + result.score.p) : "",
       tbScore: result.tbScore !== undefined ? (result.setWonByPlayer ? result.tbScore + "" : result.tbScore + "") : "",
@@ -1615,7 +1615,7 @@ export default function TennisManager() {
       const winnerSets = result.setWonByPlayer ? m.pSets : m.oSets;
       const loserSets = result.setWonByPlayer ? m.oSets : m.pSets;
       const setVars = {
-        p: player.name, o: ms.opponent.name,
+        p: rankingName(player.name), o: ms.opponent.name,
         score: result.setWonByPlayer ? result.score.p + "-" + result.score.o : result.score.o + "-" + result.score.p,
         sets: result.setWonByPlayer ? m.pSets + "-" + m.oSets : m.oSets + "-" + m.pSets,
       };
@@ -1636,7 +1636,7 @@ export default function TennisManager() {
           : /break/.test(gt) ? ["sur un break", "en prenant le service de " + ms.opponent.name, "en breakant une dernière fois"]
           : ["sur son service", "sur sa mise en jeu", "en tenant son engagement"])
         : (gt === "tb_lost" ? [tbTxt]
-          : (gt === "lose_serve" || gt === "opp_rebreak") ? ["sur un break", "en prenant le service de " + player.name, "en breakant une dernière fois"]
+          : (gt === "lose_serve" || gt === "opp_rebreak") ? ["sur un break", "en prenant le service de " + rankingName(player.name), "en breakant une dernière fois"]
           : ["sur son service", "sur sa mise en jeu", "en tenant son engagement"]);
       setVars.how = howPools[Math.floor(random() * howPools.length)];
       newEvents.push({ ...gameEvent, id: Date.now() + random() + 1, type: result.setWonByPlayer ? "set_won" : "set_lost", matchEnd: !!m.matchComplete, text: pickComment(setType, setVars) });
@@ -1656,8 +1656,8 @@ export default function TennisManager() {
       m.formNoted = true;
       const pick = arr => arr[Math.floor(random() * arr.length)];
       const lines = [];
-      if ((m.playerForm || 0) >= 4) lines.push(pick([player.name + " semble en jambes aujourd'hui.", "Tout paraît facile pour " + player.name + " en ce début de match.", player.name + " a visiblement de bonnes sensations."]));
-      else if ((m.playerForm || 0) <= -4) lines.push(pick([player.name + " a l'air emprunté aujourd'hui.", "Quelque chose cloche dans le jeu de " + player.name + ".", player.name + " peine à trouver ses repères."]));
+      if ((m.playerForm || 0) >= 4) lines.push(pick([rankingName(player.name) + " semble en jambes aujourd'hui.", "Tout paraît facile pour " + rankingName(player.name) + " en ce début de match.", rankingName(player.name) + " a visiblement de bonnes sensations."]));
+      else if ((m.playerForm || 0) <= -4) lines.push(pick([rankingName(player.name) + " a l'air emprunté aujourd'hui.", "Quelque chose cloche dans le jeu de " + rankingName(player.name) + ".", rankingName(player.name) + " peine à trouver ses repères."]));
       if ((m.oppForm || 0) >= 4) lines.push(pick([ms.opponent.name + " semble dans un grand jour.", ms.opponent.name + " frappe la balle remarquablement bien.", "Journée faste pour " + ms.opponent.name + "."]));
       else if ((m.oppForm || 0) <= -4) lines.push(pick([ms.opponent.name + " n'a pas l'air dans son assiette.", ms.opponent.name + " multiplie les signes de nervosité.", ms.opponent.name + " semble à court de sensations."]));
       lines.forEach((text, i) => newEvents.push({ id: Date.now() + random() + 3 + i, type: "event", text }));
@@ -1697,7 +1697,7 @@ export default function TennisManager() {
     } else {
       // games standing shown is AFTER this game for clarity of stakes
       const pg = result.score.p, og = result.score.o;
-      const serveTxt = result.isPlayerServing ? player.name + " au service" : ms.opponent.name + " au service";
+      const serveTxt = result.isPlayerServing ? rankingName(player.name) + " au service" : ms.opponent.name + " au service";
       contextLabel = "Set " + setNum + " · " + serveTxt;
     }
 
@@ -1827,7 +1827,7 @@ export default function TennisManager() {
       // Le diagnostic (durée d'indisponibilité) tombe après le tournoi.
       return { ...p, injury: inj, injuryNoticePending: true };
     });
-    return inj.label + " ! " + player.name + " est gêné pour la suite du match.";
+    return inj.label + " ! " + rankingName(player.name) + " est gêné pour la suite du match.";
   };
   // Risque de blessure : smash raté 5 %, et un petit risque à chaque jeu,
   // triplé quand l'énergie passe sous 30.
@@ -2176,7 +2176,7 @@ export default function TennisManager() {
       // Compute the next match opponent now so the user can preview it,
       // but DON'T start the match yet. Show an intermediate result screen
       // with the debrief and wait for the user to click "Continuer".
-      const debrief = pickDebrief(m, player.name, ms.opponent.name);
+      const debrief = pickDebrief(m, rankingName(player.name), ms.opponent.name);
       const playerRank = getPlayerRanking(totalAtpPoints(player.atpPointsLog) + pts, atpDb);
       const playedIds = ms.playedOpponentIds || [];
 
@@ -2364,7 +2364,7 @@ export default function TennisManager() {
         setNews(prev => [...limitPersonalPosts([personalPost], prev), ...prev].slice(0, 300));
       }
 
-      const debrief = pickDebrief(m, player.name, ms.opponent.name);
+      const debrief = pickDebrief(m, rankingName(player.name), ms.opponent.name);
 
       // Update rivalry tracking
       const oppName = ms.opponent?.name;
@@ -3991,7 +3991,7 @@ export default function TennisManager() {
                   uses to advance (m.nextServerIsPlayer). */}
               {(() => null)()}
               {[
-                { name: player.name, flag: player.nationalityFlag || "", isP: true },
+                { name: rankingName(player.name), flag: player.nationalityFlag || "", isP: true },
                 { name: ms.opponent.name, flag: ms.opponent.nat?.flag || "", isP: false },
               ].map((row, ri) => {
                 const lastS = setsPlayed[setsPlayed.length - 1];
@@ -4167,7 +4167,7 @@ export default function TennisManager() {
                   const pt = !pg ? null : pg.isTiebreak ? { p: String(pg.pPts), o: String(pg.oPts) } : { p: pg.pp > pg.op ? "AV" : "40", o: pg.op > pg.pp ? "AV" : "40" };
                   return (
                     <div style={{ width: "100%", maxWidth: 400, background: "#ffffff", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, flexShrink: 0 }}>
-                      {[{ name: player.name, isP: true }, { name: ms.opponent.name, isP: false }].map((row, ri) => (
+                      {[{ name: rankingName(player.name), isP: true }, { name: ms.opponent.name, isP: false }].map((row, ri) => (
                         <div key={ri} style={{ display: "flex", alignItems: "center", borderTop: ri ? "2px solid " + T.ink : "none", background: row.isP ? "rgba(214,239,60,0.22)" : "transparent" }}>
                           <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 7, padding: "5px 10px" }}>
                             {/* Balle devant le serveur, comme sur l'écran du match */}
