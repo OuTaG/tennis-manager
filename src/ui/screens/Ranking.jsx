@@ -7,6 +7,15 @@ import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
+const INK = T.ink;
+const chip = (bg, fg) => ({ display: "inline-block", background: bg, color: fg, border: "2px solid " + INK, fontSize: 11, fontWeight: 800, padding: "0 6px", textTransform: "uppercase", letterSpacing: 0.3 });
+// Ligne « vous » : bandeau jaune tramé encré.
+const meRow = { background: undefined, color: "#141414", border: "3px solid " + INK, boxShadow: "3px 3px 0 " + INK, margin: "6px 0 8px" };
+// En-tête de tableau en bandeau noir.
+const tableHead = { display: "flex", alignItems: "center", padding: "5px 12px", marginBottom: 6, background: INK, color: "#ffffff", fontSize: 11, fontWeight: 400, letterSpacing: 0.3, textTransform: "uppercase" };
+// Pastille de rang.
+const rankBadge = (bg, fg) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 40, background: bg, color: fg, border: "2px solid " + INK, fontSize: 13, padding: "1px 4px", boxSizing: "border-box" });
+
 // Onglet Classement : classement mondial (52 semaines) ou Race (année civile).
 export function RankingScreen(props) {
   const [subTab, setSubTab] = useState("classic");
@@ -23,7 +32,7 @@ export function RankingScreen(props) {
               ...styles.filterBtn, ...(active ? styles.filterBtnActive : {}),
               display: "inline-flex", alignItems: "center", gap: 6,
             }}>
-              <Icon name={t.icon} size={14} color={active ? T.onAccent : T.fg3} />
+              <Icon name={t.icon} size={14} color="#141414" />
               {t.label}
             </button>
           );
@@ -61,32 +70,33 @@ export function RaceScreen({ atpDb, player, raceRank, setAtpPlayerDetail }) {
     return (
       <div key={isMe ? "me" : r.p.id}>
         <div
-          className={isMe ? "tm-fade-up" : "tm-card"}
+          className={isMe ? "tm-fade-up tm-halftone-yellow" : "tm-card"}
           onClick={() => !isMe && rank <= 100 && setAtpPlayerDetail && setAtpPlayerDetail(r.p.id)}
           style={{
             ...styles.atpRow,
-            ...(isMe ? { background: T.greenSub, border: "1px solid " + T.greenBrd, borderLeft: "3px solid " + T.green } : {}),
-            ...(!isMe && qualified ? { background: T.bg2, borderLeft: "3px solid " + T.ball } : {}),
+            background: "#ffffff", color: "#141414",
+            ...(isMe ? meRow : {}),
+            ...(!isMe && qualified ? { borderLeft: "6px solid #5b2d8e" } : {}),
             cursor: isMe ? "default" : "pointer",
           }}
         >
-          <span className="tm-num" style={{ color: isMe ? T.green : qualified ? T.ball : T.fg3, fontWeight: 800, width: 54, flexShrink: 0, fontSize: 14 }}>#{rank}</span>
+          <span style={isMe ? { minWidth: 54, flexShrink: 0, marginRight: 8 } : { width: 54, flexShrink: 0 }}><span className="tm-display" style={isMe ? rankBadge(INK, "#ffffff") : qualified ? rankBadge("#c9b6ea", "#141414") : { color: "#141414", fontSize: 14 }}>#{rank}</span></span>
           <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <FlagFromEmoji emoji={isMe ? player.nationalityFlag : r.p.nat.flag} size={13} />
-            <span style={{ color: T.fg, fontSize: 13, fontWeight: isMe ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span className={isMe ? "tm-display" : undefined} style={{ color: "#141414", fontSize: isMe ? 14 : 13, fontWeight: isMe ? 400 : 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {isMe ? rankingName(player.name) : r.p.name}
             </span>
-            {isMe && <span className="tm-eyebrow" style={{ color: T.green, fontSize: 9 }}>VOUS</span>}
+            {isMe && <span style={{ ...chip(INK, "#ffffff"), fontSize: 10, flexShrink: 0 }}>VOUS</span>}
           </span>
-          <span className="tm-num" style={{ color: isMe ? T.green : T.fg2, fontWeight: 700, fontSize: 13, width: 70, textAlign: "right" }}>
+          <span className="tm-display" style={{ color: "#141414", fontSize: 13.5, width: 70, textAlign: "right" }}>
             {(isMe ? myPts : r.pts).toLocaleString()}
           </span>
         </div>
         {rank === 8 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "6px 0 8px", color: T.ball, fontSize: 11, fontWeight: 600 }}>
-            <div style={{ flex: 1, borderTop: "1px dashed " + T.ball }} />
-            Qualification pour le {finals ? finals.name : "Masters"}
-            <div style={{ flex: 1, borderTop: "1px dashed " + T.ball }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 10px" }}>
+            <div style={{ flex: 1, borderTop: "2.5px dashed " + INK }} />
+            <span style={{ ...chip("#5b2d8e", "#ffffff"), fontSize: 10, textAlign: "center" }}>Qualification pour le {finals ? finals.name : "Masters"}</span>
+            <div style={{ flex: 1, borderTop: "2.5px dashed " + INK }} />
           </div>
         )}
       </div>
@@ -96,18 +106,18 @@ export function RaceScreen({ atpDb, player, raceRank, setAtpPlayerDetail }) {
   return (
     <div style={styles.tabContent}>
       <div style={styles.sectionTitle}>Race {year}</div>
-      <div style={{ ...styles.skillsCard, padding: 14 }}>
+      <div className={raceRank <= 8 ? "tm-halftone-lilac" : "tm-halftone-yellow"} style={{ border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: 14, marginBottom: 14, color: "#141414" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 10 }}>
           <div>
-            <div className="tm-eyebrow">Votre place</div>
-            <div className="tm-num" style={{ color: raceRank <= 8 ? T.green : T.fg, fontSize: 28, fontWeight: 800 }}>#{raceRank}</div>
+            <span style={chip(INK, "#ffffff")}>Votre place</span>
+            <div className="tm-display" style={{ color: "#141414", fontSize: 34, lineHeight: 1.05, marginTop: 4, textShadow: "2px 2px 0 #ffffff" }}>#{raceRank}</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="tm-eyebrow">Points {year}</div>
-            <div className="tm-num" style={{ color: T.fg, fontSize: 20, fontWeight: 700 }}>{myPts.toLocaleString()}</div>
+            <span style={chip("#ffffff", "#141414")}>Points {year}</span>
+            <div className="tm-display" style={{ color: "#141414", fontSize: 22, lineHeight: 1.1, marginTop: 4 }}>{myPts.toLocaleString()}</div>
           </div>
         </div>
-        <div style={{ color: T.fg3, fontSize: 12.5, lineHeight: 1.5, marginTop: 10 }}>
+        <div style={{ background: "#ffffff", border: "2px solid " + INK, padding: "6px 9px", color: "#141414", fontSize: 12.5, fontWeight: 700, lineHeight: 1.5, marginTop: 10 }}>
           {raceRank <= 8
             ? "Dans le top 8 : " + gap.toLocaleString() + " pts d'avance sur la 9e place."
             : "À " + Math.max(0, gap).toLocaleString() + " pts de la 8e place."}
@@ -117,11 +127,11 @@ export function RaceScreen({ atpDb, player, raceRank, setAtpPlayerDetail }) {
         </div>
       </div>
       {standings.length > 0 && standings[0].pts === 0 && (
-        <div style={{ color: T.fg4, fontSize: 12, lineHeight: 1.5, margin: "0 2px 10px" }}>
+        <div className="tm-lettering" style={{ color: "#141414", fontSize: 14, lineHeight: 1.35, margin: "0 2px 10px" }}>
           Aucun point marqué pour l'instant : l'ordre suit le classement de la semaine 52 jusqu'aux premiers résultats.
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", marginBottom: 4, color: T.fg5, fontSize: 9, fontWeight: 700 }}>
+      <div className="tm-display" style={tableHead}>
         <span style={{ width: 54, flexShrink: 0 }}>Rang</span>
         <span style={{ flex: 1 }}>Joueur</span>
         <span style={{ width: 70, textAlign: "right" }}>Points</span>
@@ -129,7 +139,7 @@ export function RaceScreen({ atpDb, player, raceRank, setAtpPlayerDetail }) {
       {rows.map((r, i) => row(r, i + 1))}
       {!inserted && raceRank > limit && (
         <>
-          <div style={{ textAlign: "center", color: T.fg5, margin: "4px 0" }}>…</div>
+          <div className="tm-display" style={{ textAlign: "center", color: "#141414", margin: "4px 0" }}>…</div>
           {row({ me: true }, raceRank)}
         </>
       )}
@@ -167,16 +177,18 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
       {/* Page navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8 }}>
         <button
-          style={{ ...styles.btnSmall, opacity: atpPage > 1 ? 1 : 0.3, padding: "8px 12px" }}
+          className="tm-display"
+          style={{ ...styles.btnSmall, fontFamily: T.display, background: "#ffffff", color: "#141414", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, opacity: atpPage > 1 ? 1 : 0.3, padding: "8px 14px", fontSize: 16 }}
           disabled={atpPage === 1}
           onClick={() => setAtpPage(atpPage - 1)}
         >←</button>
         <div style={{ flex: 1, textAlign: "center" }}>
-          <div className="tm-eyebrow">Page</div>
-          <div className="tm-num" style={{ color: T.fg, fontSize: 16, fontWeight: 700 }}>{atpPage} / {totalPages}</div>
+          <span style={chip(INK, "#ffffff")}>Page</span>
+          <div className="tm-display" style={{ color: "#141414", fontSize: 18, marginTop: 2 }}>{atpPage} / {totalPages}</div>
         </div>
         <button
-          style={{ ...styles.btnSmall, opacity: atpPage < totalPages ? 1 : 0.3, padding: "8px 12px" }}
+          className="tm-display"
+          style={{ ...styles.btnSmall, fontFamily: T.display, background: "#ffffff", color: "#141414", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, opacity: atpPage < totalPages ? 1 : 0.3, padding: "8px 14px", fontSize: 16 }}
           disabled={atpPage === totalPages}
           onClick={() => setAtpPage(atpPage + 1)}
         >→</button>
@@ -189,18 +201,14 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
             style={{ ...styles.filterBtn, ...(atpPage === p ? styles.filterBtnActive : {}), display: "inline-flex", alignItems: "center", gap: 4 }}
             onClick={() => setAtpPage(p)}
           >
-            {p === playerPage && <Icon name="location" size={10} color={T.green} />}
+            {p === playerPage && <Icon name="location" size={11} color="#1f7a45" />}
             P{p}
           </button>
         ))}
       </div>
 
       {/* Table header */}
-      <div style={{
-        display: "flex", alignItems: "center", padding: "8px 12px",
-        marginBottom: 4, color: T.fg5, fontSize: 9, fontWeight: 700,
-        letterSpacing: 0.2, textTransform: "none",
-      }}>
+      <div className="tm-display" style={tableHead}>
         <span style={{ width: 54, flexShrink: 0 }}>Rang</span>
         <span style={{ flex: 1 }}>Joueur</span>
         <span style={{ width: 70, textAlign: "right" }}>Points</span>
@@ -209,22 +217,20 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
       {rows.map((row, idx) => {
         if (row.isPlayer) {
           return (
-            <div key={"me-" + row.rank} className="tm-fade-up" style={{
-              background: T.greenSub,
-              borderRadius: 0, padding: "12px 14px", marginBottom: 4,
-              border: "1px solid " + T.greenBrd,
-              borderLeft: "3px solid " + T.green,
+            <div key={"me-" + row.rank} className="tm-fade-up tm-halftone-yellow" style={{
+              ...meRow,
+              padding: "11px 12px",
               display: "flex", alignItems: "center",
             }}>
-              <span className="tm-num" style={{ color: T.green, fontWeight: 800, width: 54, flexShrink: 0, fontSize: 14 }}>
-                #{row.rank}
+              <span style={{ minWidth: 54, flexShrink: 0, marginRight: 8 }}>
+                <span className="tm-display" style={rankBadge(INK, "#ffffff")}>#{row.rank}</span>
               </span>
               <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <FlagFromEmoji emoji={player.nationalityFlag} size={13} />
-                <span style={{ color: T.fg, fontWeight: 700, fontSize: 13, letterSpacing: 0.2 }}>{rankingName(player.name)}</span>
-                <span className="tm-eyebrow" style={{ color: T.green, fontSize: 9 }}>VOUS</span>
+                <span className="tm-display" style={{ color: "#141414", fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rankingName(player.name)}</span>
+                <span style={{ ...chip(INK, "#ffffff"), fontSize: 10, flexShrink: 0 }}>VOUS</span>
               </span>
-              <span className="tm-num" style={{ color: T.green, fontWeight: 700, fontSize: 13, width: 70, textAlign: "right" }}>
+              <span className="tm-display" style={{ color: "#141414", fontSize: 13.5, width: 70, textAlign: "right" }}>
                 {totalPts.toLocaleString()}
               </span>
             </div>
@@ -241,29 +247,27 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
             className="tm-card"
             style={{
               ...styles.atpRow,
-              ...(isTop10 ? { background: T.bg2 } : {}),
-              borderLeft: isTop10 ? "3px solid " + T.ball : "1px solid " + T.brd,
-              borderColor: T.brd,
+              background: isTop10 ? "rgba(214,239,60,0.3)" : "#ffffff", color: "#141414",
+              ...(isTop10 ? { borderLeft: "6px solid " + INK } : {}),
               cursor: clickable ? "pointer" : "default",
             }}
             onClick={() => clickable && setAtpPlayerDetail(p.id)}
           >
-            <span className="tm-num" style={{
-              color: isTop10 ? T.ball : isTop50 ? T.green : T.fg3,
-              fontWeight: 800, width: 54, flexShrink: 0, fontSize: 14,
-            }}>#{row.rank}</span>
+            <span style={{ width: 54, flexShrink: 0 }}>
+              <span className="tm-display" style={isTop10 ? rankBadge("#d6ef3c", "#141414") : { color: isTop50 ? "#1f7a45" : "#141414", fontSize: 14 }}>#{row.rank}</span>
+            </span>
             <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <span style={{ fontSize: 16 }}><FlagFromEmoji emoji={p.nat.flag} /></span>
               <span style={{
-                color: clickable ? T.fg : T.fg2,
-                fontSize: 13, fontWeight: 600,
+                color: "#141414",
+                fontSize: 13, fontWeight: clickable ? 800 : 700,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 letterSpacing: 0.2,
               }}>{p.name}</span>
             </span>
-            <span className="tm-num" style={{
-              color: isTop10 ? T.ball : T.fg2,
-              fontWeight: 700, fontSize: 13, width: 70, textAlign: "right",
+            <span className="tm-display" style={{
+              color: "#141414",
+              fontSize: 13.5, width: 70, textAlign: "right",
             }}>{p.points.toLocaleString()}</span>
           </div>
         );

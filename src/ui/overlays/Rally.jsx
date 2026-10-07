@@ -186,89 +186,97 @@ export function RallyOverlay({
     rally: "Échange", long_rally: "Échange interminable",
   }[resolvedKind || cur.kind] || "Échange";
 
+  const INK = T.ink;
+  const lineW = "#ffffff";
   return (
-    <div style={{
+    <div className="tm-paper" style={{
       position: "fixed", inset: 0, zIndex: 65,
-      background: T.bg0,
       display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", padding: 16,
       animation: "tm-fade-up 0.2s ease-out both",
+      color: "#141414",
     }}>
       {/* Header: live tag + context */}
       <div style={{ width: "100%", maxWidth: 460, display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <div style={{ width: 6, height: 18, borderRadius: 3, background: T.red, animation: "pulse 1.4s infinite" }} />
-        <div className="tm-eyebrow" style={{ color: T.red, flex: 1 }}>
-          ● {isTiebreak ? "Tie-break en direct" : "Jeu en direct"}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span className="tm-display" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "#c4302b", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK,
+            fontSize: 12, padding: "2px 8px", textTransform: "uppercase", letterSpacing: 0.3,
+          }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ffffff", border: "1.5px solid " + INK, animation: "pulse 1.4s infinite" }} />
+            {isTiebreak ? "Tie-break en direct" : "Jeu en direct"}
+          </span>
         </div>
         {onSkip && (
           <button onClick={() => { clearTimers(); onSkip(); }} style={{
-            background: T.bg2, border: "1px solid " + T.brd2, color: T.fg4,
-            borderRadius: 6, padding: "4px 10px", fontSize: 10, fontWeight: 700,
-            letterSpacing: 0.5, textTransform: "none", cursor: "pointer", fontFamily: T.body,
+            background: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, color: "#141414",
+            borderRadius: 0, padding: "4px 12px", fontSize: 12, fontWeight: 800,
+            letterSpacing: 0.3, textTransform: "none", cursor: "pointer", fontFamily: T.body,
           }}>Passer</button>
         )}
       </div>
 
       {contextLabel && (
-        <div style={{ color: T.fg4, fontSize: 11, fontFamily: T.mono, marginBottom: 10, textAlign: "center" }}>{contextLabel}</div>
+        <div style={{ background: INK, color: "#ffffff", fontSize: 11.5, fontWeight: 800, padding: "2px 8px", marginBottom: 12, textAlign: "center", letterSpacing: 0.3 }}>{contextLabel}</div>
       )}
 
       {/* Players + giant point score */}
-      <div style={{ width: "100%", maxWidth: 460, display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+      <div style={{ width: "100%", maxWidth: 460, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 14 }}>
         <PlayerTag flag={playerFlag} name={playerName} active={cur.servingPlayer} side="left" highlight={flash === "p"} />
-        <div style={{
-          fontFamily: T.mono, fontWeight: 800, fontVariantNumeric: "tabular-nums",
-          fontSize: curScore.length > 5 ? 22 : 34, letterSpacing: -1,
-          color: isKey ? T.ball : T.fg, textAlign: "center", minWidth: 96,
-          transition: "color 0.2s",
-          textShadow: "none",
-          transform: shake ? "translateX(" + (Math.random() * 6 - 3).toFixed(1) + "px)" : "none",
+        <div className="tm-display" style={{
+          fontVariantNumeric: "tabular-nums",
+          fontSize: curScore.length > 5 ? 20 : 30, lineHeight: 1.1,
+          color: "#141414", background: isKey ? "#d6ef3c" : "#ffffff",
+          border: "3px solid " + INK, boxShadow: "3px 3px 0 " + INK,
+          padding: "4px 8px", textAlign: "center", minWidth: 96, boxSizing: "border-box",
+          transition: "background 0.2s",
+          transform: shake ? "translateX(" + (Math.random() * 6 - 3).toFixed(1) + "px) rotate(-2deg)" : "none",
         }}>{curScore}</div>
         <PlayerTag flag={oppFlag} name={oppName} active={!cur.servingPlayer} side="right" highlight={flash === "o"} />
       </div>
 
       {/* Court */}
       <div style={{
-        width: "100%", maxWidth: 460, borderRadius: 16, overflow: "hidden",
-        border: "1px solid " + T.brd2, background: T.bg1,
-        boxShadow: "0 10px 30px var(--tm-shadow)",
+        width: "100%", maxWidth: 460, overflow: "hidden", boxSizing: "border-box",
+        border: "3px solid " + INK, background: "#1f7a45",
+        boxShadow: "5px 5px 0 " + INK,
         transform: shake ? "translateX(" + (Math.random() * 4 - 2).toFixed(1) + "px)" : "none",
       }}>
-        <svg viewBox="0 0 200 120" style={{ width: "100%", display: "block", background: T.bg2 }}>
+        <svg viewBox="0 0 200 120" style={{ width: "100%", display: "block", background: "#1f7a45" }}>
           <defs>
-            <linearGradient id="tm-court-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--tm-greenSub)" />
-              <stop offset="100%" stopColor="var(--tm-bg2)" />
-            </linearGradient>
+            <pattern id="tm-court-dots" width="4" height="4" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="0.7" fill="#141414" opacity="0.18" />
+            </pattern>
           </defs>
 
           {/* Court surface */}
-          <rect x={COURT.x0 - 8} y={COURT.y0 - 8} width={cw + 16} height={ch + 16} rx="4" fill="url(#tm-court-grad)" />
+          <rect x={COURT.x0 - 8} y={COURT.y0 - 8} width={cw + 16} height={ch + 16} fill="#2a8a52" stroke={INK} strokeWidth="1.2" />
+          <rect x={COURT.x0 - 8} y={COURT.y0 - 8} width={cw + 16} height={ch + 16} fill="url(#tm-court-dots)" />
           {/* Outer doubles lines */}
-          <rect x={COURT.x0} y={COURT.y0} width={cw} height={ch} fill="none" stroke={T.fg3} strokeWidth="1.1" opacity="0.8" />
+          <rect x={COURT.x0} y={COURT.y0} width={cw} height={ch} fill="none" stroke={lineW} strokeWidth="1.3" />
           {/* Singles sidelines */}
-          <line x1={COURT.x0} y1={COURT.y0 + ch * 0.12} x2={COURT.x1} y2={COURT.y0 + ch * 0.12} stroke={T.fg4} strokeWidth="0.6" opacity="0.5" />
-          <line x1={COURT.x0} y1={COURT.y1 - ch * 0.12} x2={COURT.x1} y2={COURT.y1 - ch * 0.12} stroke={T.fg4} strokeWidth="0.6" opacity="0.5" />
+          <line x1={COURT.x0} y1={COURT.y0 + ch * 0.12} x2={COURT.x1} y2={COURT.y0 + ch * 0.12} stroke={lineW} strokeWidth="0.8" />
+          <line x1={COURT.x0} y1={COURT.y1 - ch * 0.12} x2={COURT.x1} y2={COURT.y1 - ch * 0.12} stroke={lineW} strokeWidth="0.8" />
           {/* Service boxes */}
-          <line x1={svcL} y1={COURT.y0 + ch * 0.12} x2={svcL} y2={COURT.y1 - ch * 0.12} stroke={T.fg4} strokeWidth="0.6" opacity="0.5" />
-          <line x1={svcR} y1={COURT.y0 + ch * 0.12} x2={svcR} y2={COURT.y1 - ch * 0.12} stroke={T.fg4} strokeWidth="0.6" opacity="0.5" />
-          <line x1={svcL} y1={midY} x2={svcR} y2={midY} stroke={T.fg4} strokeWidth="0.6" opacity="0.5" />
+          <line x1={svcL} y1={COURT.y0 + ch * 0.12} x2={svcL} y2={COURT.y1 - ch * 0.12} stroke={lineW} strokeWidth="0.8" />
+          <line x1={svcR} y1={COURT.y0 + ch * 0.12} x2={svcR} y2={COURT.y1 - ch * 0.12} stroke={lineW} strokeWidth="0.8" />
+          <line x1={svcL} y1={midY} x2={svcR} y2={midY} stroke={lineW} strokeWidth="0.8" />
           {/* Centre marks */}
-          <line x1={COURT.x0} y1={midY} x2={COURT.x0 + 5} y2={midY} stroke={T.fg4} strokeWidth="0.6" opacity="0.5" />
-          <line x1={COURT.x1 - 5} y1={midY} x2={COURT.x1} y2={midY} stroke={T.fg4} strokeWidth="0.6" opacity="0.5" />
-
-          {/* Net */}
-          <line x1={netX} y1={COURT.y0 - 4} x2={netX} y2={COURT.y1 + 4} stroke={T.fg} strokeWidth="1.4" opacity="0.85" />
-          {Array.from({ length: 18 }).map((_, i) => (
-            <line key={i} x1={netX} y1={COURT.y0 - 4 + i * ((ch + 8) / 17)} x2={netX} y2={COURT.y0 - 4 + i * ((ch + 8) / 17)} stroke={T.fg5} strokeWidth="3" opacity="0.12" />
-          ))}
-          <rect x={netX - 0.8} y={COURT.y0 - 4} width="1.6" height={ch + 8} fill="none" stroke={T.fg4} strokeWidth="0.3" opacity="0.3" />
+          <line x1={COURT.x0} y1={midY} x2={COURT.x0 + 5} y2={midY} stroke={lineW} strokeWidth="0.8" />
+          <line x1={COURT.x1 - 5} y1={midY} x2={COURT.x1} y2={midY} stroke={lineW} strokeWidth="0.8" />
 
           {/* Half tints */}
           <rect x={COURT.x0 - 8} y={COURT.y0 - 8} width={(netX - (COURT.x0 - 8))} height={ch + 16}
-            fill={T.green} opacity={flash === "p" ? 0.16 : 0.04} style={{ transition: "opacity 0.15s" }} />
+            fill="#d6ef3c" opacity={flash === "p" ? 0.3 : 0} style={{ transition: "opacity 0.15s" }} />
           <rect x={netX} y={COURT.y0 - 8} width={(COURT.x1 + 8 - netX)} height={ch + 16}
-            fill={T.red} opacity={flash === "o" ? 0.14 : 0.03} style={{ transition: "opacity 0.15s" }} />
+            fill="#c4302b" opacity={flash === "o" ? 0.25 : 0} style={{ transition: "opacity 0.15s" }} />
+
+          {/* Net */}
+          <line x1={netX} y1={COURT.y0 - 5} x2={netX} y2={COURT.y1 + 5} stroke={INK} strokeWidth="2.6" />
+          <line x1={netX} y1={COURT.y0 - 5} x2={netX} y2={COURT.y1 + 5} stroke="#ffffff" strokeWidth="0.8" strokeDasharray="1.6 1.6" />
+          <rect x={netX - 1.8} y={COURT.y0 - 7} width="3.6" height="3" fill={INK} />
+          <rect x={netX - 1.8} y={COURT.y1 + 4} width="3.6" height="3" fill={INK} />
 
           {/* Impact marks */}
           {marks.map((mk, i) => (
@@ -278,32 +286,33 @@ export function RallyOverlay({
       </div>
 
       {/* Legend */}
-      <div style={{ width: "100%", maxWidth: 460, display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 14, marginTop: 10 }}>
+      <div style={{ width: "100%", maxWidth: 460, display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
         {[
           { type: "serve", label: "Service" },
           { type: "ground", label: "Fond de court" },
           { type: "volley", label: "Volée" },
           { type: "fault", label: "Faute" },
         ].map(it => (
-          <div key={it.type} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: T.fg3 }}>
-            <svg width="12" height="12" viewBox="-6 -6 12 12"><ImpactMark type={it.type} x={0} y={0} /></svg>
+          <div key={it.type} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#141414", background: "#ffffff", border: "2px solid " + INK, padding: "1px 6px" }}>
+            <svg width="13" height="13" viewBox="-6 -6 12 12" style={{ background: "#2a8a52" }}><ImpactMark type={it.type} x={0} y={0} /></svg>
             {it.label}
           </div>
         ))}
       </div>
 
       {/* Point status line */}
-      <div style={{ marginTop: 14, height: 22, display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ marginTop: 14, minHeight: 28, display: "flex", alignItems: "center", gap: 8 }}>
         {phase === "resolve" ? (
-          <span style={{
-            fontSize: 13, fontWeight: 800, letterSpacing: 0.5,
-            color: lastWinner === "p" ? T.green : T.red,
+          <span className="tm-display" style={{
+            fontSize: 14, letterSpacing: 0.3,
+            color: "#ffffff", background: lastWinner === "p" ? "#1f7a45" : "#c4302b",
+            border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK, padding: "2px 10px",
             textTransform: "none",
           }}>
             {kindLabel} · point {lastWinner === "p" ? playerName : oppName}
           </span>
         ) : (
-          <span style={{ fontSize: 12, color: T.fg4, fontFamily: T.mono }}>
+          <span className="tm-lettering" style={{ fontSize: 15, color: "#141414" }}>
             {cur.servingPlayer ? playerName : oppName} au service · échange en cours…
           </span>
         )}
@@ -311,11 +320,12 @@ export function RallyOverlay({
 
       {/* Point progress dots — only past + current. Showing the full count
           ahead would spoil whether the game is going to be tight or short. */}
-      <div style={{ display: "flex", gap: 4, justifyContent: "center", marginTop: 12, flexWrap: "wrap", maxWidth: 300, minHeight: 6 }}>
+      <div style={{ display: "flex", gap: 4, justifyContent: "center", marginTop: 12, flexWrap: "wrap", maxWidth: 300, minHeight: 10 }}>
         {points.slice(0, idx + 1).map((pt, i) => (
           <div key={i} style={{
-            width: i === idx ? 14 : 6, height: 6, borderRadius: 3,
-            background: i < idx ? (pt.winner === "p" ? T.green : T.red) : T.ball,
+            width: i === idx ? 18 : 10, height: 10, boxSizing: "border-box",
+            border: "2px solid " + INK,
+            background: i < idx ? (pt.winner === "p" ? "#1f7a45" : "#c4302b") : "#d6ef3c",
             transition: "all 0.25s",
           }} />
         ))}
@@ -329,21 +339,23 @@ export function ImpactMark({ type, x, y, latest = false }) {
   const s = latest ? 1.35 : 1;
   const tr = "translate(" + x.toFixed(2) + "," + y.toFixed(2) + ") scale(" + s + ")";
   if (type === "serve") {
-    return <g transform={tr}><circle r="2.6" fill={T.ball} stroke="#000" strokeWidth="0.35" /></g>;
+    return <g transform={tr}><circle r="2.6" fill="#d6ef3c" stroke="#141414" strokeWidth="0.7" /></g>;
   }
   if (type === "volley") {
-    return <g transform={tr}><path d="M 0 -3 L 2.8 2.2 L -2.8 2.2 Z" fill={T.amber} stroke="#000" strokeWidth="0.35" /></g>;
+    return <g transform={tr}><path d="M 0 -3 L 2.8 2.2 L -2.8 2.2 Z" fill="#e0a21b" stroke="#141414" strokeWidth="0.7" /></g>;
   }
   if (type === "fault") {
     return (
       <g transform={tr}>
-        <line x1="-2.4" y1="-2.4" x2="2.4" y2="2.4" stroke={T.red} strokeWidth="1.3" strokeLinecap="round" />
-        <line x1="-2.4" y1="2.4" x2="2.4" y2="-2.4" stroke={T.red} strokeWidth="1.3" strokeLinecap="round" />
+        <line x1="-2.4" y1="-2.4" x2="2.4" y2="2.4" stroke="#141414" strokeWidth="2.6" strokeLinecap="square" />
+        <line x1="-2.4" y1="2.4" x2="2.4" y2="-2.4" stroke="#141414" strokeWidth="2.6" strokeLinecap="square" />
+        <line x1="-2.4" y1="-2.4" x2="2.4" y2="2.4" stroke="#ff4a3d" strokeWidth="1.3" strokeLinecap="square" />
+        <line x1="-2.4" y1="2.4" x2="2.4" y2="-2.4" stroke="#ff4a3d" strokeWidth="1.3" strokeLinecap="square" />
       </g>
     );
   }
   // ground (fond de court)
-  return <g transform={tr}><rect x="-2.2" y="-2.2" width="4.4" height="4.4" rx="0.6" fill={T.fg} stroke="#000" strokeWidth="0.35" /></g>;
+  return <g transform={tr}><rect x="-2.2" y="-2.2" width="4.4" height="4.4" fill="#ffffff" stroke="#141414" strokeWidth="0.7" /></g>;
 }
 
 export function PlayerTag({ flag, name, active, side, highlight }) {
@@ -354,18 +366,20 @@ export function PlayerTag({ flag, name, active, side, highlight }) {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexDirection: side === "left" ? "row" : "row-reverse" }}>
         <FlagFromEmoji emoji={flag} size={12} />
-        <span style={{
-          color: highlight ? T.ball : T.fg, fontWeight: 800, fontSize: 13, letterSpacing: 0.2,
+        <span className="tm-display" style={{
+          color: "#141414", background: highlight ? "#d6ef3c" : "transparent", fontSize: 13.5, letterSpacing: 0.2,
+          padding: "0 3px", border: "2px solid " + (highlight ? T.ink : "transparent"),
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 110,
-          transition: "color 0.2s",
+          transition: "background 0.2s",
         }}>{name}</span>
       </div>
       {active && (
         <span style={{
-          fontSize: 8, fontWeight: 800, letterSpacing: 0.2, textTransform: "none",
-          color: T.green, display: "flex", alignItems: "center", gap: 3,
+          fontSize: 10, fontWeight: 800, letterSpacing: 0.3, textTransform: "uppercase",
+          color: "#ffffff", background: "#1f7a45", border: "2px solid " + T.ink,
+          padding: "0 5px", display: "flex", alignItems: "center", gap: 4,
         }}>
-          <span style={{ width: 5, height: 5, borderRadius: 3, background: T.green, display: "inline-block" }} /> Service
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#d6ef3c", border: "1.5px solid " + T.ink, display: "inline-block" }} /> Service
         </span>
       )}
     </div>
