@@ -33,7 +33,8 @@ const absWeek = (y, w) => (y || 0) * 52 + (w || 0);
 export function buildFrontPage({ player, ranking, enrolled }) {
   const story = frontStory({ player, ranking, enrolled });
   const pick = (a) => a[(player.week || 0) % a.length];
-  return { ...story, quote: pick(story.quotes), quotes: undefined };
+  const deck = story.decks ? pick(story.decks) : story.deck;
+  return { ...story, deck, quote: pick(story.quotes), quotes: undefined, decks: undefined };
 }
 
 function frontStory({ player, ranking, enrolled }) {
@@ -61,40 +62,55 @@ function frontStory({ player, ranking, enrolled }) {
       return {
         kicker: kicker || "Titre",
         title: "Sacre de " + ln + where,
-        deck: name + " remporte le " + last.tournament + " face à " + last.opponent + " (" + last.score + ").",
+        decks: [
+          name + " remporte le " + last.tournament + " face à " + last.opponent + " (" + last.score + ").",
+          "En finale, " + last.opponent + " n'a rien pu faire : " + last.score + ". Le " + last.tournament + " est pour " + name + ".",
+          name + " s'offre le " + last.tournament + " au bout d'une semaine maîtrisée, " + last.score + " en finale contre " + last.opponent + ".",
+        ],
         tone: "green",
         caption: (last.city || "Ce soir-là") + ", la balle de match…",
-        quotes: ["Je l'ai fait !", "Ce trophée, je ne le lâche plus."],
+        quotes: ["Je l'ai fait !", "Ce trophée, je ne le lâche plus.", "Je pense à tous ceux qui m'ont aidé cette semaine.", "Une semaine de rêve. Et maintenant, on continue."],
       };
     }
     if (!last.won && last.playedRound === "Finale") {
       return {
         kicker: kicker || "Finale",
         title: "Si près du titre",
-        deck: "Battu en finale du " + last.tournament + " par " + last.opponent + " (" + last.score + ").",
+        decks: [
+          "Battu en finale du " + last.tournament + " par " + last.opponent + " (" + last.score + ").",
+          "Le titre a échappé à " + name + " en finale du " + last.tournament + ", face à " + last.opponent + " (" + last.score + ").",
+          "Une semaine pleine, une dernière marche manquée : " + last.opponent + " l'emporte en finale (" + last.score + ").",
+        ],
         tone: "clay",
         caption: (last.city || "En finale") + ", après la finale…",
-        quotes: ["J'y étais presque…", "La prochaine sera la bonne."],
+        quotes: ["J'y étais presque…", "La prochaine sera la bonne.", "Ça fait mal, mais je garde le positif de la semaine.", "Bravo à " + last.opponent + ", rien à redire aujourd'hui."],
       };
     }
     if (last.won && last.opponentRank && last.opponentRank <= 20 && last.opponentRank < ranking) {
       return {
         kicker: kicker || "Exploit",
         title: ln + " fait tomber le n° " + last.opponentRank,
-        deck: "Victoire sur " + last.opponent + " (" + last.score + ") " + roundPhrase(last.playedRound) + " du " + last.tournament + ".",
+        decks: [
+          "Victoire sur " + last.opponent + " (" + last.score + ") " + roundPhrase(last.playedRound) + " du " + last.tournament + ".",
+          "Victoire de prestige pour " + name + " face à " + last.opponent + ", n° " + last.opponentRank + " (" + last.score + "), " + roundPhrase(last.playedRound) + " du " + last.tournament + ".",
+        ],
         tone: "green",
         caption: (last.city || "Sur le court") + ", coup de tonnerre…",
-        quotes: ["Le n° " + last.opponentRank + " ? Il faudra compter avec moi.", "Je n'ai peur de personne."],
+        quotes: ["Le n° " + last.opponentRank + " ? Il faudra compter avec moi.", "Je n'ai peur de personne.", "J'y croyais depuis le premier point."],
       };
     }
     if (!last.won) {
       return {
         kicker: kicker || "Résultat",
         title: "Fin de parcours" + where,
-        deck: name + " s'incline face à " + last.opponent + " (" + last.score + ") " + roundPhrase(last.playedRound) + ".",
+        decks: [
+          name + " s'incline face à " + last.opponent + " (" + last.score + ") " + roundPhrase(last.playedRound) + ".",
+          "Le parcours de " + name + " s'arrête " + roundPhrase(last.playedRound) + ", face à " + last.opponent + " (" + last.score + ").",
+          last.opponent + " met fin à la semaine de " + name + " " + roundPhrase(last.playedRound) + " (" + last.score + ").",
+        ],
         tone: "clay",
         caption: (last.city || "Au vestiaire") + ", dans les vestiaires…",
-        quotes: ["On apprend plus des défaites.", "Je reviendrai."],
+        quotes: ["On apprend plus des défaites.", "Je reviendrai.", "Pas mon jour. Il faut l'accepter.", "J'ai déjà hâte du prochain tournoi."],
       };
     }
   }
