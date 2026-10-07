@@ -420,7 +420,8 @@ export const COMMENTARY = {
 
   // ── Sets ───────────────────────────────────────────────────────────────
   // {score} : score du set côté vainqueur, {sets} : sets côté vainqueur,
-  // {how} : comment le set s'est conclu (voir setCloseHow).
+  // {how} : comment le set s'est conclu (voir setCloseHow). {manche} / {Manche} :
+  // « la manche décisive » s'il y en a eu une, sinon « la deuxième manche »…
   // 6-0 sets ("bagel"), a bit cheeky
   bagel_won_set: [
     "6-0 ! {p} sert une bulle à {o}, et sans sucre",
@@ -472,9 +473,9 @@ export const COMMENTARY = {
   ],
   set_won_match: [
     "{p} conclut {how} : set {score} et match !",
-    "Balle de match convertie {how}, {p} s'impose ({score} dans le dernier set) !",
-    "{p} termine le travail {how} et remporte le match, {score} dans l'ultime manche",
-    "JEU, SET ET MATCH {p} ! Dernier set {score}, conclu {how}",
+    "Balle de match convertie {how}, {p} s'impose ({score} dans {manche}) !",
+    "{p} termine le travail {how} et remporte le match, {score} dans {manche}",
+    "JEU, SET ET MATCH {p} ! {Manche} {score}, conclue {how}",
   ],
   set_lost_first: [
     "{o} remporte le premier set {score}, conclu {how}",
@@ -501,9 +502,9 @@ export const COMMENTARY = {
   ],
   set_lost_match: [
     "{o} conclut {how} : set {score} et match",
-    "Balle de match convertie {how} par {o}, {p} s'incline ({score} dans le dernier set)",
-    "C'est terminé : {o} remporte le dernier set {score} {how}",
-    "Jeu, set et match {o}. Dernière manche {score}, conclue {how}",
+    "Balle de match convertie {how} par {o}, {p} s'incline ({score} dans {manche})",
+    "C'est terminé : {o} remporte {manche} {score} {how}",
+    "Jeu, set et match {o}. {Manche} {score}, conclue {how}",
   ],
 
   // ── Moments de match (tirés au hasard entre deux jeux) ─────────────────

@@ -10,19 +10,29 @@ import { roundPhrase } from "./frontpage.js";
 // graine) ne dépend donc pas de ce qui a été affiché avant un rechargement.
 const recent = [];
 const RECENT_MAX = 40;
-function remember(key) {
-  recent.push(key);
-  if (recent.length > RECENT_MAX) recent.shift();
-}
-function pickFresh(list, tag = "") {
+// Débriefs : mémoire à part (les commentaires en direct la satureraient),
+// indexée sur le gabarit de la phrase (noms et nombres effacés).
+const recentDebrief = [];
+const RECENT_DEBRIEF_MAX = 30;
+function pickFresh(list, tag = "", opts = {}) {
   if (!list || !list.length) return "";
+  const mem = opts.mem || recent, max = opts.max || RECENT_MAX;
+  const keyOf = opts.keyOf || ((x, i) => (typeof x === "string" ? x : i));
+  const ok = opts.ok || (() => true);
   const start = Math.floor(random() * list.length);
+  let fallback = -1;
   for (let k = 0; k < list.length; k++) {
     const i = (start + k) % list.length;
-    const key = tag + "|" + (typeof list[i] === "string" ? list[i] : i);
-    if (!recent.includes(key)) { remember(key); return list[i]; }
+    if (!ok(list[i])) continue;
+    if (fallback < 0) fallback = i;
+    const key = tag + "|" + keyOf(list[i], i);
+    if (!mem.includes(key)) {
+      mem.push(key);
+      if (mem.length > max) mem.shift();
+      return list[i];
+    }
   }
-  return list[start];
+  return list[fallback >= 0 ? fallback : start];
 }
 function fill(txt, vars) {
   return txt.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined && vars[k] !== null ? String(vars[k]) : m));
@@ -115,11 +125,20 @@ function scoreSituation(ctx) {
     return { key: pServed ? "sit_hold_stay" : "sit_opp_hold_stay", enjeu: rSets === setsToWin - 1 ? "le match" : "le set", weight: 0.65 };
   }
   const prev = log[log.length - 2];
-  if (prev && !prev.isTiebreak && holds && prev.isPlayerServing !== pServed && prev.playerWon === pWon) {
+  // « Confirme le break » : le jeu d'avant était un break du même joueur et
+  // il a désormais vraiment un break d'avance (pas après un simple débreak).
+  let lead = 0;
+  for (const g of log) {
+    if (g.isTiebreak || g.isPlayerServing === g.playerWon) continue;
+    lead += (g.playerWon === pWon) ? 1 : -1;
+  }
+  if (prev && !prev.isTiebreak && holds && prev.isPlayerServing !== pServed && prev.playerWon === pWon && lead > 0) {
     return { key: pServed ? "sit_hold_confirm" : "sit_opp_confirm", weight: 0.45 };
   }
   return null;
 }
+
+const IMMEDIATE = /immédiat|aussitôt|dans la foulée|confirmer|pas longtemps/;
 
 // ─── COMMENTAIRE D'UN JEU OU D'UN SET ────────────────────────────────────────
 // type : clé de COMMENTARY ; vars : {p}, {o}, {score}… ; ctx (facultatif) :
@@ -130,6 +149,13 @@ export function pickComment(type, vars = {}, ctx = null) {
   const allVars = { kmh: 210 + Math.floor(random() * 16), ...vars };
   const entry = COMMENTARY[type] || COMMENTARY.hold_easy;
   const isSet = /^(set_|bagel_)/.test(type);
+  if (isSet) {
+    // « Ultime », « décisive » : seulement s'il y a eu un set décisif.
+    const setNo = ctx?.setNo || 0;
+    const decider = setNo > 0 && setNo === (ctx.bo5 ? 5 : 3);
+    allVars.manche = !setNo ? "la dernière manche" : decider ? "la manche décisive" : "la " + ORD_F[setNo - 1] + " manche";
+    allVars.Manche = cap(allVars.manche.slice(3));
+  }
 
   let line;
   let situation = null, sitUsed = false;
@@ -146,7 +172,16 @@ export function pickComment(type, vars = {}, ctx = null) {
     }
   }
   if (!line) {
-    line = Array.isArray(entry) ? pickFresh(entry, type) : pickShaped(entry, [], rShape, type);
+    let list = entry;
+    // Débreak : « aussitôt », « dans la foulée »… seulement si le break
+    // adverse date du jeu précédent.
+    if (Array.isArray(entry) && /rebreak$/.test(type) && ctx && ctx.log) {
+      const prev = ctx.log[ctx.log.length - 2];
+      const cur = ctx.log[ctx.log.length - 1];
+      const immediate = !!prev && !!cur && !prev.isTiebreak && prev.isPlayerServing === !prev.playerWon && prev.playerWon !== cur.playerWon;
+      if (!immediate) list = entry.filter(t => !IMMEDIATE.test(t));
+    }
+    line = Array.isArray(list) ? pickFresh(list, type) : pickShaped(entry, [], rShape, type);
   }
   let txt = fill(line, allVars);
 
@@ -386,6 +421,10 @@ function durationText(min) {
 const nw = (n, fem = true) => (fem ? NUM_F : NUM_M)[n] ?? String(n);
 // « à » + groupe nominal : au, aux, à la.
 const toA = (gn) => gn.replace(/^le /, "au ").replace(/^les /, "aux ").replace(/^la /, "à la ");
+// Verbes et tournures qu'un même débrief ne répète pas.
+const STEMS = ["écart", "impos", "convert", "conclu", "déroul", "renvers", "compter", "trembl", "align", "enchaîn",
+  "domin", "expédi", "la différence", "le trou", "bascul", "regret", "la faille", "la clé", "concéd", "sauv", "rempli",
+  "le dessus", "lâch", "solide", "Solide", "pesé", "remport", "passe", "rejoint", "file vers"];
 const cityPhrase = (city) => !city ? "" : /^Le /.test(city) ? "au " + city.slice(3) : /^Les /.test(city) ? "aux " + city.slice(4) : "à " + city;
 // Tour suivant, en complément : « les quarts de finale », « la finale »…
 const NEXT_ROUND = {
@@ -406,7 +445,13 @@ export function pickDebrief(matchData, playerName, oppName, ctx = {}) {
   const ws = won ? "p" : "o", ls = won ? "o" : "p";
   const W = won ? P : O, L = won ? O : P;
   const nameOf = (x) => (x === "p" ? P : O);
-  const pick = (list, tag) => pickFresh(list, "deb:" + tag);
+  // Pas deux fois le même verbe dans un débrief, pas le même gabarit deux
+  // débriefs de suite. « written » : ce qui est déjà écrit.
+  let written = "";
+  const skeleton = (t) => t.split(P).join("X").split(O).join("Y")
+    .replace(/\d+/g, "#").replace(new RegExp("\\b(" + NUM_F.concat(NUM_M).join("|") + ")\\b", "g"), "#");
+  const clash = (t) => STEMS.some(st => t.includes(st) && written.includes(st));
+  const pick = (list, tag) => pickFresh(list, "deb:" + tag, { mem: recentDebrief, max: RECENT_DEBRIEF_MAX, keyOf: (x) => skeleton(x), ok: (x) => !clash(x) });
 
   // Score côté vainqueur : « 6-4 3-6 7-6(5) ».
   const scoreLine = sets.map(s => {
@@ -555,6 +600,8 @@ export function pickDebrief(matchData, playerName, oppName, ctx = {}) {
     ], "rtn");
   }
 
+  written = lede;
+
   // ─── 2. Le tournant ──────────────────────────────────────────────────────
   const turns = [];
   if (decisive && !used.has("decTb")) {
@@ -626,7 +673,8 @@ export function pickDebrief(matchData, playerName, oppName, ctx = {}) {
     if (lostIdx >= 0) turns.push({ k: "lostSet", w: 3, t: `${W} s'est fait surprendre dans le ${ord(lostIdx)} set, avant de reprendre les commandes.` });
   }
   turns.sort((x, y) => y.w - x.w);
-  const turn = turns[0] || null;
+  const turn = turns.find(x => !clash(x.t)) || turns[0] || null;
+  if (turn) written += " " + turn.t;
   if (turn) used.add(turn.k);
 
   // ─── 3. Les chiffres ─────────────────────────────────────────────────────
@@ -660,6 +708,7 @@ export function pickDebrief(matchData, playerName, oppName, ctx = {}) {
     stats.push(A.minutes >= (bo5 ? 180 : 120) ? `Le tout en ${dur} de jeu.` : `Le tout bouclé en ${dur}.`);
   }
   const stat = stats.length ? pick(stats, "stat") : null;
+  if (stat) written += " " + stat;
 
   // ─── 4. Le mot de la fin, côté joueur ────────────────────────────────────
   const tired = (matchData.playerEnergy ?? 60) < 25;
@@ -676,7 +725,7 @@ export function pickDebrief(matchData, playerName, oppName, ctx = {}) {
     else if (ctx.oppRank && ctx.oppRank <= 20) closings.push(pick([`Face au ${ctx.oppRank}e mondial, la marche était haute pour ${P}.`, `${O} (${ctx.oppRank}e mondial) a rappelé son rang.`], "rankL"));
     if (isFinal) closings.push(`${P} échoue en finale, mais la semaine reste belle.`);
   }
-  const closing = closings.length ? closings[Math.floor(random() * closings.length)] : null;
+  const closing = closings.length ? pick(closings, "closing") : null;
 
   // Assemblage : 2 à 4 phrases, jamais deux fois le même fait. Deux phrases
   // de suite ne commencent pas par le même nom : on glisse une transition.
@@ -686,7 +735,9 @@ export function pickDebrief(matchData, playerName, oppName, ctx = {}) {
     const prev = parts[parts.length - 1];
     const startName = (x) => (x.startsWith(P) ? P : x.startsWith(O) ? O : null);
     const n = startName(t);
-    parts.push(n && startName(prev) === n ? pick(links, "link") + t : t);
+    // Tirage fait dans tous les cas : le nombre de tirages ne dépend pas du texte.
+    const link = pickFresh(links, "deb:link", { mem: recentDebrief, max: RECENT_DEBRIEF_MAX });
+    parts.push(n && startName(prev) === n ? link + t : t);
   };
   if (turn) add(turn.t, ["Surtout, ", "Et puis, ", "D'ailleurs, ", "Il faut dire que "]);
   if (stat && parts.length < 3) add(stat, ["Côté chiffres, ", "Dans les statistiques, ", "Sur l'ensemble du match, ", "En chiffres : "]);
