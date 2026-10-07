@@ -4521,7 +4521,7 @@ export default function TennisManager() {
               const on = activeTab === sc.id;
               return (
                 <button key={sc.id} onClick={() => setActiveTab(sc.id)} style={{ ...styles.subTab, ...(on ? styles.subTabActive : {}), position: "relative", overflow: "visible" }}>
-                  <Icon name={sc.icon} size={15} color={on ? T.green : T.fg4} />
+                  <Icon name={sc.icon} size={17} halo={on} />
                   {sc.label}
                   {sc.id === "finance" && hasNewSponsorOffer && <BangBadge size={22} top="calc(50% - 11px)" right={3} />}
                 </button>
@@ -4928,7 +4928,7 @@ export default function TennisManager() {
                   <Icon name="x" size={18} strokeWidth={2.6} />
                 </button>
                 <div className="tm-display" style={{ flex: 1, fontSize: 22, lineHeight: 1, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Icon name="trophy" size={20} color="#d6ef3c" /> Hall of Fame
+                  <Icon name="trophy" size={20} color="#d6ef3c" halo /> Hall of Fame
                 </div>
                 <span className="tm-display" style={{ background: "#d6ef3c", color: "#141414", border: "2.5px solid #ffffff", padding: "1px 8px", fontSize: 16, transform: "rotate(3deg)" }}>{got} / {total}</span>
               </div>
@@ -4956,7 +4956,7 @@ export default function TennisManager() {
                     <div key={catKey} style={{ marginBottom: 22 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                         <span className="tm-display" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.ink, color: "#ffffff", padding: "2px 9px", fontSize: 13 }}>
-                          <Icon name={cat.iconName} size={13} color="#d6ef3c" /> {cat.label}
+                          <Icon name={cat.iconName} size={13} color="#d6ef3c" halo /> {cat.label}
                         </span>
                         <div style={{ flex: 1, borderTop: "2px dashed " + T.ink }} />
                         <span className="tm-num" style={{ fontSize: 12, fontWeight: 800 }}>{catGot} / {trophies.length}</span>
@@ -5150,7 +5150,7 @@ export default function TennisManager() {
                   ]],
                 ].map(([icon, title, rows]) => (
                   <div key={title} style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12 }}>
-                    <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}><Icon name={icon} size={12} color="#d6ef3c" /> {title}</div>
+                    <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}><Icon name={icon} size={12} color="#d6ef3c" halo /> {title}</div>
                     <div style={{ padding: "2px 10px 6px" }}>
                       {rows.map(([l, v], i) => (
                         <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "5px 0", borderBottom: i < rows.length - 1 ? "1.5px dashed " + T.ink : "none", fontSize: 12.5 }}>

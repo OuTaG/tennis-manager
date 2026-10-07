@@ -85,8 +85,8 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
             <div style={{ display: "flex", flexWrap: "wrap", rowGap: 14 }}>
               {items.map((it, i) => (
                 <div key={i} style={{ width: "50%", display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                  <div style={{ width: 34, height: 34, background: it.color, border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Icon name={it.icon} size={17} color="#ffffff" />
+                  <div style={{ width: 34, height: 34, background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon name={it.icon} size={20} color={T.ink} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div className="tm-display" style={{ color: "#141414", fontSize: 17, lineHeight: 1.1 }}>{it.v}</div>
