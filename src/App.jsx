@@ -100,7 +100,7 @@ export default function TennisManager() {
   const [matchPaused, setMatchPaused] = useState(false);
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [wallTaps, setWallTaps] = useState(0); // secret des réglages
-  const [wildcardBlocked, setWildcardBlocked] = useState(null); // { wc, enrolled } : wildcard refusée car déjà inscrit ailleurs
+  const [wildcardBlocked, setWildcardBlocked] = useState(null); // { title, lead, body, injury? } : wildcard impossible à accepter (inscrit ailleurs, repos, blessure)
   const [travelWarning, setTravelWarning] = useState(null); // tournoi de la semaine prochaine, joueur pas sur place
   // Ombres de défilement : fenêtre (pages de jeu), plan de jeu, aide, commentaires.
   const winEdges = useScrollEdges(null);
@@ -2575,7 +2575,12 @@ export default function TennisManager() {
   // ── WILDCARDS ─────────────────────────────────────────────────────────────
   const acceptWildcard = (offer) => {
     if (player.restUntilAbsWeek && (offer.tournamentYear * 52 + offer.tournamentWeek) < player.restUntilAbsWeek) {
-
+      const left = Math.max(1, player.restUntilAbsWeek - ((player.year || 0) * 52 + (player.week || 0)));
+      setWildcardBlocked({
+        title: "Au repos !",
+        lead: "Vous êtes au repos imposé encore " + left + " semaine" + (left > 1 ? "s" : "") + "…",
+        body: "Le " + offer.tournamentName + " tombe pendant ce repos : impossible d'accepter la wildcard.",
+      });
       return;
     }
     {
@@ -2593,11 +2598,21 @@ export default function TennisManager() {
     if (player.enrollment) {
       // Déjà inscrit ailleurs : on explique qu'il faut d'abord se désinscrire.
       const enr = ALL_TOURNAMENTS.find(x => x.id === player.enrollment.tournamentId);
-      setWildcardBlocked({ wc: offer.tournamentName, enrolled: enr ? enr.name : "un autre tournoi", week: player.enrollment.week });
+      setWildcardBlocked({
+        title: "Déjà inscrit !",
+        lead: "Vous êtes déjà inscrit au " + (enr ? enr.name : "un autre tournoi") + (player.enrollment.week ? " (semaine " + player.enrollment.week + ")" : "") + "…",
+        body: "Pour accepter la wildcard du " + offer.tournamentName + ", annulez d'abord votre inscription à l'autre tournoi (sur l'accueil ou dans Circuit › Tournois), puis acceptez la wildcard.",
+      });
       return;
     }
     if (player.injury && !player.injury.canPlay) {
-
+      const w = player.injury.weeksRemaining;
+      setWildcardBlocked({
+        title: "Blessé !",
+        lead: player.injury.label + " : vous ne pouvez pas jouer" + (w ? " (retour dans " + w + " sem.)" : "") + "…",
+        body: "Impossible d'accepter la wildcard du " + offer.tournamentName + " tant que la blessure vous empêche de disputer un tournoi.",
+        injury: true,
+      });
       return;
     }
     setPlayer(p => ({
@@ -4469,16 +4484,12 @@ export default function TennisManager() {
           {wildcardBlocked && (
             <div onClick={() => setWildcardBlocked(null)} style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
               <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 400, width: "100%" }}>
-                <div className="tm-display" style={{ background: "#e0a21b", color: "#141414", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Icon name="ticket" size={18} color="#141414" /> Déjà inscrit !
+                <div className="tm-display" style={{ background: wildcardBlocked.injury ? "#c4302b" : "#e0a21b", color: wildcardBlocked.injury ? "#ffffff" : "#141414", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Icon name={wildcardBlocked.injury ? "bandage" : "ticket"} size={18} color={wildcardBlocked.injury ? "#ffffff" : "#141414"} /> {wildcardBlocked.title}
                 </div>
                 <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
-                    Vous êtes déjà inscrit au {wildcardBlocked.enrolled}{wildcardBlocked.week ? " (semaine " + wildcardBlocked.week + ")" : ""}…
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>
-                    Pour accepter la wildcard du {wildcardBlocked.wc}, annulez d'abord votre inscription à l'autre tournoi (sur l'accueil ou dans Circuit › Tournois), puis acceptez la wildcard.
-                  </div>
+                  <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>{wildcardBlocked.lead}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>{wildcardBlocked.body}</div>
                   <button style={styles.btnPrimary} onClick={() => setWildcardBlocked(null)}>Compris</button>
                 </div>
               </div>
