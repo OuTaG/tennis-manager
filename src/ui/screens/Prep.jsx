@@ -70,10 +70,10 @@ export function TrainingScreen({ player, doTraining }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                   <div style={{
                     width: 38, height: 38, flexShrink: 0,
-                    background: "#1f7a45", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK,
-                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK,
+                    display: "flex", alignItems: "center", justifyContent: "center", transform: "rotate(-4deg)",
                   }}>
-                    <Icon name={mod.iconName} size={18} color="#ffffff" />
+                    <Icon name={mod.iconName} size={22} color={INK} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div className="tm-display" style={{ color: "#141414", fontSize: 16, lineHeight: 1.1 }}>{mod.name}</div>

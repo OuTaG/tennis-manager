@@ -76,7 +76,7 @@ export function RecordsScreen({ onBack }) {
                 <div key={d.id} style={{ borderBottom: i < CHALLENGES.length - 1 ? "2px dashed " + INK : "none" }}>
                   <div onClick={() => r && setOpenCh(open ? null : d.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", cursor: r ? "pointer" : "default" }}>
                     <div style={iconBox(r && r.medal ? INK : r ? "#c9b6ea" : "#ffffff")}>
-                      <Icon name={r && r.medal ? "award" : "target"} size={16} color={r && r.medal ? (MEDAL_INFO[r.medal] || {}).color : "#141414"} />
+                      <Icon name={r && r.medal ? "award" : "target"} size={16} color={r && r.medal ? (MEDAL_INFO[r.medal] || {}).color : "#141414"} fill={r && r.medal ? (MEDAL_INFO[r.medal] || {}).color : undefined} halo={!!(r && r.medal)} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={label}>{d.name}</div>
