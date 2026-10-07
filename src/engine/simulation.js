@@ -11,7 +11,11 @@ import { random } from "./rng.js";
 
 // Taux de participation hebdomadaire au circuit hors calendrier (voir
 // simulateAtpWeek). Valeurs calibrées par simulation sur plusieurs saisons.
-export const VIRTUAL_CIRCUIT = { challengerFrom: 175, challengerProb: 0.34, m25Prob: 0.55, m15Prob: 0.8 };
+// m15Low* : Futures « régionaux » réservés au bas du classement (au-delà du
+// 1000e), tableaux formés par niveau (rang ± m15LowSpread / 2). Sans eux, les
+// derniers mondiaux (note ~40) tombaient au 1er tour face aux 600e-900e (note
+// ~50-55) et ne marquaient que 7 à 14 points par an.
+export const VIRTUAL_CIRCUIT = { challengerFrom: 175, challengerProb: 0.34, m25Prob: 0.55, m15Prob: 0.8, m15LowFrom: 1000, m15LowProb: 0.8, m15LowSpread: 80 };
 // Circuit WTA : moins de WTA 250 et de WTA 125 que de tournois équivalents
 // côté ATP (le vrai circuit féminin compte beaucoup de W75/W100 non listés).
 // Participation renforcée pour garder des points stables à chaque rang.
@@ -696,6 +700,8 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
     const VIRTUAL_EVENTS = [
       { tournament: "Challenger (hors calendrier)", tier: "Challenger", from: isWTA() ? WTA_SIM.challengerFrom : VIRTUAL_CIRCUIT.challengerFrom, to: 520,  prob: isWTA() ? WTA_SIM.challengerProb : VIRTUAL_CIRCUIT.challengerProb, points: [0, 6, 12, 22, 44, 75] },   // Challenger 75
       { tournament: "Open M25 (hors calendrier)",   tier: "ITF",        from: 280, to: 650,  prob: VIRTUAL_CIRCUIT.m25Prob,        points: [0, 1, 3, 8, 16, 25] },    // ITF M25
+      // Joué en premier : ses joueurs ne sont plus dans le pool du Futures général.
+      { tournament: "Futures (régional)",           tier: "Futures",    from: VIRTUAL_CIRCUIT.m15LowFrom, to: 99999, prob: VIRTUAL_CIRCUIT.m15LowProb, points: [0, 1, 2, 4, 8, 15], spread: VIRTUAL_CIRCUIT.m15LowSpread },
       { tournament: "Futures",                      tier: "Futures",    from: 600, to: 99999, prob: VIRTUAL_CIRCUIT.m15Prob,       points: [0, 1, 2, 4, 8, 15] },     // ITF M15
     ];
     const V_ROUNDS = ["1er tour", "2e tour", "8es de finale", "Quarts", "Demies", "Finale"];
@@ -705,14 +711,24 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
 
     for (const ev of VIRTUAL_EVENTS) {
       const pool = [];
+      const keyed = [];
       for (let r = ev.from; r < Math.min(ev.to, sorted.length); r++) {
         const pl = sorted[r];
-        if (!weekPlayedIds.has(pl.id) && random() < ev.prob) pool.push(pl);
+        if (!weekPlayedIds.has(pl.id) && random() < ev.prob) keyed.push({ pl, k: r });
       }
-      for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
+      if (ev.spread) {
+        // Tableaux par niveau : on trie par rang bruité (± spread / 2), en
+        // partant des derniers pour que le reliquat (< 16, sans tableau) soit
+        // pris en haut du pool et non parmi les plus mal classés.
+        for (const e of keyed) e.k += (random() - 0.5) * ev.spread;
+        keyed.sort((a, b) => b.k - a.k);
+      } else {
+        for (let i = keyed.length - 1; i > 0; i--) {
+          const j = Math.floor(random() * (i + 1));
+          [keyed[i], keyed[j]] = [keyed[j], keyed[i]];
+        }
       }
+      for (const e of keyed) pool.push(e.pl);
       for (let start = 0; start + 16 <= pool.length; start += 32) {
         const draw = pool.slice(start, start + 32);
         draw.forEach(pl => weekPlayedIds.add(pl.id));
