@@ -1,7 +1,7 @@
 // Écran Joueur › Vie.
 import { LIFE_ACTIVITIES } from "../../data/life.js";
 import { lifeCaps } from "../../engine/player.js";
-import { Icon } from "../icons.jsx";
+import { Icon, StatIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
@@ -15,19 +15,33 @@ export function LifeScreen({ player, doLifeActivity }) {
     ? (player.lifeActivitiesThisWeek || 0)
     : 0;
 
+  // Jauge BD : case encrée, picto BD, chiffre en Archivo, barre cernée.
   const lifeStat = (label, value, color, icon) => (
-    <div style={{ background: T.bg2, borderRadius: 0, padding: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Icon name={icon} size={14} color={color} />
-          <span style={{ color: T.fg, fontSize: 12, fontWeight: 700, letterSpacing: 0.3 }}>{label}</span>
-        </div>
-        <span className="tm-num" style={{ color: color, fontSize: 15, fontWeight: 800 }}>{value}</span>
+    <div style={{ background: "#ffffff", color: "#141414", padding: "8px 8px 9px", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, marginBottom: 4 }}>
+        <StatIcon name={icon} size={20} />
+        <span className="tm-display tm-num" style={{ color: "#141414", fontSize: 20, lineHeight: 1 }}>{value}</span>
       </div>
-      <div style={{ height: 6, background: T.bg4, borderRadius: 0, overflow: "hidden" }}>
-        <div style={{ width: value + "%", height: "100%", background: color, borderRadius: 0, transition: "width .3s" }} />
+      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", marginBottom: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
+      <div style={{ height: 10, border: "2px solid " + T.ink, background: "#ffffff" }}>
+        <div style={{ width: value + "%", height: "100%", background: color, borderRight: value > 0 && value < 100 ? "2px solid " + T.ink : "none", transition: "width .3s" }} />
       </div>
     </div>
+  );
+
+  // Étiquette BD d'un coût ou d'un gain : picto BD + montant signé,
+  // vert si c'est favorable, rouge sinon.
+  const effectChip = (key, icon, amount, good, suffix = "") => (
+    <span key={key} style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink,
+      padding: "1px 7px 1px 3px",
+    }}>
+      <StatIcon name={icon} size={16} />
+      <span className="tm-display tm-num" style={{ fontSize: 12.5, color: good ? "#1f7a45" : "#c4302b", whiteSpace: "nowrap" }}>
+        {amount > 0 ? "+" : "−"}{Math.abs(amount).toLocaleString()}{suffix}
+      </span>
+    </span>
   );
 
   return (
@@ -35,15 +49,15 @@ export function LifeScreen({ player, doLifeActivity }) {
       <div style={styles.sectionTitle}>Vie personnelle</div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
-        {lifeStat("Bonheur", happiness, "var(--tm-amber)", "heart")}
-        {lifeStat("Popularité", popularity, T.green, "sparkles")}
-        {lifeStat("Image", image, "var(--tm-blue)", "users")}
+        {lifeStat("Bonheur", happiness, "#1f7a45", "happiness")}
+        {lifeStat("Popularité", popularity, "#5b2d8e", "popularity")}
+        {lifeStat("Image", image, "#c4572b", "image")}
       </div>
       {(() => {
         const caps = lifeCaps(player);
         return (
           <div style={{ color: T.fg4, fontSize: 12, lineHeight: 1.5, margin: "-6px 2px 14px" }}>
-            Votre classement limite votre notoriété : popularité max <strong className="tm-num" style={{ color: T.fg2 }}>{caps.popularity}</strong>, image max <strong className="tm-num" style={{ color: T.fg2 }}>{caps.image}</strong>. Grimpez au classement pour aller plus haut.
+            Votre classement limite votre notoriété : popularité max <strong className="tm-num" style={{ color: "#141414" }}>{caps.popularity}</strong>, image max <strong className="tm-num" style={{ color: "#141414" }}>{caps.image}</strong>. Grimpez au classement pour aller plus haut.
           </div>
         );
       })()}
@@ -61,7 +75,7 @@ export function LifeScreen({ player, doLifeActivity }) {
 
       <div style={{ ...styles.sectionTitle, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span>Activités</span>
-        <span style={{ color: T.fg5, fontSize: 11, fontWeight: 600, letterSpacing: 0.5, textTransform: "none" }}>
+        <span style={{ display: "inline-block", fontFamily: T.body, background: activitiesThisWeek >= 2 ? "#c4302b" : "#ffffff", color: activitiesThisWeek >= 2 ? "#ffffff" : "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "0 6px", letterSpacing: 0.3, textTransform: "none" }}>
           {activitiesThisWeek}/2 cette semaine
         </span>
       </div>
@@ -79,49 +93,36 @@ export function LifeScreen({ player, doLifeActivity }) {
               <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 0,
-                  background: T.bg3, border: "2px solid " + T.ink,
+                  background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink,
+                  transform: "rotate(-4deg)",
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}>
-                  <Icon name={act.iconName} size={18} color={T.green} />
+                  <Icon name={act.iconName} size={18} color="#1f7a45" strokeWidth={2.2} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ color: T.fg, fontWeight: 700, fontSize: 13 }}>{act.name}</div>
+                  <div className="tm-display" style={{ color: "#141414", fontSize: 14 }}>{act.name}</div>
                   <div style={{ color: T.fg4, fontSize: 11, marginTop: 2 }}>{act.desc}</div>
                 </div>
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-              {act.cost > 0 && <span style={styles.tournChip}>−<span className="tm-num">{act.cost.toLocaleString()}€</span></span>}
-              {act.energyCost > 0 && <span style={{ ...styles.tournChip, display: "inline-flex", alignItems: "center", gap: 2 }}>−<span className="tm-num">{act.energyCost}</span><Icon name="energy" size={10} /></span>}
-              {act.energyCost < 0 && <span style={{ ...styles.tournChip, color: T.green, display: "inline-flex", alignItems: "center", gap: 2 }}>+<span className="tm-num">{-act.energyCost}</span><Icon name="energy" size={10} /></span>}
-              {act.happiness !== 0 && (
-                <span style={{ ...styles.tournChip, color: act.happiness > 0 ? "var(--tm-amber)" : T.red, borderColor: T.brd, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  {act.happiness > 0 ? "+" : ""}{act.happiness}
-                  <Icon name="heart" size={10} color={act.happiness > 0 ? "var(--tm-amber)" : T.red} />
-                </span>
-              )}
-              {act.popularity !== 0 && (
-                <span style={{ ...styles.tournChip, color: act.popularity > 0 ? T.green : T.red, borderColor: T.brd, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  {act.popularity > 0 ? "+" : ""}{act.popularity}
-                  <Icon name="sparkles" size={10} color={act.popularity > 0 ? T.green : T.red} />
-                </span>
-              )}
-              {act.image !== 0 && (
-                <span style={{ ...styles.tournChip, color: act.image > 0 ? "var(--tm-blue)" : T.red, borderColor: T.brd, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  {act.image > 0 ? "+" : ""}{act.image}
-                  <Icon name="users" size={10} color={act.image > 0 ? "var(--tm-blue)" : T.red} />
-                </span>
-              )}
+            <div style={{ display: "flex", gap: 7, marginBottom: 12, flexWrap: "wrap" }}>
+              {act.cost > 0 && effectChip("cost", "money", -act.cost, false, " €")}
+              {act.energyCost !== 0 && effectChip("energy", "energy", -act.energyCost, act.energyCost < 0)}
+              {act.happiness !== 0 && effectChip("happiness", "happiness", act.happiness, act.happiness > 0)}
+              {act.popularity !== 0 && effectChip("popularity", "popularity", act.popularity, act.popularity > 0)}
+              {act.image !== 0 && effectChip("image", "image", act.image, act.image > 0)}
             </div>
 
             <button
               style={{
                 ...styles.btnSmall, width: "100%",
-                background: canDo ? T.green : T.bg3,
-                color: canDo ? T.bg0 : T.fg4,
-                borderColor: "transparent",
-                opacity: canDo ? 1 : 0.6,
+                background: canDo ? "#1f7a45" : "#ffffff",
+                color: canDo ? "#ffffff" : "#6b6b6b",
+                border: "2.5px solid " + T.ink,
+                boxShadow: canDo ? "2px 2px 0 " + T.ink : "none",
+                fontFamily: T.display, fontWeight: 400, textTransform: "uppercase",
+                opacity: canDo ? 1 : 0.7,
               }}
               disabled={!canDo}
               onClick={() => doLifeActivity(act)}

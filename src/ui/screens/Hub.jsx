@@ -4,7 +4,7 @@ import { ALL_TOURNAMENTS, tierColor, tierLabel } from "../../engine/circuit.js";
 import { difficultyLevel, formatMultiplier, scoreMultiplier } from "../../engine/difficulty.js";
 import { buildFrontPage } from "../../engine/frontpage.js";
 import { Avatar } from "../avatar.jsx";
-import { FlagFromEmoji, Icon } from "../icons.jsx";
+import { FlagFromEmoji, Icon, StatIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
@@ -25,9 +25,9 @@ function MoodGauge({ icon, label, value, color, words }) {
   const v = Math.max(0, Math.min(100, Math.round(value)));
   const word = v >= 75 ? words[3] : v >= 50 ? words[2] : v >= 25 ? words[1] : words[0];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "26px minmax(0, 1fr) 40px", alignItems: "center", gap: 8 }}>
-      <span style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", background: color, border: "2px solid " + T.ink }}>
-        <Icon name={icon} size={14} color="#ffffff" />
+    <div style={{ display: "grid", gridTemplateColumns: "28px minmax(0, 1fr) 40px", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, transform: "rotate(-4deg)" }}>
+        <StatIcon name={icon} size={20} />
       </span>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6, marginBottom: 3 }}>
@@ -282,7 +282,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
                   </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <span style={{ color: met ? T.green : T.fg4, fontSize: 11 }}>{met ? "✓ " : ""}{o.label}</span>
+                  <span style={{ color: met ? T.green : T.fg4, fontSize: 11 }}>{met && <Icon name="check" size={11} strokeWidth={3} style={{ marginRight: 3, verticalAlign: -1 }} />}{o.label}</span>
                   <span style={{ color: T.green, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", marginLeft: 8 }}>+{(s.objectiveReward || 0).toLocaleString()}€ / −{(s.objectivePenalty || 0).toLocaleString()}€</span>
                 </div>
                 <div style={{ height: 12, background: "#ffffff", border: "2px solid " + T.ink, overflow: "hidden" }}>
@@ -298,9 +298,9 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       <section aria-label="Moral et réputation" className="tm-fade-up" style={{ background: T.bg1, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, marginBottom: 14 }}>
         <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, padding: "5px 10px", letterSpacing: 0.5 }}>Moral et réputation</div>
         <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
-          <MoodGauge icon="heart" label="Bonheur" value={player.happiness ?? 70} color="#1f7a45" words={["Au fond du trou", "Morose", "Serein", "Aux anges"]} />
-          <MoodGauge icon="megaphone" label="Popularité" value={player.popularity ?? 20} color="#5b2d8e" words={["Inconnu", "Remarqué", "Apprécié", "Star"]} />
-          <MoodGauge icon="star" label="Image" value={player.image ?? 60} color="#c4572b" words={["Sulfureuse", "Fragile", "Correcte", "Exemplaire"]} />
+          <MoodGauge icon="happiness" label="Bonheur" value={player.happiness ?? 70} color="#1f7a45" words={["Au fond du trou", "Morose", "Serein", "Aux anges"]} />
+          <MoodGauge icon="popularity" label="Popularité" value={player.popularity ?? 20} color="#5b2d8e" words={["Inconnu", "Remarqué", "Apprécié", "Star"]} />
+          <MoodGauge icon="image" label="Image" value={player.image ?? 60} color="#c4572b" words={["Sulfureuse", "Fragile", "Correcte", "Exemplaire"]} />
         </div>
       </section>
 
