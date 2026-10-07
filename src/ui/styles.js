@@ -131,7 +131,8 @@ export const styles = {
 
   // INPUTS
   inputGroup: { width: "100%" },
-  label: { color: T.fg3, fontSize: 13, display: "block", marginBottom: 8, fontWeight: 600 },
+  // Étiquette de champ : petit cartouche encré noir, en capitales.
+  label: { display: "inline-block", background: T.ink, color: T.paper, fontSize: 11.5, marginBottom: 8, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, padding: "2px 8px" },
   input: {
     width: "100%", padding: "13px 14px",
     background: T.bg1, border: INK_BORDER,
@@ -150,7 +151,7 @@ export const styles = {
   styleBtnActive: { border: INK_BORDER, background: T.gold, color: "#161616", boxShadow: "3px 3px 0 " + T.ink },
 
   // STAT PREVIEW
-  statPreview: { width: "100%", background: T.bg2, borderRadius: 0, padding: 14, boxSizing: "border-box", border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink },
+  statPreview: { width: "100%", background: "#ffffff", borderRadius: 0, padding: 14, boxSizing: "border-box", border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink },
   statBarRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 6 },
   statLabel: { color: T.fg3, fontSize: 12, width: 80, flexShrink: 0, fontWeight: 500 },
   statBarBg: { flex: 1, height: 10, background: "#ffffff", border: "2px solid " + T.ink, borderRadius: 0, overflow: "hidden" },
@@ -165,7 +166,6 @@ export const styles = {
     zIndex: 999, width: "calc(100% - 40px)", maxWidth: 380, textAlign: "left",
     background: T.bg1, border: INK_BORDER, boxShadow: "4px 4px 0 " + T.ink,
     borderLeftWidth: 6,
-    boxShadow: "0 6px 20px " + T.shadow,
     fontFamily: T.body,
   },
 
@@ -212,7 +212,7 @@ export const styles = {
 
   // ALERT BOXES
   alertBox: {
-    background: "#fff6c9", border: INK_BORDER, borderLeft: "8px solid " + T.gold, boxShadow: "3px 3px 0 " + T.ink,
+    background: "#ffffff", border: INK_BORDER, borderLeft: "8px solid " + T.gold, boxShadow: "3px 3px 0 " + T.ink,
     borderRadius: 0, padding: 13,
     color: T.fg, fontSize: 13, marginBottom: 12,
     lineHeight: 1.5,

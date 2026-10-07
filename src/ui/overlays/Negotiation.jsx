@@ -222,9 +222,11 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
                   {med && <span style={{ ...bdChip(BD.lilac, BD.text), textTransform: "none", fontSize: 11.5, whiteSpace: "normal", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="target" size={10} /> {(neg && neg.levelId ? (o.objectiveLevels || []).find(l => l.level === neg.levelId) : med).label}</span>}
                 </div>
                 {slotWarn && (
-                  <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 10, padding: "5px 8px", background: "#fff6c9", border: "2px solid " + INK, color: BD.text, fontSize: 11.5, lineHeight: 1.4, fontWeight: 700 }}>
-                    <Icon name="warning" size={13} color={BD.red} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <span>{slotWarn.short}</span>
+                  <div style={{ display: "flex", alignItems: "stretch", marginTop: 10, background: BD.paper, border: "2px solid " + INK, boxShadow: "2px 2px 0 " + INK, color: BD.text, fontSize: 11.5, lineHeight: 1.4, fontWeight: 700 }}>
+                    <span style={{ flexShrink: 0, width: 24, display: "flex", alignItems: "center", justifyContent: "center", background: BD.red, borderRight: "2px solid " + INK }}>
+                      <Icon name="warning" size={13} color="#ffffff" />
+                    </span>
+                    <span style={{ padding: "4px 8px", minWidth: 0 }}>{slotWarn.short}</span>
                   </div>
                 )}
                 <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
@@ -581,10 +583,17 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
         })()}
 
         {lastChance && (
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 16, padding: "10px 12px", background: "#fff6c9", color: "#141414", border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK }}>
-            <Icon name="warning" size={18} color="#c4302b" style={{ flexShrink: 0, marginTop: 1 }} />
-            <div style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-              <strong>Attention, la marque est à bout de patience.</strong> Une demande de plus et elle pourrait quitter la table. Pour votre premier contrat, mieux vaut ne pas prendre de risque : signez avec les conditions actuelles.
+          <div role="alert" style={{ ...bdPanel(5), marginBottom: 16, overflow: "hidden" }}>
+            {/* Bandeau rouge tramé : case d'icône penchée + titre encré */}
+            <div style={{ background: BD.red, backgroundImage: "radial-gradient(rgba(20,20,20,0.22) 1.3px, transparent 1.5px)", backgroundSize: "6px 6px", borderBottom: "3px solid " + INK, padding: "8px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 32, height: 32, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: BD.paper, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, transform: "rotate(-4deg)" }}>
+                <Icon name="warning" size={18} color={BD.red} />
+              </span>
+              <strong className="tm-display" style={{ color: "#ffffff", fontSize: 15, fontWeight: 400, lineHeight: 1.15, textShadow: "1.5px 1.5px 0 " + INK }}>Attention, la marque est à bout de patience.</strong>
+            </div>
+            <div style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
+              <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.2 }}>Une demande de plus et elle pourrait quitter la table.</div>
+              <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.45 }}>Pour votre premier contrat, mieux vaut ne pas prendre de risque : signez avec les conditions actuelles.</div>
             </div>
           </div>
         )}

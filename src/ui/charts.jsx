@@ -6,18 +6,19 @@ import { T } from "./theme.js";
 // Clickable label that reveals a short definition.
 export function DefinitionLabel({ label, info }) {
   const [open, setOpen] = useState(false);
-  if (!info) return <span className="tm-eyebrow">{label}</span>;
+  if (!info) return <span style={{ color: "#141414", fontSize: 11, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>{label}</span>;
   return (
     <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start" }}>
-      <button onClick={() => setOpen(o => !o)} className="tm-eyebrow" style={{
-        background: "none", border: "none", padding: 0, cursor: "pointer",
-        color: "inherit", textDecoration: "underline dotted", textUnderlineOffset: 3,
+      <button onClick={() => setOpen(o => !o)} style={{
+        background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: T.body,
+        color: "#141414", fontSize: 11, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase",
+        textDecoration: "underline dashed", textDecorationThickness: 2, textUnderlineOffset: 3,
         display: "inline-flex", alignItems: "center", gap: 4,
       }}>
         {label} <Icon name="info" size={10} />
       </button>
       {open && (
-        <span style={{ color: T.fg3, fontSize: 11, lineHeight: 1.45, marginTop: 6, maxWidth: 260, textTransform: "none", letterSpacing: 0 }}>{info}</span>
+        <span className="tm-lettering" style={{ color: "#141414", background: "#d6ef3c", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "5px 8px", fontSize: 13.5, lineHeight: 1.25, marginTop: 6, maxWidth: 260, textTransform: "none", letterSpacing: 0 }}>{info}</span>
       )}
     </span>
   );
@@ -32,7 +33,7 @@ export function MiniLineChart({ data, color, height = 80, label = "", suffix = "
     return (
       <div style={{ ...card, padding: 12 }}>
         <DefinitionLabel label={label} info={info} />
-        <div className="tm-lettering" style={{ fontSize: 14, textAlign: "center", padding: "10px 6px 4px", color: T.fg3 }}>Pas encore assez de données…</div>
+        <div className="tm-lettering" style={{ fontSize: 14, textAlign: "center", padding: "10px 6px 4px", color: "#141414" }}>Pas encore assez de données…</div>
       </div>
     );
   }
@@ -75,7 +76,7 @@ export function MiniLineChart({ data, color, height = 80, label = "", suffix = "
         <DefinitionLabel label={label} info={info} />
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {hover && (
-            <span className="tm-num" style={{ color: T.fg3, fontSize: 10, fontWeight: 800 }}>
+            <span className="tm-num" style={{ color: "#141414", background: "#ffffff", border: "2px solid " + T.ink, padding: "0 4px", fontSize: 10, fontWeight: 800 }}>
               S{hover.d.x}{hover.d.year ? " · " + hover.d.year : ""}
             </span>
           )}

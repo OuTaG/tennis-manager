@@ -111,8 +111,9 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
               {countries.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             {current && (
-              <div style={{ background: "#e0a21b", color: "#141414", border: "2px solid " + INK, padding: "5px 8px", fontSize: 12, fontWeight: 700, marginBottom: 12, lineHeight: 1.5 }}>
-                Lancer ce défi remplacera le défi en cours ({(getChallengeDef(current.challenge) || {}).name || "défi"}).
+              <div role="alert" style={{ display: "flex", alignItems: "stretch", background: "#ffffff", color: "#141414", border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK, fontSize: 12.5, fontWeight: 700, marginBottom: 14, lineHeight: 1.45 }}>
+                <span style={{ flexShrink: 0, width: 32, display: "flex", alignItems: "center", justifyContent: "center", background: "#e0a21b", borderRight: "2.5px solid " + INK }}><Icon name="warning" size={16} color="#141414" /></span>
+                <span style={{ padding: "6px 9px" }}>Lancer ce défi remplacera le défi en cours ({(getChallengeDef(current.challenge) || {}).name || "défi"}).</span>
               </div>
             )}
             {owned ? (

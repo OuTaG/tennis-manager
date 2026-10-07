@@ -158,7 +158,7 @@ if (typeof document !== "undefined" && !document.getElementById("tm-global-style
     /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: ${T.brd3}; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: ${T.brd3}; border-radius: 0; }
 
     button:active:not(:disabled) { transform: translateY(1px); }
     .tm-card { transition: border-color 0.15s; }

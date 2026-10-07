@@ -67,7 +67,7 @@ export function CustomizeScreen({ onBack }) {
         </button>
         <div style={{ borderBottom: "3px solid " + INK, paddingBottom: 4 }}>
           <div className="tm-display" style={{ fontSize: 28, lineHeight: 1 }}>Personnalisation</div>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: T.fg3, marginTop: 4 }}>Modifiez les noms, nationalités et portraits des joueurs. Choisissez la base au lancement d'une carrière.</div>
+          <div className="tm-lettering" style={{ fontSize: 15, lineHeight: 1.25, color: INK, marginTop: 4 }}>Modifiez les noms, nationalités et portraits des joueurs. Choisissez la base au lancement d'une carrière.</div>
         </div>
 
         {/* Les trois configurations */}
@@ -104,8 +104,8 @@ export function CustomizeScreen({ onBack }) {
           {shown.map((e, k) => (
             <button key={e.index} onClick={() => openEditor(e)} style={{
               width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "6px 10px", cursor: "pointer",
-              background: e.edited ? "rgba(214,239,60,0.25)" : "#ffffff", color: INK, border: 0,
-              borderTop: k ? "1.5px dashed " + INK : 0, fontFamily: T.body, textAlign: "left",
+              background: e.edited ? "#d6ef3c" : "#ffffff", color: INK, border: 0,
+              borderTop: k ? "2px dashed " + INK : 0, fontFamily: T.body, textAlign: "left",
             }}>
               <span className="tm-num" style={{ width: 46, flexShrink: 0, fontWeight: 800, fontSize: 12 }}>#{e.index + 1}</span>
               <span style={{ width: 32, height: 32, flexShrink: 0, border: "2px solid " + INK, overflow: "hidden", background: "#ffffff" }}>
@@ -127,7 +127,7 @@ export function CustomizeScreen({ onBack }) {
         {/* Remise à zéro de la configuration */}
         {confirmReset ? (
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={{ ...styles.btnSecondary, flex: 1, borderColor: T.red, color: T.red }} onClick={() => { update({ name: cfg.name, atp: {}, wta: {} }); setConfirmReset(false); }}>Tout effacer</button>
+            <button style={{ ...styles.btnSecondary, flex: 1, background: "#c4302b", color: "#ffffff", boxShadow: "2px 2px 0 " + INK }} onClick={() => { update({ name: cfg.name, atp: {}, wta: {} }); setConfirmReset(false); }}>Tout effacer</button>
             <button style={{ ...styles.btnSecondary, flex: 1 }} onClick={() => setConfirmReset(false)}>Annuler</button>
           </div>
         ) : (
@@ -142,7 +142,7 @@ export function CustomizeScreen({ onBack }) {
           <div style={{ maxWidth: 420, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "3px solid " + INK, paddingBottom: 4 }}>
               <span className="tm-display" style={{ fontSize: 22 }}>Joueur #{editing.index + 1}</span>
-              <span className="tm-eyebrow" style={{ color: INK }}>{female ? "Circuit féminin" : "Circuit masculin"}</span>
+              <span style={{ background: INK, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3, textTransform: "uppercase", padding: "1px 6px", whiteSpace: "nowrap" }}>{female ? "Circuit féminin" : "Circuit masculin"}</span>
             </div>
             <div>
               <label style={styles.label} htmlFor="tm-edit-name">Nom affiché</label>
