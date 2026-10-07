@@ -259,6 +259,7 @@ export const WTA_TEXT_RULES = [
   _fr("vainqueurs", "gagnantes"),
   _fr("vainqueur", "gagnante"),
   _fr("Vainqueur", "Gagnante"),
+  _fr("Gagnant", "Gagnante"),
   _fr("plus d'un favori", "plus d'une favorite"),
   _fr("([Ll])e favori", "$1a favorite"),
   _fr("([Uu])n favori", "$1ne favorite"),

@@ -3431,7 +3431,7 @@ export default function TennisManager() {
     };
     // Face-à-face final : les deux portraits, le score au milieu, le vainqueur en jaune.
     const postFaces = (fr) => {
-      const me = { avatar: player.avatar, name: player.name, flag: player.nationalityFlag, won: fr.won };
+      const me = { avatar: player.avatar, name: rankingName(player.name), flag: player.nationalityFlag, won: fr.won };
       const opp = { avatar: aiAvatar(ms.opponent, player.circuit === "wta"), name: fr.opponent, flag: ms.opponent?.nat?.flag, won: !fr.won, rank: fr.opponentRank };
       const face = (x) => (
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
@@ -3832,7 +3832,7 @@ export default function TennisManager() {
                 <div aria-hidden="true" style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(20,20,20,0.16) 1.4px, transparent 1.6px)", backgroundSize: "6px 6px" }} />
                 <div aria-hidden="true" style={{ position: "absolute", top: -10, bottom: -10, left: "50%", width: 4, marginLeft: -2, background: ink, transform: "rotate(10deg)" }} />
                 <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 0 }}>
-                  {portrait(player.avatar, player.nationalityFlag, player.name, ranking, true)}
+                  {portrait(player.avatar, player.nationalityFlag, rankingName(player.name), ranking, true)}
                   {/* « VS » : étoile à pointes courtes, assez large pour que le
                       lettrage respire à l'intérieur ; ombre d'encre décalée. */}
                   <div style={{ width: 66, flexShrink: 0, height: 118, display: "flex", alignItems: "center", justifyContent: "center" }}>
