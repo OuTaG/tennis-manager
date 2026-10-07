@@ -107,7 +107,7 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
       {/* Offres en cours de saison */}
       {offers.length > 0 && (
         <div style={panel}>
-          {band("Offres du moment", <span style={chip("#d6ef3c", "#141414")}>{offers.length} offre{offers.length > 1 ? "s" : ""}</span>)}
+          {band("Proposition" + (offers.length > 1 ? "s" : "") + " de sponsor", <span style={chip("#d6ef3c", "#141414")}>{offers.length} offre{offers.length > 1 ? "s" : ""}</span>)}
           {offers.map((o, k) => {
             const med = (o.objectiveLevels || []).find(l => l.level === "medium") || (o.objectiveLevels || [])[1];
             const left = Math.max(1, o.expiresAbs - nowAbs);

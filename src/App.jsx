@@ -13,6 +13,7 @@ import { pickComment, pickDebrief } from "./engine/commentary.js";
 import { generateAtpDatabase, getPlayerProfile, getRating, pickOpponentForMatch } from "./engine/database.js";
 import { MATCH_FIX_DILEMMA, resolveDilemmaOption } from "./engine/dilemmas.js";
 import { feminizeText } from "./engine/feminize.js";
+import { firstSentence } from "./engine/text.js";
 import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/history.js";
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
 import { advanceMatchOneGame, aiMatchProb, clampMomentum, createInitialMatchData } from "./engine/match.js";
@@ -957,7 +958,7 @@ export default function TennisManager() {
     const tournamentPosts = (articles || []).map(a => {
       const author = pickRandom(SOCIAL_AUTHORS.journalists);
       // Use the article title as a tweet headline, body as continuation
-      const content = a.title + (a.body ? " — " + a.body.split(". ")[0] + "." : "");
+      const content = a.title + (a.body ? " — " + firstSentence(a.body) : "");
       return {
         id: a.id,
         author,
@@ -1838,7 +1839,10 @@ export default function TennisManager() {
     setMatchState(ms => {
       if (!ms) return ms;
       const m = { ...ms.matchData };
-      m.playerMomentum = clampMomentum((m.playerMomentum || 0) + miniGameEffect(win).momentumDelta);
+      // Élan symétrique : le vainqueur du mini-jeu prend l'élan (joueur ou adversaire).
+      const swing = miniGameEffect(true).momentumDelta;
+      if (win) m.playerMomentum = clampMomentum((m.playerMomentum || 0) + swing);
+      else m.oppMomentum = clampMomentum((m.oppMomentum || 0) + swing);
       if (zone !== null && zone !== undefined) m.serveZones = [...(m.serveZones || []), zone].slice(-8);
       // Le jeu interrompu reprend : gagné → jeu pour le joueur, perdu → égalité.
       if (m.pendingGame) m.pendingGame = { ...m.pendingGame, miniGameWon: !!win };
@@ -2340,7 +2344,7 @@ export default function TennisManager() {
           const journoPost = {
             id: article.id,
             author: journoAuthor,
-            content: article.title + (article.body ? " — " + article.body.split(". ")[0] + "." : ""),
+            content: article.title + (article.body ? " — " + firstSentence(article.body) : ""),
             likes: randomLikes(1500, 8000),
             retweets: randomLikes(200, 1200),
             week: player.week, year: player.year,
@@ -4084,8 +4088,9 @@ export default function TennisManager() {
                 <div key={i} title="Élan : la dynamique du match" style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", marginBottom: 2 }}>Élan</div>
                   <div style={{ position: "relative", height: 9, border: "2px solid " + T.ink, background: "linear-gradient(90deg, #d6ef3c 0 50%, #c9b6ea 50% 100%)" }}>
-                    {/* Votre élan pousse le curseur de votre côté (à gauche, sous votre énergie). */}
-                    <div style={{ position: "absolute", top: -4, width: 6, height: 13, marginLeft: -3, background: T.ink, left: (50 - (m.playerMomentum || 0) * 10) + "%", transition: "left 0.3s" }} />
+                    {/* Élan net (le vôtre moins celui de l'adversaire) : à gauche s'il est
+                        pour vous, à droite s'il est pour lui, avec la même amplitude. */}
+                    <div style={{ position: "absolute", top: -4, width: 6, height: 13, marginLeft: -3, background: T.ink, left: (50 - clampMomentum((m.playerMomentum || 0) - (m.oppMomentum || 0)) * 10) + "%", transition: "left 0.3s" }} />
                   </div>
                 </div>
               ))}
