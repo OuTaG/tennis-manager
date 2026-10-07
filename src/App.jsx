@@ -2900,13 +2900,6 @@ export default function TennisManager() {
           <WindowShades />
             <div style={{ ...styles.menuCard, gap: 14, alignItems: "stretch", maxWidth: 380 }}>
               <h2 style={{ color: T.fg, fontSize: 22, fontWeight: 800, margin: 0, textAlign: "center" }}>Étape 1/2 · Identité</h2>
-              <div style={{
-                background: T.bg1, borderRadius: 0, padding: "10px 12px",
-                border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
-                fontSize: 11.5, color: T.fg4, lineHeight: 1.5,
-              }}>
-                Choisissez votre nom, votre nationalité et personnalisez votre avatar.
-              </div>
 
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Nom du joueur</label>
@@ -2947,7 +2940,7 @@ export default function TennisManager() {
                   </select>
                 </div>
                 <div style={{ color: T.fg5, fontSize: 11, marginTop: 6 }}>
-                  Indépendante de votre ville de départ. Elle compte pour jouer à domicile.
+                  Elle compte pour jouer à domicile.
                 </div>
               </div>
 
@@ -3027,9 +3020,6 @@ export default function TennisManager() {
 
             <div>
               <label style={styles.label}>Ville de départ</label>
-              <div style={{ color: T.fg4, fontSize: 11, marginTop: -4, marginBottom: 8 }}>
-                Chaque région a son circuit proche, avec ses surfaces. L'argent de départ compense les écarts de coût des voyages.
-              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                 {START_CITIES.map(({ city, desc, money }) => {
                   const info = CITIES[city];
@@ -3062,7 +3052,7 @@ export default function TennisManager() {
             <div>
               <label style={styles.label}>Difficulté</label>
               <div style={{ color: T.fg4, fontSize: 11, marginTop: -4, marginBottom: 8 }}>
-                Elle multiplie votre score de carrière, celui des classements. Seul le niveau Légende permet de viser le sommet.
+                Elle multiplie votre score de carrière.
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 4 }}>
                 {DIFFICULTY_LEVELS.map(d => {
@@ -3126,19 +3116,24 @@ export default function TennisManager() {
               })}
             </div>
 
-            <div style={{ background: T.bg1, borderRadius: 0, padding: 12, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, fontSize: 12, color: T.fg4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <Icon name="money" size={12} color={T.green} /> {startMoney(startCityInput, gameOptionsInput).toLocaleString("fr-FR")} €
-              <span style={{ color: T.fg5 }}>·</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <Icon name="location" size={12} color={T.green} />
-                {startCityInput}
-                <FlagFromEmoji emoji={CITIES[startCityInput]?.flag} size={12} />
-                <span style={{ color: T.fg4 }}>{CITIES[startCityInput]?.country}</span>
-              </span>
-              <span style={{ color: T.fg5 }}>·</span>
-              <Icon name="trophy" size={12} color={T.amber} /> 0 pt ATP
-              <span style={{ color: T.fg5 }}>·</span>
-              <Icon name="energy" size={12} color={T.green} /> 100%
+            {/* Récapitulatif BD : quatre cases encrées sous un bandeau noir */}
+            <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
+              <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px" }}>Votre départ</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: 10 }}>
+                {[
+                  { icon: "money", label: "Argent", value: startMoney(startCityInput, gameOptionsInput).toLocaleString("fr-FR") + " €", bg: "#d6ef3c" },
+                  { icon: "location", label: "Ville", value: <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><FlagFromEmoji emoji={CITIES[startCityInput]?.flag} size={12} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{startCityInput}</span></span>, bg: "#c9b6ea" },
+                  { icon: "trophy", label: "Points", value: "0 pt", bg: "#ffffff" },
+                  { icon: "energy", label: "Énergie", value: "100 %", bg: "#ffffff" },
+                ].map(c => (
+                  <div key={c.label} style={{ background: c.bg, border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "5px 8px", minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>
+                      <Icon name={c.icon} size={11} color="#141414" /> {c.label}
+                    </div>
+                    <div className="tm-display" style={{ fontSize: 15, lineHeight: 1.2, marginTop: 2, minWidth: 0 }}>{c.value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <button
