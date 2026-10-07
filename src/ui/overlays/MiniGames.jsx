@@ -237,7 +237,8 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
       {res && revealed && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "10px 12px", animation: "tm-mg-pop 0.3s ease-out both" }}>
           <Sfx color={res.win ? BALL : LILAC}>{kind === "mental" ? (res.win ? "SANG-FROID !" : "CRISPÉ…") : res.win ? "JEU !" : "ÉGALITÉ"}</Sfx>
-          <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>{res.text}</div>
+          {/* Duels : pas de commentaire, l'animation suffit */}
+          {(kind === "mental" || kind === "smash") && <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>{res.text}</div>}
         </div>
       )}
       {res && revealed && (

@@ -17,6 +17,17 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
   const moneySeries = history.map(h => ({ x: h.week, year: h.year, value: h.money }));
   const ratingSeries = history.map(h => ({ x: h.week, year: h.year, value: Math.round(Object.values(h.stats).reduce((a, b) => a + b, 0) / Object.keys(h.stats).length) }));
   const statKeys = Object.keys(player.stats);
+  const INK = T.ink;
+  const chip = (bg, fg) => ({ display: "inline-block", background: bg, color: fg, border: "2px solid " + INK, fontSize: 11, fontWeight: 800, padding: "0 6px", textTransform: "uppercase", letterSpacing: 0.3 });
+  const rule = (txt) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+      <span className="tm-display" style={{ ...chip(INK, "#ffffff"), fontWeight: 400, fontSize: 12, padding: "1px 8px" }}>{txt}</span>
+      <div style={{ flex: 1, borderTop: "2px dashed " + INK }} />
+    </div>
+  );
+  const band = (txt, mb = 14) => (
+    <div className="tm-display" style={{ background: INK, color: "#ffffff", fontSize: 15, margin: "-16px -16px " + mb + "px", padding: "5px 12px" }}>{txt}</div>
+  );
 
   return (
     <div style={styles.tabContent}>
@@ -26,15 +37,15 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
       <div className="tm-halftone-yellow" style={{ ...styles.atpCard, background: undefined }}>
         <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 0 }}>
           <div>
-            <div className="tm-eyebrow">Classement</div>
+            <span style={chip(INK, "#ffffff")}>Classement</span>
             <div className="tm-display" style={{ fontSize: 48, color: "#141414", lineHeight: 1, letterSpacing: -1, textShadow: "3px 3px 0 #ffffff" }}>#{ranking}</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div className="tm-eyebrow">Cote</div>
+            <span style={{ ...chip("#ffffff", "#141414"), marginBottom: 4 }}>Cote</span>
             <div className="tm-display" style={{ fontSize: 30, color: "#141414", lineHeight: 1, background: "#ffffff", border: "2.5px solid " + T.ink, padding: "2px 8px" }}>{rating}</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="tm-eyebrow">Points</div>
+            <span style={{ ...chip("#ffffff", "#141414"), marginBottom: 4 }}>Points</span>
             <div className="tm-display" style={{ fontSize: 24, color: "#141414", lineHeight: 1 }}>{totalPts.toLocaleString("fr-FR")}</div>
           </div>
         </div>
@@ -57,15 +68,15 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
         ];
         return (
           <div style={{ ...styles.skillsCard }}>
-            <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, margin: "-16px -16px 12px", padding: "5px 12px" }}>Carrière</div>
+            {band("Carrière", 12)}
             {/* Bilan victoires / défaites */}
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
               <span className="tm-display" style={{ fontSize: 34, color: T.green, lineHeight: 1 }}>{player.careerWins}</span>
-              <span style={{ color: T.fg4, fontSize: 13 }}>victoires</span>
-              <span style={{ color: T.fg5, fontSize: 20 }}>·</span>
-              <span className="tm-display" style={{ fontSize: 34, color: T.fg2, lineHeight: 1 }}>{player.careerLosses}</span>
-              <span style={{ color: T.fg4, fontSize: 13 }}>défaites</span>
-              <span className="tm-num" style={{ marginLeft: "auto", color: T.green, fontSize: 15, fontWeight: 600 }}>{winRate}%</span>
+              <span style={{ color: "#141414", fontSize: 13, fontWeight: 700 }}>victoires</span>
+              <span style={{ color: "#141414", fontSize: 20, fontWeight: 800 }}>·</span>
+              <span className="tm-display" style={{ fontSize: 34, color: "#c4302b", lineHeight: 1 }}>{player.careerLosses}</span>
+              <span style={{ color: "#141414", fontSize: 13, fontWeight: 700 }}>défaites</span>
+              <span className="tm-display" style={{ marginLeft: "auto", background: "#1f7a45", color: "#ffffff", border: "2px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontSize: 14, padding: "1px 7px" }}>{winRate}%</span>
             </div>
             <div style={{ height: 12, background: played > 0 ? "#c4302b" : "#ffffff", border: "2px solid " + T.ink, overflow: "hidden", marginBottom: 16 }}>
               <div style={{ width: winRate + "%", height: "100%", background: "#1f7a45", borderRight: winRate > 0 && winRate < 100 ? "2px solid " + T.ink : "none" }} />
@@ -78,8 +89,8 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
                     <Icon name={it.icon} size={17} color="#ffffff" />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div className="tm-display" style={{ color: T.fg, fontSize: 17, lineHeight: 1.1 }}>{it.v}</div>
-                    <div style={{ color: T.fg4, fontSize: 12 }}>{it.l}</div>
+                    <div className="tm-display" style={{ color: "#141414", fontSize: 17, lineHeight: 1.1 }}>{it.v}</div>
+                    <div style={{ color: "#141414", fontSize: 12, fontWeight: 700 }}>{it.l}</div>
                   </div>
                 </div>
               ))}
@@ -90,20 +101,20 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Favourite surface */}
       {player.favoriteSurface && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.bg1, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0, padding: "12px 14px", marginBottom: 14 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 0, background: T.greenSub, border: "1px solid " + T.greenBrd, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffff", color: "#141414", border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "12px 14px", marginBottom: 14 }}>
+          <div className="tm-halftone-cyan" style={{ width: 38, height: 38, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <SurfaceIcon name={player.favoriteSurface} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <div className="tm-eyebrow">Surface de prédilection</div>
-            <div style={{ color: T.fg, fontWeight: 700, fontSize: 14, marginTop: 2 }}>{player.favoriteSurface} <span style={{ color: T.green, fontSize: 11, fontWeight: 600 }}>+{SURFACE_BONUS} en match</span></div>
+            <span style={chip(INK, "#ffffff")}>Surface de prédilection</span>
+            <div className="tm-display" style={{ color: "#141414", fontSize: 16, marginTop: 4 }}>{player.favoriteSurface} <span style={{ ...chip("#1f7a45", "#ffffff"), fontFamily: T.body, textTransform: "none", marginLeft: 4, verticalAlign: 2 }}>+{SURFACE_BONUS} en match</span></div>
           </div>
         </div>
       )}
 
       {/* Progression graphs */}
       <div style={{ marginBottom: 4 }}>
-        <div className="tm-eyebrow" style={{ marginBottom: 10 }}>Progression</div>
+        {rule("Progression")}
         <MiniLineChart data={pointsSeries} label="Points" color={T.green}
           info="Total de vos points ATP sur les 52 dernières semaines. Chaque tournoi rapporte des points selon le tour atteint ; ils expirent un an plus tard." />
         <MiniLineChart data={rankingSeries} label="Classement" color={T.ball} invertY
@@ -116,7 +127,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Per-stat mini charts */}
       <div style={{ marginBottom: 18 }}>
-        <div className="tm-eyebrow" style={{ marginBottom: 10 }}>Évolution des stats</div>
+        {rule("Évolution des stats")}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {statKeys.map(k => {
             const s = history.map(h => ({ x: h.week, year: h.year, value: Math.round((h.stats[k] || 0) * 10) / 10 }));
@@ -127,17 +138,17 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Current skills */}
       <div style={styles.skillsCard}>
-        <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, margin: "-16px -16px 14px", padding: "5px 12px" }}>Compétences actuelles</div>
+        {band("Compétences actuelles")}
         {Object.entries(player.stats).map(([k, v]) => {
-          const color = v >= 75 ? T.green : v >= 55 ? T.amber : T.fg3;
+          const color = v >= 75 ? "#1f7a45" : v >= 55 ? "#e0a21b" : "#c9b6ea";
           return (
             <div key={k} style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ color: T.fg2, fontSize: 13, fontWeight: 500 }}>{statLabels[k] || k}</span>
-                <span className="tm-num" style={{ color, fontWeight: 700, fontSize: 13 }}>{Math.round(v)}</span>
+                <span style={{ color: "#141414", fontSize: 13, fontWeight: 700 }}>{statLabels[k] || k}</span>
+                <span className="tm-display" style={{ color: "#141414", fontSize: 14 }}>{Math.round(v)}</span>
               </div>
               <div style={styles.statBarBg}>
-                <div style={{ ...styles.statBarFill, width: v + "%", background: color }} />
+                <div style={{ ...styles.statBarFill, width: v + "%", background: color, borderRight: v > 0 && v < 100 ? "2px solid " + INK : "none", boxSizing: "border-box" }} />
               </div>
             </div>
           );
@@ -147,18 +158,18 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
       {/* Past seasons */}
       {(player.careerSeasons || []).length > 0 && (
         <div style={styles.skillsCard}>
-          <div className="tm-eyebrow" style={{ marginBottom: 12 }}>Saisons passées</div>
+          {band("Saisons passées")}
           {(player.careerSeasons || []).slice().reverse().map((s, i) => (
-            <div key={s.year} style={{ background: T.bg2, borderRadius: 0, padding: 12, marginBottom: i < (player.careerSeasons.length - 1) ? 8 : 0, border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
+            <div key={s.year} style={{ background: "#ffffff", color: "#141414", padding: 12, marginBottom: i < (player.careerSeasons.length - 1) ? 8 : 0, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <div className="tm-display" style={{ color: T.fg, fontSize: 18, letterSpacing: 0.5 }}>SAISON {s.year}</div>
-                <div className="tm-num" style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>#{s.endOfYearRanking}</div>
+                <div className="tm-display" style={{ color: "#141414", fontSize: 18, letterSpacing: 0.5 }}>SAISON {s.year}</div>
+                <div className="tm-display" style={{ ...chip("#d6ef3c", "#141414"), fontWeight: 400, fontSize: 13 }}>#{s.endOfYearRanking}</div>
               </div>
-              <div style={{ display: "flex", gap: 12, color: T.fg3, fontSize: 11 }}>
-                <span><span className="tm-num" style={{ color: T.green }}>{s.wins}</span>V</span>
-                <span><span className="tm-num" style={{ color: T.red }}>{s.losses}</span>D</span>
-                <span><span className="tm-num" style={{ color: T.ball }}>{s.titles}</span> titre{s.titles > 1 ? "s" : ""}</span>
-                <span style={{ marginLeft: "auto" }} className="tm-num">{s.earnings.toLocaleString()}€</span>
+              <div style={{ display: "flex", gap: 12, color: "#141414", fontSize: 11.5, fontWeight: 700 }}>
+                <span><span className="tm-num" style={{ color: "#1f7a45", fontWeight: 800 }}>{s.wins}</span>V</span>
+                <span><span className="tm-num" style={{ color: "#c4302b", fontWeight: 800 }}>{s.losses}</span>D</span>
+                <span><span className="tm-num" style={{ color: "#5b2d8e", fontWeight: 800 }}>{s.titles}</span> titre{s.titles > 1 ? "s" : ""}</span>
+                <span style={{ marginLeft: "auto", fontWeight: 800 }} className="tm-num">{s.earnings.toLocaleString()}€</span>
               </div>
             </div>
           ))}
@@ -167,8 +178,8 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Match history */}
       <div style={styles.skillsCard}>
-        <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, margin: "-16px -16px 14px", padding: "5px 12px" }}>Historique récent</div>
-        {player.matchHistory.length === 0 && <div style={{ color: T.fg5, fontSize: 12, textAlign: "center", padding: 16 }}>Aucun match disputé</div>}
+        {band("Historique récent")}
+        {player.matchHistory.length === 0 && <div className="tm-lettering" style={{ color: "#141414", fontSize: 15, textAlign: "center", padding: 16 }}>Aucun match disputé</div>}
         {(() => {
           // Group consecutive matches of the same tournament (same week/year).
           const groups = [];
@@ -184,7 +195,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
             const title = last.won && last.round === "Vainqueur";
             const outcome = title ? "Vainqueur" : (last.won ? "En cours" : "Éliminé · " + historyRoundLabel(last));
             return (
-              <div key={gi} style={{ marginBottom: 14 }}>
+              <div key={gi} style={{ marginBottom: 14, paddingTop: gi ? 12 : 0, borderTop: gi ? "2px dashed " + INK : 0 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 8, marginBottom: 6 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     {(() => {
@@ -192,25 +203,27 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
                       return (
                         <div
                           onClick={tid && setTournamentDetail ? () => setTournamentDetail(tid) : undefined}
-                          style={{ color: T.fg, fontWeight: 800, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: tid ? "pointer" : "default", textDecoration: tid ? "underline" : "none", textDecorationColor: T.fg5, textUnderlineOffset: 3 }}
+                          className="tm-display" style={{ color: "#141414", fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: tid ? "pointer" : "default", textDecoration: tid ? "underline" : "none", textDecorationColor: INK, textUnderlineOffset: 3 }}
                         >{g.tournament}{tid ? " ›" : ""}</div>
                       );
                     })()}
-                    <div className="tm-eyebrow" style={{ marginTop: 2, color: title ? T.ball : T.fg5 }}>S{g.week} · {g.year} · {outcome}</div>
+                    <span style={{ ...chip(title ? "#d6ef3c" : "#ffffff", "#141414"), marginTop: 4, fontSize: 10 }}>S{g.week} · {g.year} · {outcome}</span>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div className="tm-num" style={{ color: T.green, fontSize: 12, fontWeight: 700 }}>+{prize.toLocaleString()}€</div>
-                    <div className="tm-num" style={{ color: T.ball, fontSize: 11, marginTop: 2 }}>+{pts} pts</div>
+                    <div className="tm-display" style={{ color: "#1f7a45", fontSize: 13 }}>+{prize.toLocaleString()}€</div>
+                    <div className="tm-num" style={{ color: "#5b2d8e", fontSize: 11, marginTop: 2, fontWeight: 800 }}>+{pts} pts</div>
                   </div>
                 </div>
                 {g.matches.map((m, i) => (
                   <div key={i} style={{
                     ...styles.historyCard,
-                    borderLeft: "3px solid " + (m.won ? T.green : T.red),
-                    marginBottom: 4, padding: "8px 10px",
+                    background: "#ffffff", color: "#141414",
+                    border: "2px solid " + INK, boxShadow: "2px 2px 0 " + INK,
+                    borderLeft: "6px solid " + (m.won ? "#1f7a45" : "#c4302b"),
+                    marginBottom: 6, padding: "7px 10px",
                   }}>
-                    <div className="tm-eyebrow">{historyRoundLabel(m)} · vs {m.opponent} <span className="tm-num">#{m.opponentRank}</span></div>
-                    <div className="tm-num" style={{ color: m.won ? T.green : T.red, fontSize: 12, marginTop: 3, fontWeight: 700 }}>{m.won ? "V " : "D "} {m.score}</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3 }}>{historyRoundLabel(m)} · vs {m.opponent} <span className="tm-num">#{m.opponentRank}</span></div>
+                    <div className="tm-num" style={{ color: m.won ? "#1f7a45" : "#c4302b", fontSize: 12.5, marginTop: 3, fontWeight: 800 }}>{m.won ? "V " : "D "} {m.score}</div>
                   </div>
                 ))}
               </div>
@@ -222,7 +235,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
       {/* Rivalités */}
       {(player.rivalries || []).filter(r => r.wins + r.losses >= 2).length > 0 && (
         <div style={styles.skillsCard}>
-          <div className="tm-eyebrow" style={{ marginBottom: 12 }}>Rivalités</div>
+          {band("Rivalités")}
           {(player.rivalries || [])
             .filter(r => r.wins + r.losses >= 2)
             .sort((a, b) => (b.wins + b.losses) - (a.wins + a.losses))
@@ -232,23 +245,23 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
               return (
                 <div key={r.name} style={{
                   marginBottom: 12, padding: 12,
-                  background: T.bg2, borderRadius: 0,
-                  border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+                  background: "#ffffff", color: "#141414",
+                  border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <div style={{ color: T.fg, fontWeight: 700, fontSize: 13 }}>{r.name}</div>
+                    <div className="tm-display" style={{ color: "#141414", fontSize: 14 }}>{r.name}</div>
                     <div className="tm-num" style={{
                       fontSize: 12, fontWeight: 800,
-                      color: r.wins > r.losses ? T.green : r.wins < r.losses ? T.red : T.fg4,
+                      color: r.wins > r.losses ? "#1f7a45" : r.wins < r.losses ? "#c4302b" : "#141414",
                     }}>
                       {r.wins}V · {r.losses}D
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                    <div style={{ flex: winPct, height: 5, background: T.green, borderRadius: "3px 0 0 3px", minWidth: winPct > 0 ? 4 : 0 }} />
-                    <div style={{ flex: 100 - winPct, height: 5, background: T.red, borderRadius: "0 3px 3px 0", minWidth: 100 - winPct > 0 ? 4 : 0 }} />
+                  <div style={{ display: "flex", height: 10, border: "2px solid " + INK, background: "#ffffff", overflow: "hidden" }}>
+                    <div style={{ flex: winPct, background: "#1f7a45", borderRight: winPct > 0 && winPct < 100 ? "2px solid " + INK : "none", minWidth: winPct > 0 ? 4 : 0 }} />
+                    <div style={{ flex: 100 - winPct, background: "#c4302b", minWidth: 100 - winPct > 0 ? 4 : 0 }} />
                   </div>
-                  <div style={{ color: T.fg4, fontSize: 10, marginTop: 4 }}>{total} confrontations · {winPct}% de victoires</div>
+                  <div className="tm-lettering" style={{ color: "#141414", fontSize: 13, marginTop: 4 }}>{total} confrontations · {winPct}% de victoires</div>
                 </div>
               );
             })}

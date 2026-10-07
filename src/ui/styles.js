@@ -27,7 +27,7 @@ export const styles = {
 
   header: {
     background: T.bg1, padding: "14px 16px",
-    borderBottom: "1px solid " + T.brd,
+    borderBottom: "2.5px solid " + T.ink,
     display: "flex", alignItems: "center", gap: 12,
   },
   // TOP BAR — simple, opaque, sans verre dépoli
@@ -170,7 +170,7 @@ export const styles = {
   },
 
   // SECTIONS / HEADERS
-  section: { padding: "16px", borderBottom: "1px solid " + T.brd },
+  section: { padding: "16px", borderBottom: "2px dashed " + T.ink },
   tabContent: { padding: "16px 16px 0" },
   sectionTitle: {
     color: T.fg, fontSize: 24, fontWeight: 400,
@@ -212,7 +212,7 @@ export const styles = {
 
   // ALERT BOXES
   alertBox: {
-    background: T.bg1, border: INK_BORDER, borderLeft: "8px solid " + T.gold,
+    background: "#fff6c9", border: INK_BORDER, borderLeft: "8px solid " + T.gold, boxShadow: "3px 3px 0 " + T.ink,
     borderRadius: 0, padding: 13,
     color: T.fg, fontSize: 13, marginBottom: 12,
     lineHeight: 1.5,
@@ -220,7 +220,7 @@ export const styles = {
   statusRow: { ...cardBase, padding: "4px 14px", marginBottom: 14 },
   statusItem: {
     display: "flex", justifyContent: "space-between",
-    padding: "11px 0", borderBottom: "1px solid " + T.brd,
+    padding: "11px 0", borderBottom: "1.5px dashed " + T.ink,
     fontSize: 13, color: T.fg3, alignItems: "center",
   },
 
@@ -276,13 +276,16 @@ export const styles = {
   // FILTERS — pastilles arrondies
   filterGroup: { marginBottom: 12 },
   filterLabel: { color: T.fg4, fontSize: 12, fontWeight: 600, marginBottom: 6 },
+  // Filtres en étiquettes BD : encrées avec ombre décalée ; actif = jaune,
+  // « enfoncé » (ombre réduite, léger décalage).
   filterBtn: {
-    padding: "7px 12px", background: T.bg1,
-    border: "2px solid " + T.ink, borderRadius: 0,
-    color: T.fg, fontSize: 12.5, fontWeight: 700,
+    padding: "6px 11px", background: "#ffffff",
+    border: "2.5px solid " + T.ink, borderRadius: 0, boxShadow: "2px 2px 0 " + T.ink,
+    color: "#141414", fontSize: 12.5, fontWeight: 800,
     cursor: "pointer", fontFamily: T.body, letterSpacing: 0,
+    transition: "transform 0.08s, box-shadow 0.08s",
   },
-  filterBtnActive: { border: "2px solid " + T.ink, color: "#161616", background: T.gold },
+  filterBtnActive: { border: "2.5px solid " + T.ink, color: "#141414", background: T.gold, boxShadow: "0 0 0 " + T.ink, transform: "translate(2px, 2px)" },
 
   // TOURNAMENT CARDS
   tournCard: { ...cardBase, padding: 16, marginBottom: 10, cursor: "pointer" },
@@ -313,17 +316,17 @@ export const styles = {
     padding: 0, zIndex: 50,
   },
   dilemmaCard: {
-    background: T.bg1, borderRadius: "22px 22px 0 0", padding: "18px 18px calc(22px + env(safe-area-inset-bottom, 0px))",
-    borderTop: "1px solid " + T.brd2,
+    background: "#ffffff", color: "#141414", borderRadius: 0, padding: "16px 16px calc(22px + env(safe-area-inset-bottom, 0px))",
+    border: "3px solid " + T.ink, borderBottom: "none",
     maxWidth: 440, width: "100%", maxHeight: "85vh", overflowY: "auto",
-    boxShadow: "0 -6px 24px " + T.shadow,
+    boxShadow: "0 -5px 0 " + T.ink,
     animation: "tm-fade-up 0.25s ease-out both",
   },
   dilemmaBtn: {
     width: "100%", padding: "12px 14px",
-    background: T.bg2, border: "2px solid " + T.ink,
-    borderRadius: 0, color: T.fg, textAlign: "left",
-    cursor: "pointer", marginBottom: 8, fontFamily: T.body,
+    background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+    borderRadius: 0, color: "#141414", textAlign: "left",
+    cursor: "pointer", marginBottom: 10, fontFamily: T.body,
     fontSize: 14, transition: "background 0.15s",
   },
 

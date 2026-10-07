@@ -145,7 +145,7 @@ export function buildPressConference(player, tourn, won, isTitleWin, opponent, o
         ],
       },
       {
-        text: "Vous mène/êtes mené " + rivScore + " face à " + oppName + ". Que vous inspire ce bilan ?",
+        text: (rivalWins > rivalLosses ? "Vous menez " : rivalWins < rivalLosses ? "Vous êtes mené " : "Vous êtes à égalité, ") + rivScore + " face à " + oppName + ". Que vous inspire ce bilan ?",
         options: [
           { label: "Les statistiques, c'est du passé. Je vis chaque match comme une page blanche." },
           { label: rivalWins > rivalLosses ? "J'ai mon ascendant, je vais essayer de le garder." : "Il faut que j'inverse cette tendance. Ça va venir." },

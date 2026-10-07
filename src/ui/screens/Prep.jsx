@@ -10,6 +10,10 @@ import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
+const INK = T.ink;
+const chip = (bg, fg) => ({ display: "inline-block", background: bg, color: fg, border: "2px solid " + INK, fontSize: 11, fontWeight: 800, padding: "0 6px", textTransform: "uppercase", letterSpacing: 0.3 });
+const smallBox = { background: "#ffffff", color: "#141414", border: "2px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontSize: 12, fontWeight: 800, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 2 };
+
 export function TrainingScreen({ player, doTraining }) {
   const statLabels = { serve: "Service", forehand: "Coup droit", backhand: "Revers", stamina: "Endurance", mental: "Mental", net: "Jeu au filet" };
   return (
@@ -23,13 +27,13 @@ export function TrainingScreen({ player, doTraining }) {
         const e = Math.round(player.energy);
         const fmt = (m) => (m >= 1 ? "+" : "−") + Math.abs(Math.round((m - 1) * 100)) + " %";
         return (
-          <div style={{ background: T.bg1, border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 16 }}>
+          <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 16 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
               <div style={{ padding: "8px 10px", borderRight: "2.5px solid " + T.ink }}>
                 <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4 }}><Icon name="energy" size={11} /> Énergie</div>
                 <div className="tm-display" style={{ fontSize: 26, lineHeight: 1.05 }}>{e} %</div>
                 <div style={{ height: 10, border: "2px solid " + T.ink, background: "#ffffff", marginTop: 3 }}>
-                  <div style={{ height: "100%", width: e + "%", background: e > 60 ? "#1f7a45" : e > 30 ? "#e0a21b" : "#c4302b" }} />
+                  <div style={{ height: "100%", width: e + "%", boxSizing: "border-box", borderRight: e > 0 && e < 100 ? "2px solid " + T.ink : "none", background: e > 60 ? "#1f7a45" : e > 30 ? "#e0a21b" : "#c4302b" }} />
                 </div>
               </div>
               <div className={effPct >= 100 ? "tm-halftone-yellow" : undefined} style={{ padding: "8px 10px", color: "#141414", background: effPct >= 100 ? undefined : "#c9b6ea" }}>
@@ -60,52 +64,55 @@ export function TrainingScreen({ player, doTraining }) {
         const statValue = Math.round(player.stats[mod.stat]);
 
         return (
-          <div key={mod.id} className="tm-card" style={{ ...styles.trainingCard }}>
+          <div key={mod.id} className="tm-card" style={{ ...styles.trainingCard, background: "#ffffff", color: "#141414", border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                   <div style={{
-                    width: 36, height: 36, borderRadius: 0,
-                    background: T.bg3, border: "2px solid " + T.ink,
+                    width: 38, height: 38, flexShrink: 0,
+                    background: "#1f7a45", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK,
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <Icon name={mod.iconName} size={18} color={T.green} />
+                    <Icon name={mod.iconName} size={18} color="#ffffff" />
                   </div>
-                  <div>
-                    <div style={{ color: T.fg, fontWeight: 700, fontSize: 14 }}>{mod.name}</div>
-                    <div className="tm-eyebrow" style={{ marginTop: 2 }}>{statLabels[mod.stat] || mod.stat}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="tm-display" style={{ color: "#141414", fontSize: 16, lineHeight: 1.1 }}>{mod.name}</div>
+                    <span style={{ ...chip("#c9b6ea", "#141414"), marginTop: 3, fontSize: 10 }}>{statLabels[mod.stat] || mod.stat}</span>
                   </div>
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div className="tm-num" style={{ color: T.fg, fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>{statValue}</div>
-                <div className="tm-eyebrow">Actuel</div>
+                <div className="tm-display" style={{ color: "#141414", fontSize: 26, lineHeight: 1 }}>{statValue}</div>
+                <div className="tm-lettering" style={{ fontSize: 13 }}>Actuel</div>
               </div>
             </div>
 
             <div style={{ ...styles.statBarBg, marginBottom: 12 }}>
-              <div style={{ ...styles.statBarFill, width: statValue + "%" }} />
+              <div style={{ ...styles.statBarFill, width: statValue + "%", background: "#1f7a45", boxSizing: "border-box", borderRight: statValue > 0 && statValue < 100 ? "2px solid " + INK : "none" }} />
             </div>
 
             <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-              <span style={styles.tournChip}>−<span className="tm-num">{mod.cost}€</span></span>
-              <span style={{ ...styles.tournChip, color: T.fg, display: "inline-flex", alignItems: "center", gap: 2 }}>
+              <span style={smallBox}>−<span className="tm-num">{mod.cost}€</span></span>
+              <span style={smallBox}>
                 −<span className="tm-num">{baseEnergyCost}</span>
-                {staffEnergyExtra > 0 && <span className="tm-num" style={{ color: T.red, marginLeft: 3 }}>−{staffEnergyExtra}</span>}
+                {staffEnergyExtra > 0 && <span className="tm-num" style={{ color: "#c4302b", marginLeft: 3 }}>−{staffEnergyExtra}</span>}
                 <Icon name="energy" size={10} />
               </span>
-              <span style={{ ...styles.tournChip, color: ceilingReached ? T.red : (expGain < 0.3 ? T.amber : T.green), borderColor: ceilingReached ? T.red : T.brd }}>
+              <span style={{ ...smallBox, background: ceilingReached ? "#c4302b" : (expGain < 0.3 ? "#e0a21b" : "#d6ef3c"), color: ceilingReached ? "#ffffff" : "#141414" }}>
                 +<span className="tm-num">{expGain}</span> pts{ceilingReached ? " · plafond" : ""}
               </span>
             </div>
 
             <button
+              className="tm-display"
               style={{
                 ...styles.btnSmall, width: "100%",
-                background: canDo ? T.green : T.bg3,
-                color: canDo ? T.bg0 : T.fg4,
-                borderColor: "transparent",
-                opacity: canDo ? 1 : 0.6,
+                background: canDo ? "#1f7a45" : "#ffffff",
+                color: canDo ? "#ffffff" : "#141414",
+                border: "2.5px solid " + INK,
+                boxShadow: canDo ? "3px 3px 0 " + INK : "none",
+                fontSize: 14, fontWeight: 400, fontFamily: T.display,
+                opacity: canDo ? 1 : 0.5,
               }}
               disabled={!canDo}
               onClick={() => doTraining(mod)}
@@ -126,20 +133,20 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
 
   // Human-readable labels for each effect key
   const BONUS_LABELS = {
-    trainGain: { label: "gains entraînement", suffix: "%", scale: 100, color: T.green },
-    recovery: { label: "récup. énergie/sem", suffix: "", color: T.green },
-    matchMental: { label: "mental en match", suffix: "", color: T.green },
-    matchStamina: { label: "endurance en match", suffix: "", color: T.green },
+    trainGain: { label: "gains entraînement", suffix: "%", scale: 100, color: "#1f7a45" },
+    recovery: { label: "récup. énergie/sem", suffix: "", color: "#1f7a45" },
+    matchMental: { label: "mental en match", suffix: "", color: "#1f7a45" },
+    matchStamina: { label: "endurance en match", suffix: "", color: "#1f7a45" },
     energyDrainCut: { label: "d'énergie perdue en match", suffix: "%", scale: 100, color: T.green, sign: "−" },
-    injuryProtect: { label: "anti-blessure", suffix: "%", scale: 100, color: T.green },
-    sponsorPay: { label: "revenu sponsors", suffix: "%", scale: 100, color: T.green },
-    sponsorTierBoost: { label: "chance sponsor premium", suffix: "%", scale: 100, color: T.green },
-    surfaceBoost: { label: "stats en match (surface)", suffix: "", color: T.green },
-    scouting: { label: "★ de conseil tactique en match", suffix: "", color: T.green },
+    injuryProtect: { label: "anti-blessure", suffix: "%", scale: 100, color: "#1f7a45" },
+    sponsorPay: { label: "revenu sponsors", suffix: "%", scale: 100, color: "#1f7a45" },
+    sponsorTierBoost: { label: "chance sponsor premium", suffix: "%", scale: 100, color: "#1f7a45" },
+    surfaceBoost: { label: "stats en match (surface)", suffix: "", color: "#1f7a45" },
+    scouting: { label: "★ de conseil tactique en match", suffix: "", color: "#1f7a45" },
   };
   const MALUS_LABELS = {
-    happinessDrain: { label: "bonheur/sem", suffix: "", color: T.red },
-    surfaceMalus: { label: "stats hors surface", suffix: "", color: T.red },
+    happinessDrain: { label: "bonheur/sem", suffix: "", color: "#c4302b" },
+    surfaceMalus: { label: "stats hors surface", suffix: "", color: "#c4302b" },
   };
 
   const renderEffects = (s) => {
@@ -151,7 +158,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
       items.push({ text: (def.sign || "+") + (Math.round(val * 10) / 10) + def.suffix + " " + def.label, color: def.color });
     }
     if (s.bonus && s.bonus.scouting) {
-      items.push({ text: "Les 6 stats de l'adversaire avant chaque match" + (s.bonus.scouting >= 2 ? ", et sa forme du jour" : ""), color: T.green });
+      items.push({ text: "Les 6 stats de l'adversaire avant chaque match" + (s.bonus.scouting >= 2 ? ", et sa forme du jour" : ""), color: "#1f7a45" });
     }
     for (const [k, v] of Object.entries(s.malus || {})) {
       const def = MALUS_LABELS[k];
@@ -175,7 +182,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
             border: "4px solid #c4302b", outline: "2px solid #c4302b", outlineOffset: 4,
             boxShadow: "6px 6px 0 " + T.ink, padding: "10px 18px", textAlign: "center", color: "#c4302b",
           }}>
-            <div className="tm-eyebrow" style={{ color: "#c4302b", fontSize: 12, letterSpacing: 3 }}>
+            <div style={{ color: "#c4302b", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 3 }}>
               {hasGameOption(player, "no_staff") ? "Option de partie" : "Défi Seul au monde"}
             </div>
             <div className="tm-display" style={{ fontSize: 40, lineHeight: 0.95, whiteSpace: "nowrap" }}>Mode<br />sans staff</div>
@@ -184,17 +191,17 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
         </div>
       )}
 
-      <div style={{
-        background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 16,
-        border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, display: "flex", justifyContent: "space-between", alignItems: "center",
+      <div className="tm-halftone-yellow" style={{
+        padding: 14, marginBottom: 16, color: "#141414",
+        border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <div>
-          <div className="tm-eyebrow">Coût hebdomadaire</div>
-          <div className="tm-num" style={{ color: T.red, fontSize: 18, fontWeight: 800 }}>−{totalCost}€</div>
+          <span style={chip(INK, "#ffffff")}>Coût hebdomadaire</span>
+          <div className="tm-display" style={{ color: "#c4302b", fontSize: 22, marginTop: 4, textShadow: "1.5px 1.5px 0 #ffffff" }}>−{totalCost}€</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div className="tm-eyebrow">Personnel</div>
-          <div className="tm-num" style={{ color: T.fg, fontSize: 18, fontWeight: 800 }}>{player.staff.length}<span style={{ color: T.fg5, fontSize: 12 }}>/{roles.length}</span></div>
+          <span style={chip("#ffffff", "#141414")}>Personnel</span>
+          <div className="tm-display" style={{ color: "#141414", fontSize: 22, marginTop: 4 }}>{player.staff.length}<span style={{ fontSize: 14 }}>/{roles.length}</span></div>
         </div>
       </div>
 
@@ -204,30 +211,32 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
         const options = STAFF_LIST.filter(s => s.role === role);
         return (
           <div key={role} style={{ marginBottom: 20 }}>
-            <div className="tm-eyebrow" style={{ marginBottom: 10 }}>{role}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span className="tm-display" style={{ ...chip(INK, "#ffffff"), fontWeight: 400, fontSize: 12, padding: "1px 8px" }}>{role}</span>
+              <div style={{ flex: 1, borderTop: "2px dashed " + INK }} />
+            </div>
             {hired ? (
-              <div style={{
-                background: T.greenSub, borderRadius: 0, padding: 14,
-                border: "1px solid " + T.greenBrd, borderLeft: "3px solid " + T.green,
+              <div className="tm-halftone-cyan" style={{
+                padding: 14, color: "#141414",
+                border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK,
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: T.fg, fontWeight: 700, fontSize: 14 }}>
-                      {hired.name} <span style={{ color: T.ball }}>★{hired.level}</span>
+                    <div className="tm-display" style={{ color: "#141414", fontSize: 16, lineHeight: 1.15 }}>
+                      {hired.name} <span style={{ ...chip("#d6ef3c", "#141414"), fontFamily: T.body, verticalAlign: 2 }}>★{hired.level}</span>
                     </div>
                     {hired.surface && (
-                      <div style={{ display: "inline-block", marginTop: 4, fontSize: 10, fontWeight: 800, letterSpacing: 0.5, textTransform: "none",
-                        color: "var(--tm-blue)", background: T.bg3, padding: "2px 6px", borderRadius: 0 }}>
+                      <div style={{ ...chip("#2c6fd1", "#ffffff"), marginTop: 4, fontSize: 10, textTransform: "none" }}>
                         Spé. {hired.surface}
                       </div>
                     )}
-                    <div className="tm-num" style={{ color: T.fg3, fontSize: 11, marginTop: 4 }}>{hired.cost}€/sem</div>
+                    <div style={{ marginTop: 4 }}><span className="tm-num" style={{ ...chip("#ffffff", "#141414"), textTransform: "none" }}>{hired.cost}€/sem</span></div>
                   </div>
-                  <button style={{ ...styles.btnSmall, color: T.red, borderColor: T.red, flexShrink: 0 }} onClick={() => fireStaff(hired)}>Licencier</button>
+                  <button style={{ ...styles.btnSmall, background: "#ffffff", color: "#c4302b", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontWeight: 800, flexShrink: 0 }} onClick={() => fireStaff(hired)}>Licencier</button>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                   {renderEffects(hired).map((it, i) => (
-                    <div key={i} style={{ color: it.color, fontSize: 11, fontWeight: 600 }}>{it.text}</div>
+                    <div key={i} style={{ color: it.color, fontSize: 11.5, fontWeight: 800, background: "#ffffff", border: "2px solid " + INK, padding: "1px 6px", alignSelf: "flex-start" }}>{it.text}</div>
                   ))}
                 </div>
               </div>
@@ -236,33 +245,33 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
                 const canAfford = !noStaff && player.money >= s.cost * 4;
                 return (
                   <div key={s.id} style={{
-                    background: T.bg1, borderRadius: 0, padding: 14, marginBottom: 6,
-                    border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink,
+                    background: "#ffffff", color: "#141414", padding: 14, marginBottom: 10,
+                    border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK,
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: T.fg, fontWeight: 700, fontSize: 14 }}>
-                          {s.name} <span style={{ color: T.ball }}>★{s.level}</span>
+                        <div className="tm-display" style={{ color: "#141414", fontSize: 16, lineHeight: 1.15 }}>
+                          {s.name} <span style={{ ...chip("#d6ef3c", "#141414"), fontFamily: T.body, verticalAlign: 2 }}>★{s.level}</span>
                         </div>
                         {s.surface && (
-                          <div style={{ display: "inline-block", marginTop: 4, fontSize: 10, fontWeight: 800, letterSpacing: 0.5, textTransform: "none",
-                            color: "var(--tm-blue)", background: T.bg3, padding: "2px 6px", borderRadius: 0 }}>
+                          <div style={{ ...chip("#2c6fd1", "#ffffff"), marginTop: 4, fontSize: 10, textTransform: "none" }}>
                             Spé. {s.surface}
                           </div>
                         )}
-                        <div className="tm-num" style={{ color: T.fg3, fontSize: 11, marginTop: 4 }}>
+                        <div className="tm-num" style={{ color: "#141414", fontSize: 11.5, fontWeight: 700, marginTop: 4 }}>
                           {s.cost}€/sem · {(s.cost * 4).toLocaleString()}€ à l'embauche
                         </div>
                       </div>
                       <button
-                        style={{ ...styles.btnSmall, opacity: canAfford ? 1 : 0.4, flexShrink: 0 }}
+                        className="tm-display"
+                        style={{ ...styles.btnSmall, fontFamily: T.display, background: canAfford ? "#1f7a45" : "#ffffff", color: canAfford ? "#ffffff" : "#141414", border: "2.5px solid " + INK, boxShadow: canAfford ? "2px 2px 0 " + INK : "none", fontWeight: 400, fontSize: 13, opacity: canAfford ? 1 : 0.45, flexShrink: 0 }}
                         disabled={!canAfford}
                         onClick={() => hireStaff(s)}
                       >{noStaff ? "Interdit" : "Engager"}</button>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                       {renderEffects(s).map((it, i) => (
-                        <div key={i} style={{ color: it.color, fontSize: 11, fontWeight: 600 }}>{it.text}</div>
+                        <div key={i} style={{ color: it.color, fontSize: 11.5, fontWeight: 800 }}>{it.text}</div>
                       ))}
                     </div>
                   </div>
@@ -293,7 +302,7 @@ export function PrepScreen({ player, doTraining, hireStaff, fireStaff }) {
               ...styles.filterBtn, ...(active ? styles.filterBtnActive : {}),
               display: "inline-flex", alignItems: "center", gap: 6,
             }}>
-              <Icon name={t.icon} size={14} color={active ? T.onAccent : T.fg3} />
+              <Icon name={t.icon} size={14} color="#141414" />
               {t.label}
             </button>
           );
