@@ -35,6 +35,10 @@ describe("féminisation : audit", () => {
     ["Sifflé par le public", "Sifflée par le public"],
     ["Aucun joueur trouvé…", "Aucune joueuse trouvée…"],
     ["Rome : Léa couronné", "Rome : Léa couronnée"],
+    // Plan de jeu : longueur
+    ["Sa volée est faible. Joue court, attire-le au filet.", "Sa volée est faible. Joue court, attire-la au filet."],
+    ["Il aime prendre la balle tôt. Joue long, repousse-le.", "Elle aime prendre la balle tôt. Joue long, repousse-la."],
+    ["profond : contre un attaquant, pas un défenseur", "profond : contre une attaquante, pas une défenseuse"],
   ];
   for (const [src, expected] of cases) {
     it(src, () => expect(feminizeText(src)).toBe(expected));

@@ -101,6 +101,9 @@ export const WTA_TEXT_RULES = [
   // Conseils tactiques et dilemmes (l'adversaire)
   _fr("Il est moins endurant que toi\\. Fais-le courir", "Elle est moins endurante que toi. Fais-la courir"),
   _fr("Il passe bien\\.", "Elle passe bien."),
+  _fr("Joue court, attire-le au filet", "Joue court, attire-la au filet"),
+  _fr("Il aime prendre la balle tôt\\. Joue long, repousse-le", "Elle aime prendre la balle tôt. Joue long, repousse-la"),
+  _fr("contre un attaquant, pas un défenseur", "contre une attaquante, pas une défenseuse"),
   _fr("plus de puissance que lui", "plus de puissance qu'elle"),
   _fr("Il frappe fort\\. Défends, laisse-le faire", "Elle frappe fort. Défends, laisse-la faire"),
   _fr("Le faire monter au filet", "La faire monter au filet"),

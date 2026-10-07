@@ -4164,7 +4164,28 @@ export default function TennisManager() {
                     <div style={{ width: "100%", maxWidth: 400, background: "#ffffff", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, flexShrink: 0 }}>
                       {[{ name: player.name, isP: true }, { name: ms.opponent.name, isP: false }].map((row, ri) => (
                         <div key={ri} style={{ display: "flex", alignItems: "center", borderTop: ri ? "2px solid " + T.ink : "none", background: row.isP ? "rgba(214,239,60,0.22)" : "transparent" }}>
-                          <span className="tm-display" style={{ flex: 1, minWidth: 0, padding: "5px 10px", fontSize: 13, color: "#141414", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
+                          <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 7, padding: "5px 10px" }}>
+                            {/* Balle devant le serveur, comme sur l'écran du match */}
+                            {(() => {
+                              // Au tie-break, isPlayerServing est le premier serveur :
+                              // 1 point puis 2 chacun (même règle que le moteur).
+                              const playerServes = !pg ? false : pg.isTiebreak
+                                ? ((Math.floor(((pg.seq || []).length + 1) / 2) % 2) === 0) === !!pg.isPlayerServing
+                                : !!pg.isPlayerServing;
+                              const isServing = !!pg && (row.isP ? playerServes : !playerServes);
+                              return (
+                                <span style={{ width: 14, height: 14, borderRadius: 7, flexShrink: 0, position: "relative", background: isServing ? "#d6ef3c" : "transparent", border: isServing ? "2px solid " + T.ink : "none" }}>
+                                  {isServing && (
+                                    <svg viewBox="0 0 14 14" style={{ position: "absolute", inset: 0 }}>
+                                      <path d="M 1 5 Q 7 7 13 5" fill="none" stroke="#000" strokeWidth="0.6" opacity="0.6" />
+                                      <path d="M 1 9 Q 7 11 13 9" fill="none" stroke="#000" strokeWidth="0.6" opacity="0.6" />
+                                    </svg>
+                                  )}
+                                </span>
+                              );
+                            })()}
+                            <span className="tm-display" style={{ minWidth: 0, fontSize: 13, color: "#141414", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
+                          </span>
                           {setsPlayed.map((st, i) => (
                             <span key={i} className="tm-display" style={{ width: 30, textAlign: "center", fontSize: 17, color: !st.completed ? T.magenta : "#141414" }}>{row.isP ? st.pGames : st.oGames}</span>
                           ))}
