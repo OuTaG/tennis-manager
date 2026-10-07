@@ -77,6 +77,12 @@ function carryOn(from, at, dist) {
   return { x: at.x + ux * t, y: at.y + uy * t };
 }
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+// Distance du point p au segment [a, b].
+const segDist = (p, a, b) => {
+  const dx = b.x - a.x, dy = b.y - a.y, L2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / L2));
+  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+};
 // Durée d'un segment après rebond : même vitesse qu'avant, freinée (×slow).
 const durAfter = (before, beforeDur, after, slow = 1.3) => Math.max(160, Math.round(dist(after.from, after.to) / (dist(before.from, before.to) / beforeDur) * slow));
 // Point de l'axe du service (départ → rebond) à la hauteur y.
@@ -117,9 +123,17 @@ export function buildDuelSteps(r) {
     const side = oppX < VW / 2 ? 1 : -1;
     const depth = opts.lob ? 18 : 52; // distance à la ligne de fond
     const land = { x: VW / 2 + side * (opts.drop ? 70 : 118), y: opts.drop ? (toBottom ? NET_Y + 30 : NET_Y - 30) : toBottom ? SINGLES.y1 - depth : SINGLES.y0 + depth };
-    const reach = oppX + side * 16;
-    const hit = { ball: land, dur: opts.drop ? 520 : 430, bounce: true, [toBottom ? "srv" : "ret"]: reach };
     const next = opts.drop ? carryOn(from, land, 26) : carryOn(from, land);
+    // Le pas (≤ 16) ne doit jamais ramener l'adversaire à moins de 90 de la
+    // trajectoire : adversaire au centre + frappe croisée très diagonale
+    // = pas réduit, voire nul. (Le lob, lui, passe au-dessus : seul son
+    // rebond et sa sortie comptent.)
+    const oppY = toBottom ? BOT_Y : TOP_Y;
+    const clearance = (x) => Math.min(opts.lob ? Infinity : segDist({ x, y: oppY }, from, land), segDist({ x, y: oppY }, land, next));
+    let stepLen = 16;
+    while (stepLen > 0 && clearance(oppX + side * stepLen) < 90) stepLen -= 4;
+    const reach = oppX + side * stepLen;
+    const hit = { ball: land, dur: opts.drop ? 520 : 430, bounce: true, [toBottom ? "srv" : "ret"]: reach };
     const after = { ball: next, dur: opts.drop ? 520 : durAfter({ from, to: land }, 430, { from: land, to: next }) };
     return [hit, after];
   };
