@@ -176,13 +176,22 @@ export function buildPressConference(player, tourn, won, isTitleWin, opponent, o
           ],
         },
       ] : []),
-      {
+      // Selon l'issue : un « tournant » n'a de sens qu'après une victoire.
+      won ? {
         text: "Ce match contre " + oppName + " marque-t-il un tournant ?",
         options: [
           { label: "Trop tôt pour le dire. La suite répondra." },
           { label: "Je l'espère. C'est exactement le type de match dont j'ai besoin." },
           { label: "Non, juste un match parmi d'autres. La semaine prochaine, autre histoire." },
           { label: "Symboliquement oui. Mais le tennis ne fonctionne pas comme ça." },
+        ],
+      } : {
+        text: "Qu'est-ce que " + oppName + " a fait mieux que vous aujourd'hui ?",
+        options: [
+          { label: "À peu près tout. Il faut savoir le reconnaître." },
+          { label: "Les points importants. Sur ceux-là, j'ai été en dessous." },
+          { label: "Le service. Je n'ai jamais trouvé la clé en retour." },
+          { label: "Rien de spécial, c'est moi qui lui ai ouvert la porte." },
         ],
       },
     ];

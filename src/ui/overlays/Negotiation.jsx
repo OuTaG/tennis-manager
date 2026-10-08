@@ -5,6 +5,7 @@ import { sponsorSlotWarning } from "../../engine/sponsors.js";
 import { Icon, withFlags } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { fmtMoney, fmtNum } from "../format.js";
 import { random } from "../../engine/rng.js";
 
 // ── Style BD (bande dessinée) : encre, cases cernées, ombres décalées ──
@@ -80,7 +81,7 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
                   </div>
                 </div>
                 <div className="tm-display" style={{ color: r.amount >= 0 ? BD.green : BD.red, fontSize: 15, whiteSpace: "nowrap" }}>
-                  {r.amount >= 0 ? "+" : "−"}{Math.abs(r.amount).toLocaleString()} €
+                  {fmtMoney(r.amount, { sign: true })}
                 </div>
               </div>
             ))}
@@ -88,7 +89,7 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
           {results.length > 1 && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
               <span className="tm-display" style={{ fontSize: 15 }}>Total</span>
-              <span className="tm-display" style={{ fontSize: 16, background: total >= 0 ? BD.green : BD.red, color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "1px 8px" }}>{total >= 0 ? "+" : "−"}{Math.abs(total).toLocaleString()} €</span>
+              <span className="tm-display" style={{ fontSize: 16, background: total >= 0 ? BD.green : BD.red, color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "1px 8px" }}>{fmtMoney(total, { sign: true })}</span>
             </div>
           )}
           <button style={{ ...bdPrimary, width: "100%", marginTop: 20 }} onClick={() => setShowResults(false)}>
@@ -212,12 +213,12 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
                     <div className="tm-display" style={{ fontSize: 18, marginTop: 5, overflowWrap: "anywhere" }}>{o.brand}</div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div className="tm-display" style={{ color: walked ? "#6b6b6b" : BD.green, fontSize: 17, textDecoration: walked ? "line-through" : "none" }}>{currentPay.toLocaleString()} €</div>
+                    <div className="tm-display" style={{ color: walked ? "#6b6b6b" : BD.green, fontSize: 17, textDecoration: walked ? "line-through" : "none" }}>{fmtMoney(currentPay)}</div>
                     <div style={{ fontSize: 10.5, fontWeight: 800 }}>/ sem.{wasNegotiated || o.nonNegotiable ? "" : " (négociable)"}</div>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={{ ...bdChip(BD.paper, BD.text), textTransform: "none", fontSize: 11.5, display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="trophy" size={10} /> Prime titre <span className="tm-num">{(currentBonus || 0).toLocaleString()} €</span></span>
+                  <span style={{ ...bdChip(BD.paper, BD.text), textTransform: "none", fontSize: 11.5, display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="trophy" size={10} /> Prime titre <span className="tm-num">{fmtMoney(currentBonus || 0)}</span></span>
                   <span style={{ ...bdChip(BD.paper, BD.text), textTransform: "none", fontSize: 11.5 }}>Durée <span className="tm-num">{Math.round((o.durationWeeks || 0) / 52 * 12)}</span> mois</span>
                   {med && <span style={{ ...bdChip(BD.lilac, BD.text), textTransform: "none", fontSize: 11.5, whiteSpace: "normal", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="target" size={10} /> {(neg && neg.levelId ? (o.objectiveLevels || []).find(l => l.level === neg.levelId) : med).label}</span>}
                 </div>
@@ -345,25 +346,25 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
     "Mon agent tient à ce qu'on remonte la prime.",
   ];
   const BRAND_ACCEPT_PAY = [
-    "C'est noté, on monte à {v}€/semaine.",
-    "Marché conclu sur ce point : {v}€/semaine.",
-    "D'accord, {v}€/semaine, vous les valez.",
-    "Va pour {v}€ hebdo, on avance.",
-    "Entendu, on aligne le fixe à {v}€/semaine.",
-    "On peut monter à {v}€ par semaine, c'est validé.",
-    "Vendu : {v}€/semaine sur le fixe.",
-    "OK, {v}€ hebdo, ça reste dans nos moyens.",
-    "On valide {v}€/semaine. Bonne base pour travailler ensemble.",
+    "C'est noté, on monte à {v}\u00a0€/semaine.",
+    "Marché conclu sur ce point : {v}\u00a0€/semaine.",
+    "D'accord, {v}\u00a0€/semaine, vous les valez.",
+    "Va pour {v}\u00a0€ hebdo, on avance.",
+    "Entendu, on aligne le fixe à {v}\u00a0€/semaine.",
+    "On peut monter à {v}\u00a0€ par semaine, c'est validé.",
+    "Vendu : {v}\u00a0€/semaine sur le fixe.",
+    "OK, {v}\u00a0€ hebdo, ça reste dans nos moyens.",
+    "On valide {v}\u00a0€/semaine. Bonne base pour travailler ensemble.",
   ];
   const BRAND_ACCEPT_BONUS = [
-    "Très bien, {v}€ par titre remporté.",
-    "Entendu, la prime passe à {v}€ par titre.",
-    "Ça marche : {v}€ pour chaque titre.",
-    "Va pour {v}€ à chaque trophée.",
-    "On valide : {v}€ par titre soulevé.",
-    "OK, on cale la prime à {v}€ par titre.",
-    "Bonne motivation pour vous : {v}€ par titre.",
-    "Adjugé, {v}€ à chaque victoire finale.",
+    "Très bien, {v}\u00a0€ par titre remporté.",
+    "Entendu, la prime passe à {v}\u00a0€ par titre.",
+    "Ça marche : {v}\u00a0€ pour chaque titre.",
+    "Va pour {v}\u00a0€ à chaque trophée.",
+    "On valide : {v}\u00a0€ par titre soulevé.",
+    "OK, on cale la prime à {v}\u00a0€ par titre.",
+    "Bonne motivation pour vous : {v}\u00a0€ par titre.",
+    "Adjugé, {v}\u00a0€ à chaque victoire finale.",
   ];
   const BRAND_PUSHBACK = [
     "Là, vous nous serrez sérieusement…",
@@ -420,10 +421,10 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
     if (accepted) {
       if (kind === "pay") {
         setWeeklyPay(nextPay);
-        pushLog({ who: "brand", text: pick(BRAND_ACCEPT_PAY).replace("{v}", nextPay.toLocaleString()) });
+        pushLog({ who: "brand", text: pick(BRAND_ACCEPT_PAY).replace("{v}", fmtNum(nextPay)) });
       } else {
         setTitleBonus(nextBonus);
-        pushLog({ who: "brand", text: pick(BRAND_ACCEPT_BONUS).replace("{v}", nextBonus.toLocaleString()) });
+        pushLog({ who: "brand", text: pick(BRAND_ACCEPT_BONUS).replace("{v}", fmtNum(nextBonus)) });
       }
       return;
     }
@@ -547,7 +548,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
               <>
                 <div style={{ fontSize: 13.5, fontWeight: 800, marginBottom: 8, lineHeight: 1.35 }}>{level.label}</div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  {[["Réussi", "+" + reward.toLocaleString() + " €", BD.green], ["Échoué", "−" + penalty.toLocaleString() + " €", BD.red]].map(([l, v, c]) => (
+                  {[["Réussi", fmtMoney(reward, { sign: true }), BD.green], ["Échoué", fmtMoney(-penalty, { sign: true }), BD.red]].map(([l, v, c]) => (
                     <div key={l} style={{ flex: 1, minWidth: 0, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, background: BD.paper, overflow: "hidden" }}>
                       <div className="tm-display" style={{ background: c, color: "#ffffff", fontSize: 11, padding: "2px 8px", borderBottom: "2px solid " + INK }}>{l}</div>
                       <div className="tm-display" style={{ color: c, fontSize: 16, padding: "5px 8px", textAlign: "center" }}>{v}</div>
@@ -604,7 +605,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
           <div style={termRow}>
             <div style={{ minWidth: 0 }}>
               <div style={termLabel}>Salaire hebdomadaire</div>
-              <div className="tm-display" style={{ color: BD.green, fontSize: 19 }}>{weeklyPay.toLocaleString()} €</div>
+              <div className="tm-display" style={{ color: BD.green, fontSize: 19 }}>{fmtMoney(weeklyPay)}</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {introAsk && (
@@ -623,7 +624,7 @@ export function NegotiationRoom({ offer, slotWarning, catLabel, tierLabel, initi
           <div style={{ ...termRow, borderTop: "2px dashed " + INK }}>
             <div style={{ minWidth: 0 }}>
               <div style={termLabel}>Prime par titre</div>
-              <div className="tm-display" style={{ fontSize: 19 }}>{titleBonus.toLocaleString()} €</div>
+              <div className="tm-display" style={{ fontSize: 19 }}>{fmtMoney(titleBonus)}</div>
             </div>
             <button disabled={askLocked} onClick={() => demand("bonus")} style={negBtnStyle(askLocked)}>{askLabel}</button>
           </div>

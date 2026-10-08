@@ -1,6 +1,7 @@
 // Réseaux sociaux : fil Monde et fil Pour vous.
 import { ALL_TOURNAMENTS } from "./circuit.js";
 import { random } from "./rng.js";
+import { fmtMoney, fmtNum } from "./text.js";
 
 // ─── SOCIAL POSTS GENERATOR ────────────────────────────────────────────────────
 // Generates random social-network style posts each week.
@@ -238,15 +239,15 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
       const templates = [];
       if (lead && (lead.seasonWins || 0) > 0) templates.push("📊 " + lead.name + " compte " + lead.seasonWins + " victoires cette saison. Personne ne fait mieux.");
       if (titled && (titled.seasonTitles || 0) > 1) templates.push("📊 Déjà " + titled.seasonTitles + " titres cette saison pour " + titled.name + ".");
-      if (rich && (rich.seasonEarnings || 0) > 0) templates.push("💰 " + rich.name + " a déjà empoché " + Math.round(rich.seasonEarnings).toLocaleString("fr-FR") + " € de gains cette saison.");
+      if (rich && (rich.seasonEarnings || 0) > 0) templates.push("💰 " + rich.name + " a déjà empoché " + fmtMoney(rich.seasonEarnings) + " de gains cette saison.");
       const nat = {};
       top100.forEach(p => { const c = p.nat?.country; if (c) nat[c] = (nat[c] || 0) + 1; });
       const topNat = Object.entries(nat).sort((x, y) => y[1] - x[1])[0];
       if (topNat) templates.push("📊 " + topNat[0] + " place " + topNat[1] + " représentants dans le top 100. Aucune nation ne fait mieux.");
       const avgAge = top100.length ? Math.round(top100.reduce((s, p) => s + (p.age || 25), 0) / top100.length * 10) / 10 : 0;
       if (avgAge) templates.push("📊 Âge moyen du top 100 : " + String(avgAge).replace(".", ",") + " ans.");
-      templates.push("📊 Le n°1 mondial, " + top10[0].name + ", compte " + top10[0].points.toLocaleString("fr-FR") + " points.");
-      if (top10.length >= 2) templates.push("📊 Écart entre le n°1 et le n°2 : " + (top10[0].points - top10[1].points).toLocaleString("fr-FR") + " points.");
+      templates.push("📊 Le n°1 mondial, " + top10[0].name + ", compte " + fmtNum(top10[0].points) + " points.");
+      if (top10.length >= 2) templates.push("📊 Écart entre le n°1 et le n°2 : " + fmtNum(top10[0].points - top10[1].points) + " points.");
       post = {
         author,
         content: fresh(templates),

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Icon } from "./icons.jsx";
 import { T } from "./theme.js";
+import { fmtNum } from "./format.js";
 
 // Clickable label that reveals a short definition.
 export function DefinitionLabel({ label, info }) {
@@ -81,11 +82,11 @@ export function MiniLineChart({ data, color, height = 80, label = "", suffix = "
             </span>
           )}
           <span className="tm-display" style={{ fontSize: 16, lineHeight: 1 }}>
-            {Math.round(hover ? hover.d.value : last).toLocaleString("fr-FR")}{suffix}
+            {fmtNum(hover ? hover.d.value : last)}{suffix}
           </span>
           {!hover && delta !== 0 && (
             <span className="tm-num" style={{ background: trendBg, color: "#ffffff", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, padding: "0 4px", transform: "rotate(-3deg)" }}>
-              {trend} {Math.abs(Math.round(delta)).toLocaleString("fr-FR")}
+              {trend} {fmtNum(Math.abs(delta))}
             </span>
           )}
         </div>

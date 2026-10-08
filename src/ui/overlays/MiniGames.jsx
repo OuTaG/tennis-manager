@@ -28,14 +28,25 @@ function Caption({ children }) {
 
 // ─── EN MATCH ─────────────────────────────────────────────────────────────
 // Étoile d'onomatopée qui « pop » à l'écran.
+// Les textes longs (« RETOUR GAGNANT ! ») passent sur deux lignes dans
+// une étoile plus grande : le texte reste toujours dans le contour.
+function burstLayout(text) {
+  const sp = text.indexOf(" ", Math.floor(text.length / 2) - 2);
+  const lines = text.length > 10 && sp > 0 ? [text.slice(0, sp), text.slice(sp + 1)] : [text];
+  const big = lines.length > 1;
+  return { lines, w: big ? 160 : 124, h: big ? 100 : 80, fontSize: big ? 14 : text.length > 8 ? 13 : 17 };
+}
 function Burst({ x, y, text, color = BALL }) {
+  const { lines, w, h, fontSize } = burstLayout(text);
   return (
     <div style={{ position: "absolute", left: x, top: y, width: 0, height: 0, zIndex: 4, pointerEvents: "none" }}>
-      <div style={{ position: "absolute", left: -62, top: -40, width: 124, height: 80, animation: "tm-mg-pop 0.35s ease-out both" }}>
-        <svg viewBox="0 0 124 80" width="124" height="80" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
-          <polygon points="62,2 74,20 98,8 92,30 122,34 98,46 112,70 84,60 72,78 58,62 34,76 36,54 4,52 28,38 12,14 42,22" fill={color} stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+      <div style={{ position: "absolute", left: -w / 2, top: -h / 2, width: w, height: h, animation: "tm-mg-pop 0.35s ease-out both" }}>
+        <svg viewBox="0 0 124 80" width={w} height={h} preserveAspectRatio="none" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
+          <polygon points="62,2 74,20 98,8 92,30 122,34 98,46 112,70 84,60 72,78 58,62 34,76 36,54 4,52 28,38 12,14 42,22" fill={color} stroke={INK} strokeWidth="3.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
         </svg>
-        <div className="tm-display" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: text.length > 8 ? 13 : 17, color: INK, transform: "rotate(-6deg)", whiteSpace: "nowrap" }}>{text}</div>
+        <div className="tm-display" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontSize, lineHeight: 1.05, color: INK, transform: "rotate(-6deg)", whiteSpace: "nowrap", textAlign: "center" }}>
+          {lines.map((l, i) => <span key={i}>{l}</span>)}
+        </div>
       </div>
     </div>
   );
@@ -217,7 +228,9 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
       r = { ...serveDuel(i, guess), zone: i, serveZone: i, readZone: guess };
     } else {
       const out = returnDuel(i);
-      r = { ...out, zone: null, serveZone: out.target, readZone: i };
+      // zone = la zone choisie par le joueur (affichée « Choix : … ») ; seul
+      // le duel au service l'ajoute à l'historique lu par l'adversaire.
+      r = { ...out, zone: i, serveZone: out.target, readZone: i };
     }
     setRes(r);
     setPhase("play");
@@ -244,9 +257,24 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
       <div style={{ position: "absolute", left: -21, top: -21, width: 42, height: 42, borderRadius: "50%", overflow: "hidden", border: "2.5px solid " + INK, background: "#ffffff", animation: phase === "pick" ? "tm-mg-bob 0.9s ease-in-out infinite" : "none" }}>
         {who.avatar ? <Avatar config={who.avatar} size={42} bare /> : null}
       </div>
-      <div style={{ position: "absolute", left: -45, width: 90, top: y < NET_Y ? -38 : 23, textAlign: "center", fontSize: 9.5, fontWeight: 800, color: "#ffffff", textShadow: "1px 1px 0 " + INK, whiteSpace: "nowrap" }}>{who.label}</div>
     </div>
   );
+  // Nom sous / au-dessus du joueur, dans un élément à part pour rester dans
+  // le court : ancré au centre quand le joueur est au milieu, glisse vers la
+  // gauche (resp. la droite) quand il s'approche du bord droit (resp. gauche).
+  // Les noms très longs sont tronqués (…).
+  const nameTag = (who, x, y) => {
+    const a = Math.max(0, Math.min(1, (x - 12) / (VW - 24)));
+    return (
+      <div style={{
+        position: "absolute", left: pct(x, VW), top: pct(y, VH), marginTop: y < NET_Y ? -38 : 23, zIndex: 3,
+        transform: "translateX(" + (-a * 100).toFixed(1) + "%)", maxWidth: "46%",
+        transition: "left 0.24s cubic-bezier(.3,1.3,.6,1), transform 0.24s",
+        fontSize: 10, fontWeight: 800, color: "#ffffff", textShadow: "1px 1px 0 " + INK,
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", pointerEvents: "none",
+      }}>{who.label}</div>
+    );
+  };
 
   return (
     <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -278,12 +306,18 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
                   opacity: hideZones ? 0 : 1, pointerEvents: hideZones ? "none" : "auto",
                   transition: "opacity 0.18s, background 0.15s",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: T.display, fontSize: 10.5, letterSpacing: 0, lineHeight: 1.05, textTransform: "uppercase", overflow: "hidden", textAlign: "center",
-                }}>{zi === 0 ? <span>Exté-<br />rieur</span> : ZONES[zi]}</button>
+                  fontFamily: T.display, fontSize: 11.5, letterSpacing: 0.3, lineHeight: 1, textTransform: "uppercase", overflow: "hidden",
+                }}>
+                  {/* Case étroite (≈ 40 px à 390 px) mais haute : libellé
+                      vertical, lu de bas en haut, jamais coupé. */}
+                  <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap" }}>{ZONES[zi]}</span>
+                </button>
               );
             })}
             {figure(returner, retX, TOP_Y)}
             {figure(server, srvX, BOT_Y)}
+            {nameTag(returner, retX, TOP_Y)}
+            {nameTag(server, srvX, BOT_Y)}
             {/* Traces de rebond */}
             {bounces.map(b => (
               <div key={b.id} style={{ position: "absolute", left: pct(b.x, VW), top: pct(b.y, VH), width: 14, height: 8, marginLeft: -7, marginTop: -4, borderRadius: "50%", border: "2px solid " + INK, background: "rgba(214,239,60,0.6)", zIndex: 1 }} />

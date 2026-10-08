@@ -9,6 +9,7 @@ import { Avatar } from "../avatar.jsx";
 import { FlagFromEmoji, Icon, StatIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { fmtMoney, fmtNum } from "../format.js";
 
 // Couleur de la case de la une selon l'actualité.
 const PANEL = { clay: "tm-halftone-magenta", red: "tm-halftone-magenta", green: "tm-halftone-yellow", blue: "tm-halftone-cyan" };
@@ -100,7 +101,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         </div>
         {[
           { label: "Rang", value: ranking > 1000 ? "—" : ranking },
-          { label: "Points", value: totalPts.toLocaleString("fr-FR") },
+          { label: "Points", value: fmtNum(totalPts) },
           { label: "Saison", value: (ss.wins || 0) + "-" + (ss.losses || 0) },
           { label: "Énergie", value: Math.round(player.energy), yellow: true },
         ].map((c, i) => (
@@ -243,12 +244,12 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
             {[["Staff", staffWeeklyCost], ["Charges", player.weeklyExpenses]].map(([l, v]) => (
               <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "2px dashed " + T.ink, fontSize: 13.5, fontWeight: 700 }}>
                 <span>{l}</span>
-                <span className="tm-num" style={{ color: "#c4302b", fontWeight: 800 }}>−{v} €</span>
+                <span className="tm-num" style={{ color: "#c4302b", fontWeight: 800 }}>{fmtMoney(-v, { sign: true })}</span>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 9 }}>
               <span className="tm-display" style={{ fontSize: 14 }}>Total</span>
-              <span className="tm-display" style={{ fontSize: 15, background: "#c4302b", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px" }}>−{staffWeeklyCost + player.weeklyExpenses} €/sem.</span>
+              <span className="tm-display" style={{ fontSize: 15, background: "#c4302b", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px" }}>{fmtMoney(-(staffWeeklyCost + player.weeklyExpenses), { sign: true })}/sem.</span>
             </div>
           </div>
         </div>
@@ -291,7 +292,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                   <span style={{ color: met ? "#1f7a45" : "#141414", fontSize: 12, fontWeight: 700 }}>{met && <Icon name="check" size={11} strokeWidth={3} style={{ marginRight: 3, verticalAlign: -1 }} />}{o.label}</span>
-                  <span className="tm-num" style={{ color: "#1f7a45", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", marginLeft: 8 }}>+{(s.objectiveReward || 0).toLocaleString()}€ / −{(s.objectivePenalty || 0).toLocaleString()}€</span>
+                  <span className="tm-num" style={{ color: "#1f7a45", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", marginLeft: 8 }}>{fmtMoney(s.objectiveReward || 0, { sign: true })} / {fmtMoney(-(s.objectivePenalty || 0), { sign: true })}</span>
                 </div>
                 <div style={{ height: 12, background: "#ffffff", border: "2px solid " + T.ink, overflow: "hidden" }}>
                   <div style={{ width: (progress * 100).toFixed(0) + "%", height: "100%", background: met ? "#1f7a45" : "#d6ef3c", backgroundImage: "radial-gradient(rgba(20,20,20,0.18) 1.2px, transparent 1.4px)", backgroundSize: "5px 5px", borderRight: progress > 0 && progress < 1 ? "2px solid " + T.ink : "none", transition: "width 0.3s" }} />

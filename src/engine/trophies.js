@@ -133,15 +133,15 @@ export const TROPHIES = [
     check: (p) => ({ unlocked: p.titlesWon >= 50, progress: { current: Math.min(p.titlesWon, 50), target: 50 } }) },
 
   // ─── CAREER / FINANCE (8 trophies) ─────────────────────────────
-  { id: "earn_10k", name: "Premiers gains", desc: "Gagner 10 000€ en carrière", cat: "career", rarity: "bronze",
+  { id: "earn_10k", name: "Premiers gains", desc: "Gagner 10\u202f000\u00a0€ en carrière", cat: "career", rarity: "bronze",
     check: (p) => ({ unlocked: (p.totalEarnings || 0) >= 10000, progress: { current: Math.min(p.totalEarnings || 0, 10000), target: 10000 } }) },
-  { id: "earn_100k", name: "Six chiffres", desc: "Gagner 100 000€ en carrière", cat: "career", rarity: "silver",
+  { id: "earn_100k", name: "Six chiffres", desc: "Gagner 100\u202f000\u00a0€ en carrière", cat: "career", rarity: "silver",
     check: (p) => ({ unlocked: (p.totalEarnings || 0) >= 100000, progress: { current: Math.min(p.totalEarnings || 0, 100000), target: 100000 } }) },
-  { id: "earn_500k", name: "Demi-million", desc: "Gagner 500 000€ en carrière", cat: "career", rarity: "silver",
+  { id: "earn_500k", name: "Demi-million", desc: "Gagner 500\u202f000\u00a0€ en carrière", cat: "career", rarity: "silver",
     check: (p) => ({ unlocked: (p.totalEarnings || 0) >= 500000, progress: { current: Math.min(p.totalEarnings || 0, 500000), target: 500000 } }) },
-  { id: "earn_1m", name: "Millionnaire", desc: "Gagner 1 000 000€ en carrière", cat: "career", rarity: "gold",
+  { id: "earn_1m", name: "Millionnaire", desc: "Gagner 1\u202f000\u202f000\u00a0€ en carrière", cat: "career", rarity: "gold",
     check: (p) => ({ unlocked: (p.totalEarnings || 0) >= 1000000, progress: { current: Math.min(p.totalEarnings || 0, 1000000), target: 1000000 } }) },
-  { id: "earn_10m", name: "Dix millions", desc: "Gagner 10 000 000€ en carrière", cat: "career", rarity: "gold",
+  { id: "earn_10m", name: "Dix millions", desc: "Gagner 10\u202f000\u202f000\u00a0€ en carrière", cat: "career", rarity: "gold",
     check: (p) => ({ unlocked: (p.totalEarnings || 0) >= 10000000, progress: { current: Math.min(p.totalEarnings || 0, 10000000), target: 10000000 } }) },
   { id: "longevity_5", name: "Lustre de carrière", desc: "5 saisons jouées", cat: "career", rarity: "silver",
     check: (p) => ({ unlocked: (p.careerSeasons || []).length >= 5, progress: { current: Math.min((p.careerSeasons || []).length, 5), target: 5 } }) },
@@ -334,13 +334,13 @@ export const TROPHIES = [
     check: (p) => ({ unlocked: (p.stats?.stamina || 0) >= 85 }) },
 
   // Finance / sponsors
-  { id: "earn_5m", name: "Cinq millions", desc: "Gagner 5 000 000€ en carrière", cat: "career", rarity: "gold",
+  { id: "earn_5m", name: "Cinq millions", desc: "Gagner 5\u202f000\u202f000\u00a0€ en carrière", cat: "career", rarity: "gold",
     check: (p) => ({ unlocked: (p.totalEarnings || 0) >= 5000000, progress: { current: Math.min(p.totalEarnings || 0, 5000000), target: 5000000 } }) },
-  { id: "earn_50m", name: "Cinquante millions", desc: "Gagner 50 000 000€ en carrière", cat: "career", rarity: "gold",
+  { id: "earn_50m", name: "Cinquante millions", desc: "Gagner 50\u202f000\u202f000\u00a0€ en carrière", cat: "career", rarity: "gold",
     check: (p) => ({ unlocked: (p.totalEarnings || 0) >= 50000000, progress: { current: Math.min(p.totalEarnings || 0, 50000000), target: 50000000 } }) },
   { id: "first_sponsor", name: "Premier contrat", desc: "Signer votre premier sponsor", cat: "special", rarity: "bronze",
     check: (p) => ({ unlocked: (p.sponsors || []).length >= 1 }) },
-  { id: "rich_account", name: "Coffre garni", desc: "Avoir 500 000€ de liquidités", cat: "career", rarity: "silver",
+  { id: "rich_account", name: "Coffre garni", desc: "Avoir 500\u202f000\u00a0€ de liquidités", cat: "career", rarity: "silver",
     check: (p) => ({ unlocked: (p.money || 0) >= 500000 }) },
 
   // Round milestones

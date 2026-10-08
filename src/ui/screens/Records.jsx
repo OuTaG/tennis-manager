@@ -5,6 +5,7 @@ import { computeRecords, loadCareerSummaries } from "../../engine/records.js";
 import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { fmtNum } from "../format.js";
 
 const INK = T.ink;
 const panel = { background: "#ffffff", color: "#141414", border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, marginBottom: 14 };
@@ -96,7 +97,7 @@ export function RecordsScreen({ onBack }) {
                       )}
                     </div>
                     <div className="tm-display" style={{ color: r ? "#5b2d8e" : "#141414", fontSize: 17, flexShrink: 0 }}>
-                      {r ? (r.score || 0).toLocaleString("fr-FR") : "—"}
+                      {r ? fmtNum(r.score || 0) : "—"}
                     </div>
                   </div>
                   {open && (
@@ -104,7 +105,7 @@ export function RecordsScreen({ onBack }) {
                       {r.rows.map((row, k) => (
                         <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, fontWeight: 700, padding: "3px 0", color: "#141414", borderTop: k ? "1.5px dashed " + INK : 0 }}>
                           <span>{row.label} <span style={{ fontWeight: 500 }}>· {row.detail}</span></span>
-                          <span className="tm-num" style={{ color: "#141414", fontWeight: 800 }}>{row.pts.toLocaleString("fr-FR")}</span>
+                          <span className="tm-num" style={{ color: "#141414", fontWeight: 800 }}>{fmtNum(row.pts)}</span>
                         </div>
                       ))}
                     </div>

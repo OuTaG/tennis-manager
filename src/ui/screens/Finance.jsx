@@ -4,6 +4,7 @@ import { SPONSOR_CAPS, sponsorSlotWarning } from "../../engine/sponsors.js";
 import { BangBadge, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { fmtMoney } from "../format.js";
 
 export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSponsorOffer, declineSponsorOffer, requestCancelSponsor, sponsorCancelCost, setTournamentDetail }) {
   const balance = player.money;
@@ -49,12 +50,12 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
       {/* Solde */}
       <div className={balance >= 0 ? "tm-halftone-yellow" : "tm-halftone-magenta"} style={{ border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, padding: "14px 16px", marginBottom: 14, color: "#141414" }}>
         <span style={chip(INK, "#ffffff")}>Solde actuel</span>
-        <div className="tm-display" style={{ fontSize: 40, lineHeight: 1.05, marginTop: 6, color: balance >= 0 ? "#141414" : "#ffffff", textShadow: balance >= 0 ? "none" : "2px 2px 0 " + INK }}>{balance.toLocaleString()} €</div>
+        <div className="tm-display" style={{ fontSize: 40, lineHeight: 1.05, marginTop: 6, color: balance >= 0 ? "#141414" : "#ffffff", textShadow: balance >= 0 ? "none" : "2px 2px 0 " + INK }}>{fmtMoney(balance)}</div>
       </div>
 
       {/* Gains / Dépenses */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-        {[["Gains", "+" + earned.toLocaleString() + " €", "#1f7a45"], ["Dépenses", "−" + spent.toLocaleString() + " €", "#c4302b"]].map(([l, v, c]) => (
+        {[["Gains", fmtMoney(earned, { sign: true }), "#1f7a45"], ["Dépenses", fmtMoney(-spent, { sign: true }), "#c4302b"]].map(([l, v, c]) => (
           <div key={l} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + INK, boxShadow: "3px 3px 0 " + INK, overflow: "hidden" }}>
             <div className="tm-display" style={{ background: c, color: "#ffffff", fontSize: 12.5, padding: "3px 10px", borderBottom: "2.5px solid " + INK }}>{l}</div>
             <div className="tm-display" style={{ fontSize: 18, padding: "8px 10px" }}>{v}</div>
@@ -86,18 +87,18 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
                   <div className="tm-display" style={{ fontSize: 17, marginTop: 5 }}>{s.brand}</div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div className="tm-display" style={{ color: "#1f7a45", fontSize: 16 }}>+{s.weeklyPay} €<span style={{ fontSize: 11 }}>/sem</span></div>
+                  <div className="tm-display" style={{ color: "#1f7a45", fontSize: 16 }}>{fmtMoney(s.weeklyPay, { sign: true })}<span style={{ fontSize: 11 }}>/sem</span></div>
                   <div style={{ fontSize: 11, fontWeight: 800, marginTop: 2 }}>{s.weeksLeft} sem. restantes</div>
                 </div>
               </div>
               <div className="tm-lettering" style={{ marginTop: 6, fontSize: 14 }}>
-                Bonus titre : +{s.titleBonus.toLocaleString()} €
+                Bonus titre : {fmtMoney(s.titleBonus, { sign: true })}
               </div>
               <button
                 style={{ ...styles.btnSmall, marginTop: 8, width: "100%", background: "#ffffff", color: "#c4302b", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontWeight: 800 }}
                 onClick={() => requestCancelSponsor(s)}
               >
-                Résilier · −{sponsorCancelCost(s).toLocaleString()} €
+                Résilier · {fmtMoney(-sponsorCancelCost(s), { sign: true })}
               </button>
             </div>
           );
@@ -124,13 +125,13 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
                     <div className="tm-display" style={{ fontSize: 17, marginTop: 5 }}>{o.brand}</div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div className="tm-display" style={{ color: "#1f7a45", fontSize: 16 }}>+{o.weeklyPay} €<span style={{ fontSize: 11 }}>/sem</span></div>
+                    <div className="tm-display" style={{ color: "#1f7a45", fontSize: 16 }}>{fmtMoney(o.weeklyPay, { sign: true })}<span style={{ fontSize: 11 }}>/sem</span></div>
                     <div style={{ fontSize: 11, fontWeight: 800, marginTop: 2 }}>Expire dans {left} sem.</div>
                   </div>
                 </div>
                 <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 6, lineHeight: 1.45 }}>
-                  Bonus titre : +{o.titleBonus.toLocaleString()} €
-                  {med && <><br />Objectif : {med.label} (+{Math.round((o.baseReward || 0) * (med.rewardMul || 1)).toLocaleString()} € / −{Math.round((o.basePenalty || 0) * (med.penaltyMul || 1)).toLocaleString()} €)</>}
+                  Bonus titre : {fmtMoney(o.titleBonus, { sign: true })}
+                  {med && <><br />Objectif : {med.label} ({fmtMoney((o.baseReward || 0) * (med.rewardMul || 1), { sign: true })} / {fmtMoney(-(o.basePenalty || 0) * (med.penaltyMul || 1), { sign: true })})</>}
                 </div>
                 {warn && <div style={{ marginTop: 6, background: "#ffffff", border: "2px solid " + INK, padding: "4px 7px", fontSize: 11.5, fontWeight: 700, lineHeight: 1.4 }}>{warn.short}</div>}
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -156,14 +157,14 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
           ].map((row, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 700, padding: "8px 0", borderBottom: "2px dashed " + INK }}>
               <span>{row.label}</span>
-              <span className="tm-num" style={{ color: row.color, fontWeight: 800 }}>{row.sign}{row.v} €</span>
+              <span className="tm-num" style={{ color: row.color, fontWeight: 800 }}>{row.v ? row.sign : ""}{fmtMoney(row.v)}</span>
             </div>
           ))}
           {[["Net hebdo", weeklyNet, weeklyNet], ["Bilan carrière", net, net]].map(([l, v]) => (
             <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
               <span className="tm-display" style={{ fontSize: 14 }}>{l}</span>
               <span className="tm-display" style={{ fontSize: 15, background: v >= 0 ? "#1f7a45" : "#c4302b", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "1px 8px" }}>
-                {v >= 0 ? "+" : ""}{v.toLocaleString()} €
+                {fmtMoney(v, { sign: true })}
               </span>
             </div>
           ))}
@@ -191,7 +192,7 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
                   <div style={{ fontSize: 13.5, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name}{tid ? " ›" : ""}</div>
                   <div style={{ fontSize: 11, fontWeight: 700, marginTop: 1 }}>Semaine {e.week} · {e.year}</div>
                 </div>
-                <span className="tm-display" style={{ color: "#1f7a45", fontSize: 14.5 }}>+{e.prize.toLocaleString()} €</span>
+                <span className="tm-display" style={{ color: "#1f7a45", fontSize: 14.5 }}>{fmtMoney(e.prize, { sign: true })}</span>
               </div>
             );
           })}

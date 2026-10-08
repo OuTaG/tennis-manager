@@ -7,6 +7,7 @@ import { CITIES } from "../../data/geo.js";
 import { distanceKm } from "../../engine/travel.js";
 import { FlagFromEmoji } from "../icons.jsx";
 import { T } from "../theme.js";
+import { fmtKm } from "../format.js";
 
 // ─── FLIGHT ANIMATION OVERLAY ───────────────────────────────────────────────
 // Case de BD : carte du monde (côtes Natural Earth) dessinée à l'encre sur
@@ -111,7 +112,7 @@ export function FlightOverlay({ from, to, onDone }) {
       <div style={{ width: "100%", maxWidth: 460, display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "3px solid " + INK, paddingBottom: 4 }}>
           <span className="tm-display" style={{ fontSize: 22, color: T.fg }}>En route !</span>
-          <span className="tm-num" style={{ background: INK, color: "#d6ef3c", fontSize: 11, fontWeight: 800, letterSpacing: 0.3, padding: "1px 6px", whiteSpace: "nowrap" }}>{Math.round(km).toLocaleString("fr-FR")} km</span>
+          <span className="tm-num" style={{ background: INK, color: "#d6ef3c", fontSize: 11, fontWeight: 800, letterSpacing: 0.3, padding: "1px 6px", whiteSpace: "nowrap" }}>{fmtKm(km)}</span>
         </div>
 
         {/* Case de BD : la carte du monde */}

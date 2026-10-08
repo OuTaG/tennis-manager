@@ -5,20 +5,27 @@ import { distanceKm, travelCostBetween } from "../../engine/travel.js";
 import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { fmtMoney } from "../format.js";
 
-export function TravelScreen({ player, travelTo }) {
-  const [search, setSearch] = useState("");
+export function TravelScreen({ player, travelTo, initialSearch = "", onSearchUsed }) {
+  const [search, setSearch] = useState(initialSearch);
+  // Recherche pré-remplie (fenêtre de forfait) : consommée une seule fois.
+  useEffect(() => { if (initialSearch && onSearchUsed) onSearchUsed(); }, []);
   const [continent, setContinent] = useState("all");
 
   // Continent grouping based on rough lat/lon
   const continentOf = (lat, lon) => {
-    if (lat < 35 && lon > -20 && lon < 55 && lat > -35) return "Afrique";
+    // Moyen-Orient d'abord : ses villes tombent sinon dans Afrique ou Asie.
+    if (lon > 34 && lon < 62 && lat > 12 && lat < 38) return "Moyen-Orient";
+    // Tunis et Hammamet sont au nord du 35e parallèle.
+    if ((lat < 35 || (lat < 37.5 && lon > 0 && lon < 12)) && lon > -20 && lon < 55 && lat > -35) return "Afrique";
     if (lat < -10 && lon > 110) return "Océanie";
+    // Europe avant Asie : Moscou et Saint-Pétersbourg sont à l'est du 30e méridien.
+    if (lon > -25 && lon < 60 && lat > 35) return "Europe";
     if (lon > 30 && lon < 180 && lat > -10) return "Asie";
-    if (lon > -25 && lon < 50 && lat > 35) return "Europe";
-    if (lon > 35 && lon < 75 && lat > 12 && lat < 40) return "Moyen-Orient";
-    if (lon < -50 && lat < 20) return "Amérique du Sud";
-    if (lon < -50 && lat > 15) return "Amérique du Nord";
+    // Le Brésil déborde à l'est du 50e méridien ouest.
+    if (lon < -34 && lat < 13) return "Amérique du Sud";
+    if (lon < -50) return "Amérique du Nord";
     return "Autre";
   };
 
@@ -168,7 +175,7 @@ export function TravelScreen({ player, travelTo }) {
                     }}
                     disabled={!canAfford}
                     onClick={() => travelTo(c.name)}
-                  >{c.cost}€</button>
+                  >{fmtMoney(c.cost)}</button>
                 )}
               </div>
             );

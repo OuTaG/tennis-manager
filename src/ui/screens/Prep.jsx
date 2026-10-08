@@ -9,6 +9,7 @@ import { trainingBaseGain, trainingEfficiency } from "../../engine/training.js";
 import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { fmtDec, fmtMoney } from "../format.js";
 
 const INK = T.ink;
 const chip = (bg, fg) => ({ display: "inline-block", background: bg, color: fg, border: "2px solid " + INK, fontSize: 11, fontWeight: 800, padding: "0 6px", textTransform: "uppercase", letterSpacing: 0.3 });
@@ -59,7 +60,8 @@ export function TrainingScreen({ player, doTraining }) {
         const staffEnergyExtra = staffTrainEnergyExtra(player.staff);
         const canDo = player.money >= mod.cost && player.energy >= baseEnergyCost + staffEnergyExtra + 3;
         // Même calcul que la séance réelle (programme de routine).
-        const expGain = trainingBaseGain(player, mod).toFixed(2);
+        const expGainRaw = trainingBaseGain(player, mod);
+        const expGain = fmtDec(expGainRaw, 2);
         const ceilingReached = player.stats[mod.stat] >= 92;
         const statValue = Math.round(player.stats[mod.stat]);
 
@@ -92,14 +94,14 @@ export function TrainingScreen({ player, doTraining }) {
             </div>
 
             <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-              <span style={smallBox}>−<span className="tm-num">{mod.cost}€</span></span>
+              <span style={smallBox}><span className="tm-num">{fmtMoney(-mod.cost, { sign: true })}</span></span>
               <span style={smallBox}>
                 −<span className="tm-num">{baseEnergyCost}</span>
                 {staffEnergyExtra > 0 && <span className="tm-num" style={{ color: "#c4302b", marginLeft: 3 }}>−{staffEnergyExtra}</span>}
                 <Icon name="energy" size={10} />
               </span>
-              <span style={{ ...smallBox, background: ceilingReached ? "#c4302b" : (expGain < 0.3 ? "#e0a21b" : "#d6ef3c"), color: ceilingReached ? "#ffffff" : "#141414" }}>
-                +<span className="tm-num">{expGain}</span> pts{ceilingReached ? " · plafond" : ""}
+              <span style={{ ...smallBox, background: ceilingReached ? "#c4302b" : (expGainRaw < 0.3 ? "#e0a21b" : "#d6ef3c"), color: ceilingReached ? "#ffffff" : "#141414" }}>
+                +<span className="tm-num">{expGain}</span>{"\u00a0"}pts{ceilingReached ? " · plafond" : ""}
               </span>
             </div>
 
@@ -197,7 +199,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
       }}>
         <div>
           <span style={chip(INK, "#ffffff")}>Coût hebdomadaire</span>
-          <div className="tm-display" style={{ color: "#c4302b", fontSize: 22, marginTop: 4, textShadow: "1.5px 1.5px 0 #ffffff" }}>−{totalCost}€</div>
+          <div className="tm-display" style={{ color: "#c4302b", fontSize: 22, marginTop: 4, textShadow: "1.5px 1.5px 0 #ffffff" }}>{fmtMoney(-totalCost, { sign: true })}</div>
         </div>
         <div style={{ textAlign: "right" }}>
           <span style={chip("#ffffff", "#141414")}>Personnel</span>
@@ -230,7 +232,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
                         Spé. {hired.surface}
                       </div>
                     )}
-                    <div style={{ marginTop: 4 }}><span className="tm-num" style={{ ...chip("#ffffff", "#141414"), textTransform: "none" }}>{hired.cost}€/sem</span></div>
+                    <div style={{ marginTop: 4 }}><span className="tm-num" style={{ ...chip("#ffffff", "#141414"), textTransform: "none" }}>{fmtMoney(hired.cost)}/sem</span></div>
                   </div>
                   <button style={{ ...styles.btnSmall, background: "#ffffff", color: "#c4302b", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontWeight: 800, flexShrink: 0 }} onClick={() => fireStaff(hired)}>Licencier</button>
                 </div>
@@ -259,7 +261,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
                           </div>
                         )}
                         <div className="tm-num" style={{ color: "#141414", fontSize: 11.5, fontWeight: 700, marginTop: 4 }}>
-                          {s.cost}€/sem · {(s.cost * 4).toLocaleString()}€ à l'embauche
+                          {fmtMoney(s.cost)}/sem · {fmtMoney(s.cost * 4)} à l'embauche
                         </div>
                       </div>
                       <button

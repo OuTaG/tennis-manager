@@ -6,6 +6,9 @@ import { random } from "./rng.js";
 // (contre la ligne médiane) : l'indice donne aussi la position, la
 // distance entre deux zones se compte en cases.
 export const ZONES = ["Extérieur", "Corps", "Au T"];
+// Les mêmes zones dans une phrase (« Il attendait au T », « Il a servi à
+// l'extérieur ») : préposition comprise, le T reste en majuscule.
+export const ZONE_PHRASES = ["à l'extérieur", "dans le corps", "au T"];
 
 // ─── EN MATCH ──────────────────────────────────────────────────────────────
 // Quel mini-jeu proposer à la place d'un dilemme ? Duel au service si le
@@ -65,7 +68,7 @@ export function resolveServeDuel(serveZone, readZone) {
 // Duel au service : le joueur sert en pick, l'adversaire a lu guess.
 export function serveDuel(pick, guess) {
   const r = resolveServeDuel(pick, guess);
-  const text = r.kind === "ace" ? "Il attendait " + ZONES[guess].toLowerCase() + " : ace !"
+  const text = r.kind === "ace" ? "Il attendait " + ZONE_PHRASES[guess] + ", vous servez " + ZONE_PHRASES[pick] + " : ace !"
     : r.kind === "return_winner" ? "Il avait lu votre service : retour gagnant."
     : r.rally.text;
   return { ...r, win: r.serverWins, text };
@@ -75,7 +78,7 @@ export function serveDuel(pick, guess) {
 export function returnDuel(guess) {
   const target = Math.floor(random() * 3);
   const r = resolveServeDuel(target, guess);
-  const text = r.kind === "ace" ? "Il a servi " + ZONES[target].toLowerCase() + " : ace."
+  const text = r.kind === "ace" ? "Il a servi " + ZONE_PHRASES[target] + ", vous l'attendiez " + ZONE_PHRASES[guess] + " : ace."
     : r.kind === "return_winner" ? "Bien lu ! Retour gagnant."
     : r.rally.text;
   return { ...r, target, win: !r.serverWins, text };

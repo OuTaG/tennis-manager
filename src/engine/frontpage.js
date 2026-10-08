@@ -1,5 +1,6 @@
 // La une du journal d'accueil : l'article principal et les dépêches.
 // Fonctions pures : elles lisent l'état du joueur et le fil d'actualité.
+import { elide } from "./text.js";
 import { tierLabel } from "./circuit.js";
 
 // Tour joué → complément correct : « au premier tour », « en quarts de finale »…
@@ -34,7 +35,8 @@ export function buildFrontPage({ player, ranking, enrolled }) {
   const story = frontStory({ player, ranking, enrolled });
   const pick = (a) => a[(player.week || 0) % a.length];
   const deck = story.decks ? pick(story.decks) : story.deck;
-  return { ...story, deck, quote: pick(story.quotes), quotes: undefined, decks: undefined };
+  const quote = pick(story.quotes);
+  return { ...story, title: elide(story.title), deck: elide(deck), caption: elide(story.caption), quote: elide(quote), quotes: undefined, decks: undefined };
 }
 
 function frontStory({ player, ranking, enrolled }) {

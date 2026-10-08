@@ -1,10 +1,12 @@
 // Écran Bureau › Social.
+import { elide } from "../../engine/text.js";
 import { useState } from "react";
 import { adjustLife } from "../../engine/player.js";
 import { withBdEmoji } from "../bdEmoji.jsx";
 import { FlagFromEmoji, Icon, SurfaceIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { fmtNum } from "../format.js";
 
 export const SOCIAL_HISTORY_WEEKS = 5;
 
@@ -129,7 +131,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
             background: "#ffffff", borderLeft: "2.5px solid " + INK, borderTop: "2.5px solid " + INK,
             transform: "rotate(45deg) skew(8deg, 8deg)",
           }} />
-          {withBdEmoji(p.content, 17)}
+          {withBdEmoji(elide(p.content), 17)}
         </div>
 
         {/* Tournament chips if any */}
@@ -153,10 +155,10 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
             title={p.likedByUser ? "Ne plus aimer" : "Aimer"}
           >
             <Icon name="heart" size={13} color={p.likedByUser ? "#ffffff" : "#141414"} />
-            <span className="tm-num" style={{ fontWeight: 800 }}>{(p.likes || 0).toLocaleString()}</span>
+            <span className="tm-num" style={{ fontWeight: 800 }}>{fmtNum(p.likes || 0)}</span>
           </button>
           <span style={counterChip(false)}>
-            <Icon name="news" size={13} color="#141414" /> <span className="tm-num" style={{ fontWeight: 800 }}>{(p.retweets || 0).toLocaleString()}</span>
+            <Icon name="news" size={13} color="#141414" /> <span className="tm-num" style={{ fontWeight: 800 }}>{fmtNum(p.retweets || 0)}</span>
           </span>
           {p.likedByUser && (
             <span className="tm-lettering" aria-hidden="true" style={{ color: "#c4302b", fontSize: 16, transform: "rotate(-6deg)", display: "inline-block" }}>Smack !</span>

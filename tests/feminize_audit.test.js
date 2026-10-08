@@ -6,9 +6,9 @@ import { feminizeText } from "../src/engine/feminize.js";
 describe("féminisation : audit", () => {
   const cases = [
     // Mini-jeux
-    ["Il attendait au t : ace !", "Elle attendait au t : ace !"],
+    ["Il attendait au T, vous servez à l'extérieur : ace !", "Elle attendait au T, vous servez à l'extérieur : ace !"],
     ["Il avait lu votre service : retour gagnant.", "Elle avait lu votre service : retour gagnant."],
-    ["Il a servi corps : ace.", "Elle a servi corps : ace."],
+    ["Il a servi à l'extérieur, vous l'attendiez au T : ace.", "Elle a servi à l'extérieur, vous l'attendiez au T : ace."],
     ["Balle de break · Léa Martin va servir. Où va-t-il frapper ?", "Balle de break · Léa Martin va servir. Où va-t-elle frapper ?"],
     ["Servez là où il ne vous attend pas.", "Servez là où elle ne vous attend pas."],
     ["Placez-vous là où il va servir.", "Placez-vous là où elle va servir."],

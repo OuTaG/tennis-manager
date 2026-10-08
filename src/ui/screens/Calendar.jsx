@@ -6,6 +6,7 @@ import { distanceKm, travelCostBetween } from "../../engine/travel.js";
 import { FlagFromEmoji, Icon, SurfaceIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { fmtKm, fmtMoney } from "../format.js";
 
 export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enrollTournament, cancelEnrollment, setTournamentDetail }) {
   const tiers = ["GrandSlam", "Masters1000", "ATP500", "ATP250", "Challenger", "ITF"];
@@ -144,8 +145,8 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {[
             { k: "all", label: "Mondial", iconName: null },
-            { k: "r3000", label: "<3000km", iconName: "location" },
-            { k: "r1000", label: "<1000km", iconName: "location" },
+            { k: "r3000", label: "<\u00a03\u202f000\u00a0km", iconName: "location" },
+            { k: "r1000", label: "<\u00a01\u202f000\u00a0km", iconName: "location" },
           ].map(({ k, label, iconName }) => (
             <button key={k} style={{ ...styles.filterBtn, ...(calFilters.region === k ? styles.filterBtnActive : {}), display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setCalFilters({ ...calFilters, region: k })}>
               {iconName && <Icon name={iconName} size={11} />}
@@ -223,7 +224,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
 
                   <div style={{ display: "flex", gap: 6, marginBottom: 12, marginTop: 12, flexWrap: "wrap" }}>
                     <span style={styles.tournChip}>
-                      <span className="tm-num">{t.prize.toLocaleString()}€</span>
+                      <span className="tm-num">{fmtMoney(t.prize)}</span>
                     </span>
                     <span style={styles.tournChip}>
                       <span className="tm-num">{t.points}</span> PTS
@@ -233,7 +234,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                     </span>
                     {!onSite && (
                       <span style={{ ...styles.tournChip, background: "#ffffff", color: "#c4302b", fontWeight: 800 }}>
-                        <span className="tm-num">{Math.round(dist)}km</span> · {travelCost}€
+                        <span className="tm-num">{fmtKm(dist)}</span> · {fmtMoney(travelCost)}
                       </span>
                     )}
                     {onSite && (
@@ -283,7 +284,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                     >
                       {blockedByWeekLimit ? "Tournoi déjà joué cette sem."
                         : isCurrentWeek ? "Jouer maintenant"
-                        : "S'inscrire"} {!blockedByWeekLimit && t.entryFee > 0 ? "· " + t.entryFee + "€" : ""}
+                        : "S'inscrire"} {!blockedByWeekLimit && t.entryFee > 0 ? "· " + fmtMoney(t.entryFee) : ""}
                     </button>
                   )}
                   </div>

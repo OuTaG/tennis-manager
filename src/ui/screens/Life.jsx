@@ -4,6 +4,7 @@ import { lifeCaps } from "../../engine/player.js";
 import { Icon, StatIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { NBSP, fmtNum } from "../format.js";
 
 // Life screen: 3 life-stat bars + grid of leisure activities
 export function LifeScreen({ player, doLifeActivity }) {
@@ -39,7 +40,7 @@ export function LifeScreen({ player, doLifeActivity }) {
     }}>
       <StatIcon name={icon} size={16} />
       <span className="tm-display tm-num" style={{ fontSize: 12.5, color: good ? "#1f7a45" : "#c4302b", whiteSpace: "nowrap" }}>
-        {amount > 0 ? "+" : "−"}{Math.abs(amount).toLocaleString()}{suffix}
+        {fmtNum(amount, { sign: true })}{suffix}
       </span>
     </span>
   );
@@ -115,7 +116,7 @@ export function LifeScreen({ player, doLifeActivity }) {
             </div>
 
             <div style={{ display: "flex", gap: 7, marginBottom: 12, flexWrap: "wrap" }}>
-              {act.cost > 0 && effectChip("cost", "money", -act.cost, false, " €")}
+              {act.cost > 0 && effectChip("cost", "money", -act.cost, false, NBSP + "€")}
               {act.energyCost !== 0 && effectChip("energy", "energy", -act.energyCost, act.energyCost < 0)}
               {act.happiness !== 0 && effectChip("happiness", "happiness", act.happiness, act.happiness > 0)}
               {act.popularity !== 0 && effectChip("popularity", "popularity", act.popularity, act.popularity > 0)}
