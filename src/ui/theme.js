@@ -102,13 +102,9 @@ export function applyCircuitAccent(circuit) {
   Object.keys(p).forEach(k => root.style.setProperty("--tm-" + k, p[k]));
 }
 
-// Inject Google Fonts + global CSS once
+// Injecte le CSS global une fois. Les polices sont embarquées avec le jeu
+// (@fontsource) : aucune requête vers un service externe.
 if (typeof document !== "undefined" && !document.getElementById("tm-global-styles")) {
-  const fontLink = document.createElement("link");
-  fontLink.rel = "stylesheet";
-  fontLink.href = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&family=Kalam:wght@700&family=IBM+Plex+Mono:wght@500;600&display=swap";
-  document.head.appendChild(fontLink);
-
   const tag = document.createElement("style");
   tag.id = "tm-global-styles";
   tag.innerHTML = `
