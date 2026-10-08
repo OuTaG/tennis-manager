@@ -1,25 +1,43 @@
 // Graphiques et libellés à définition.
 import { useState } from "react";
-import { Icon } from "./icons.jsx";
 import { T } from "./theme.js";
 import { fmtNum } from "./format.js";
 
-// Clickable label that reveals a short definition.
+// Libellé cliquable qui déplie une courte définition, façon BD : pastille
+// « i » encrée (jaune quand elle est ouverte) et bulle de récitatif à queue.
 export function DefinitionLabel({ label, info }) {
   const [open, setOpen] = useState(false);
-  if (!info) return <span style={{ color: "#141414", fontSize: 11, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>{label}</span>;
+  const labelStyle = { color: "#141414", fontSize: 11, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" };
+  if (!info) return <span style={labelStyle}>{label}</span>;
   return (
-    <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start" }}>
-      <button onClick={() => setOpen(o => !o)} style={{
-        background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: T.body,
-        color: "#141414", fontSize: 11, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase",
-        textDecoration: "underline dashed", textDecorationThickness: 2, textUnderlineOffset: 3,
-        display: "inline-flex", alignItems: "center", gap: 4,
+    <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", maxWidth: "100%" }}>
+      <button onClick={() => setOpen(o => !o)} aria-expanded={open} style={{
+        ...labelStyle, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: T.body,
+        display: "inline-flex", alignItems: "center", gap: 6,
       }}>
-        {label} <Icon name="info" size={10} />
+        {label}
+        <span className="tm-display" aria-hidden="true" style={{
+          width: 17, height: 17, display: "inline-flex", alignItems: "center", justifyContent: "center",
+          fontSize: 11, lineHeight: 1, textTransform: "none",
+          background: open ? "#d6ef3c" : "#141414", color: open ? "#141414" : "#ffffff",
+          border: "2px solid #141414", boxShadow: open ? "none" : "2px 2px 0 #141414",
+          transform: open ? "translate(2px, 2px) rotate(-6deg)" : "rotate(-6deg)",
+        }}>i</span>
       </button>
       {open && (
-        <span className="tm-lettering" style={{ color: "#141414", background: "#d6ef3c", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "5px 8px", fontSize: 13.5, lineHeight: 1.25, marginTop: 6, maxWidth: 260, textTransform: "none", letterSpacing: 0 }}>{info}</span>
+        <span style={{ position: "relative", display: "block", marginTop: 10, maxWidth: 280, transform: "rotate(-0.6deg)" }}>
+          {/* Queue de la bulle, pointée vers la pastille */}
+          <span aria-hidden="true" style={{
+            position: "absolute", top: -7, left: 18, width: 12, height: 12, background: "#d6ef3c",
+            borderLeft: "2.5px solid #141414", borderTop: "2.5px solid #141414", transform: "rotate(45deg)",
+          }} />
+          <span className="tm-lettering" style={{
+            display: "block", color: "#141414", background: "#d6ef3c",
+            backgroundImage: "radial-gradient(rgba(20,20,20,0.10) 1px, transparent 1.3px)", backgroundSize: "5px 5px",
+            border: "2.5px solid #141414", boxShadow: "3px 3px 0 #141414",
+            padding: "7px 10px 8px", fontSize: 15, lineHeight: 1.22, textTransform: "none", letterSpacing: 0,
+          }}>{info}</span>
+        </span>
       )}
     </span>
   );

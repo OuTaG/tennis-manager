@@ -47,8 +47,8 @@ export const SOCIAL_AUTHORS = {
   ],
 };
 
-// « Pour vous » : au plus 3 nouveaux messages par semaine (matchs compris).
-export const PERSONAL_POSTS_PER_WEEK = 3;
+// « Pour vous » : au plus 2 nouveaux messages par semaine (matchs compris).
+export const PERSONAL_POSTS_PER_WEEK = 2;
 // Garde, parmi candidates, les messages « Pour vous » qui tiennent encore
 // dans le quota de leur semaine (existing = fil actuel). Les autres fils
 // passent tels quels.
@@ -144,6 +144,8 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
           verified: true,
           type: "player",
           flag: author.nat?.flag,
+          // Portrait personnalisé (mode Personnalisation) : repris tel quel.
+          ...(author.avatar ? { avatar: author.avatar } : {}),
         },
         content: fresh(templates),
         likes: randomLikes(2000, 15000),

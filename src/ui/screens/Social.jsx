@@ -7,6 +7,7 @@ import { FlagFromEmoji, Icon, SurfaceIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 import { fmtNum } from "../format.js";
+import { SocialAvatar } from "../socialAvatar.jsx";
 
 export const SOCIAL_HISTORY_WEEKS = 5;
 
@@ -46,12 +47,6 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
 
   // Style BD : un réseau social dessiné dans une case de bande dessinée.
   const INK = T.ink;
-  const TYPE_STYLE = {
-    press:  { bg: "#2c6fd1", icon: "document" },
-    brand:  { bg: "#5b2d8e", icon: "briefcase" },
-    player: { bg: "#1f7a45", icon: "racquet" },
-    fan:    { bg: "#c9b6ea", icon: "user", fg: "#141414" },
-  };
   const counterChip = (on, onBg) => ({
     display: "inline-flex", alignItems: "center", gap: 5,
     background: on ? onBg : "#ffffff", color: on ? "#ffffff" : "#141414",
@@ -62,8 +57,6 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
 
   const renderPost = (p, idx) => {
     const author = p.author || { handle: "@unknown", name: "Anonyme", verified: false, type: "fan" };
-    const ts = TYPE_STYLE[author.type] || TYPE_STYLE.fan;
-    const avatarFg = ts.fg || "#ffffff";
     const trending = (p.likes || 0) >= 5000;
     const tilt = idx % 3 === 0 ? -0.35 : idx % 3 === 1 ? 0.3 : 0;
     return (
@@ -86,15 +79,8 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
         )}
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-          <div className={author.type === "fan" || !TYPE_STYLE[author.type] ? "tm-halftone-lilac" : undefined} style={{
-            width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-            background: author.type === "fan" || !TYPE_STYLE[author.type] ? undefined : ts.bg,
-            border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Icon name={ts.icon} size={18} color={avatarFg} />
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <SocialAvatar author={author} player={player} size={44} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
               <span className="tm-display" style={{ color: "#141414", fontSize: 13.5, lineHeight: 1.1 }}>{author.name}</span>

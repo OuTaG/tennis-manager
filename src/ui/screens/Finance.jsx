@@ -1,5 +1,5 @@
 // Écran Bureau › Finances.
-import { tournamentEarningsFromHistory, tournamentIdByName } from "../../engine/history.js";
+import { tournamentEarningsFromHistory, tournamentIdByName, tournamentOutcome } from "../../engine/history.js";
 import { SPONSOR_CAPS, sponsorSlotWarning } from "../../engine/sponsors.js";
 import { BangBadge, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
@@ -177,6 +177,8 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
           {band(<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="trophy" size={13} color="#d6ef3c" /> Meilleurs tournois</span>)}
           {topTournaments.map((e, i) => {
             const tid = e.tid || tournamentIdByName(e.name);
+            const out = tournamentOutcome(e, player.matchHistory);
+            const live = out && out.ongoing && e.week === player.week && e.year === player.year;
             return (
               <div
                 key={e.name + e.week + e.year}
@@ -190,7 +192,19 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
                 <span className="tm-display" style={{ width: 28, height: 28, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: i === 0 ? "#d6ef3c" : INK, color: i === 0 ? "#141414" : "#ffffff", border: "2px solid " + INK, fontSize: 14 }}>{i + 1}</span>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name}{tid ? " ›" : ""}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, marginTop: 1 }}>Semaine {e.week} · {e.year}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700 }}>Semaine {e.week} · {e.year}</span>
+                    {out && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3,
+                        padding: "0 5px", border: "2px solid " + INK,
+                        background: out.title ? "#d6ef3c" : live ? "#ffffff" : INK,
+                        color: out.title || live ? INK : "#ffffff",
+                      }}>
+                        {out.title ? "Vainqueur" : (live ? "En cours · " : out.ongoing ? "" : "Éliminé · ") + out.label}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <span className="tm-display" style={{ color: "#1f7a45", fontSize: 14.5 }}>{fmtMoney(e.prize, { sign: true })}</span>
               </div>

@@ -68,11 +68,18 @@ export function WallGame() {
   };
 
   return (
-    <div style={{ background: "#ffffff", border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, color: INK }}>
-      <div className="tm-display" style={{ background: INK, color: "#ffffff", fontSize: 15, padding: "5px 10px", display: "flex", justifyContent: "space-between" }}>
-        <span>Le mur</span><span style={{ color: T.gold }}>Record : {best}</span>
+    <div style={{ background: "#ffffff", border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, color: INK }}>
+      <div className="tm-display" style={{ background: INK, color: "#ffffff", fontSize: 15, padding: "6px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" style={{ background: "#ffffff", border: "2px solid #ffffff", transform: "rotate(-6deg)" }}>
+            <circle cx="11" cy="11" r="9" fill="#d6ef3c" stroke={INK} strokeWidth="2" />
+            <path d="M3.5 7 Q11 11 3.5 15 M18.5 7 Q11 11 18.5 15" fill="none" stroke={INK} strokeWidth="1.5" />
+          </svg>
+          Le mur
+        </span>
+        <span style={{ background: T.gold, color: INK, border: "2px solid #ffffff", padding: "0 7px", fontSize: 13, transform: "rotate(-2deg)" }}>Record : {best}</span>
       </div>
-      <div onPointerDown={hit} style={{ position: "relative", width: "100%", aspectRatio: W + " / " + H, cursor: "pointer", touchAction: "manipulation", userSelect: "none", background: "#1f7a45", overflow: "hidden" }}>
+      <div className="tm-halftone-cyan" onPointerDown={hit} style={{ position: "relative", width: "100%", aspectRatio: W + " / " + H, cursor: "pointer", touchAction: "manipulation", userSelect: "none", backgroundColor: "#1f7a45", overflow: "hidden", borderTop: "3px solid " + INK }}>
         <svg viewBox={"0 0 " + W + " " + H} width="100%" height="100%" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
           <defs>
             <pattern id="tm-bricks" width="30" height="14" patternUnits="userSpaceOnUse">
@@ -87,12 +94,12 @@ export function WallGame() {
           <path d={"M0 " + HIT_TOP + " H" + W + " M0 " + HIT_BOTTOM + " H" + W} stroke="#ffffff" strokeWidth="2" strokeDasharray="6 5" />
           <circle cx={ball.x} cy={ball.y} r="8" fill="#d6ef3c" stroke={INK} strokeWidth="2.5" />
         </svg>
-        <div className="tm-display" style={{ position: "absolute", right: 10, top: WALL_Y + 8, fontSize: 30, color: "#ffffff", textShadow: "2px 2px 0 " + INK }}>{score}</div>
+        <div className="tm-display" style={{ position: "absolute", right: 10, top: WALL_Y + 8, minWidth: 40, textAlign: "center", fontSize: 26, lineHeight: 1.1, padding: "1px 6px", background: "#ffffff", color: INK, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK }}>{score}</div>
         {flash && <div className="tm-display" style={{ position: "absolute", left: "50%", top: "52%", transform: "translate(-50%,-50%) rotate(-8deg)", fontSize: 26, color: "#d6ef3c", WebkitTextStroke: "1.5px " + INK, textShadow: "3px 3px 0 " + INK }}>{flash}</div>}
         {state !== "play" && (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(20,20,20,0.35)" }}>
-            {state === "over" && <div className="tm-display" style={{ fontSize: 22, color: "#ffffff", textShadow: "2px 2px 0 " + INK }}>{score} renvoi{score > 1 ? "s" : ""}</div>}
-            <div className="tm-lettering" style={{ background: "#ffffff", border: "2.5px solid " + INK, padding: "3px 10px", fontSize: 15 }}>
+            {state === "over" && <div className="tm-display" style={{ fontSize: 24, color: "#d6ef3c", WebkitTextStroke: "1.5px " + INK, textShadow: "3px 3px 0 " + INK, transform: "rotate(-3deg)" }}>{score} renvoi{score > 1 ? "s" : ""}</div>}
+            <div className="tm-lettering" style={{ maxWidth: "82%", textAlign: "center", background: "#ffffff", border: "2.5px solid " + INK, borderRadius: "22px / 16px", boxShadow: "3px 3px 0 " + INK, padding: "6px 14px", fontSize: 15, lineHeight: 1.2 }}>
               {state === "over" ? "Touchez pour rejouer" : "Touchez quand la balle passe dans la zone jaune"}
             </div>
           </div>
