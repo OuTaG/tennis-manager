@@ -144,6 +144,8 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
           verified: true,
           type: "player",
           flag: author.nat?.flag,
+          // Portrait personnalisé (mode Personnalisation) : repris tel quel.
+          ...(author.avatar ? { avatar: author.avatar } : {}),
         },
         content: fresh(templates),
         likes: randomLikes(2000, 15000),
