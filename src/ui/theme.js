@@ -123,6 +123,9 @@ if (typeof document !== "undefined" && !document.getElementById("tm-global-style
       content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       height: env(safe-area-inset-top, 0px); background: ${T.bg0}; pointer-events: none;
     }
+    /* Fenêtres plein écran (position fixe, inset 0) : elles commencent sous
+       la barre d'état au lieu de passer derrière la bande de papier. */
+    [style*="position: fixed"][style*="inset: 0px"] { top: env(safe-area-inset-top, 0px) !important; }
     body {
       font-family: ${T.body};
       color: ${T.fg};

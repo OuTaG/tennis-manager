@@ -46,15 +46,16 @@ export const styles = {
     background: T.bg1,
     borderTop: "3px solid " + T.ink,
     display: "flex", justifyContent: "space-between",
-    // Barre d'accueil de l'iPhone : marge du bas, avec un minimum de 6 px pour
-    // que les cases des bouts ne touchent pas les coins arrondis de l'écran.
-    padding: "0 env(safe-area-inset-right, 0px) max(6px, env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px)", zIndex: 100,
+    padding: "0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px)", zIndex: 100,
   },
   navBtn: {
     flex: 1, minWidth: 0, minHeight: 56,
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
     background: "none", border: "none", borderRight: "2px solid " + T.ink, color: T.fg, cursor: "pointer",
-    padding: "7px 2px 6px", borderRadius: 0,
+    // iPhone : les cases descendent jusqu'au bord de l'écran (pas de bande
+    // vide sous la barre) mais leur contenu remonte d'une partie de la zone
+    // de la barre d'accueil, assez pour échapper aux coins arrondis.
+    padding: "7px 2px calc(6px + env(safe-area-inset-bottom, 0px) * 0.6)", borderRadius: 0,
     fontFamily: T.body, textTransform: "uppercase", letterSpacing: 0.5,
   },
   navBtnActive: { background: T.gold, color: "#161616" },
