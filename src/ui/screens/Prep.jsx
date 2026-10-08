@@ -47,7 +47,7 @@ export function TrainingScreen({ player, doTraining }) {
               {eff.parts.filter(pt => Math.abs(pt.mul - 1) >= 0.005).map(pt => (
                 <span key={pt.key} style={{ fontSize: 11, fontWeight: 800, border: "2px solid " + T.ink, padding: "0 5px", background: pt.mul >= 1 ? "#1f7a45" : "#c4302b", color: "#ffffff" }}>{pt.label} {fmt(pt.mul)}</span>
               ))}
-              {eff.parts.every(pt => Math.abs(pt.mul - 1) < 0.005) && <span style={{ fontSize: 11, fontWeight: 700 }}>Aucun bonus ni malus en ce moment.</span>}
+              {eff.parts.every(pt => Math.abs(pt.mul - 1) < 0.005) && <span className="tm-lettering" style={{ fontSize: 14 }}>Aucun bonus ni malus en ce moment.</span>}
             </div>
           </div>
         );
@@ -271,7 +271,7 @@ export function StaffScreen({ player, hireStaff, fireStaff }) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                       {renderEffects(s).map((it, i) => (
-                        <div key={i} style={{ color: it.color, fontSize: 11.5, fontWeight: 800 }}>{it.text}</div>
+                        <div key={i} style={{ color: it.color, fontSize: 11.5, fontWeight: 800, background: "#ffffff", border: "2px solid " + INK, padding: "1px 6px", alignSelf: "flex-start" }}>{it.text}</div>
                       ))}
                     </div>
                   </div>

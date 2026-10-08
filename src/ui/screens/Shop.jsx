@@ -33,13 +33,13 @@ export function ShopScreen() {
         <div style={{ ...styles.skillsCard, textAlign: "center", padding: "28px 18px" }}>
           <div style={{
             width: 56, height: 56, borderRadius: 0, margin: "0 auto 12px",
-            background: T.amberSub, border: "1px solid " + T.amberBrd,
+            background: "#d6ef3c", border: "3px solid " + INK, boxShadow: "3px 3px 0 " + INK, transform: "rotate(-4deg)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <Icon name="bag" size={26} color={T.amber} />
+            <Icon name="bag" size={26} color={INK} />
           </div>
-          <div style={{ color: T.fg, fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Bientôt disponible</div>
-          <div style={{ color: T.fg3, fontSize: 13, lineHeight: 1.5 }}>
+          <div className="tm-display" style={{ color: INK, fontSize: 18, marginBottom: 6 }}>Bientôt disponible</div>
+          <div className="tm-lettering" style={{ color: INK, fontSize: 16, lineHeight: 1.25 }}>
             Les options de la boutique arrivent prochainement.
           </div>
         </div>
@@ -55,8 +55,8 @@ export function ShopScreen() {
             const soon = item.status === "soon";
             return (
               <div key={item.id} style={{ background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, marginBottom: 12, opacity: soon ? 0.85 : 1, overflow: "hidden" }}>
-                <div className={soon ? "" : isOwned ? "tm-halftone-cyan" : "tm-halftone-yellow"} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: "2.5px solid " + INK, background: soon ? "#eeeeee" : undefined }}>
-                  <div style={{ width: 40, height: 40, background: "#ffffff", border: "2.5px solid " + INK, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div className={soon ? "tm-halftone-lilac" : isOwned ? "tm-halftone-cyan" : "tm-halftone-yellow"} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: "2.5px solid " + INK }}>
+                  <div style={{ width: 40, height: 40, background: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, transform: "rotate(-4deg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Icon name={item.icon || "bag"} size={20} color={INK} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -90,7 +90,7 @@ export function ShopScreen() {
                   )}
                   {isOwned && item.type === "subscription" && (
                     <button
-                      style={{ background: "none", border: "none", padding: 0, marginTop: 10, color: INK, fontSize: 12, fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}
+                      style={{ background: "#ffffff", border: "2px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "3px 9px", marginTop: 10, color: "#c4302b", fontFamily: T.body, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3, cursor: "pointer" }}
                       onClick={() => cancelItem(item)}
                     >Résilier l'abonnement</button>
                   )}
@@ -104,8 +104,13 @@ export function ShopScreen() {
       {pending && (
         <div style={{ ...styles.dilemmaOverlay, zIndex: 200 }} onClick={() => setPending(null)}>
           <div style={styles.dilemmaCard} onClick={e => e.stopPropagation()}>
-            <div className="tm-display" style={{ color: INK, fontSize: 20, marginBottom: 6 }}>{pending.name}</div>
-            {pending.desc && <div style={{ color: T.fg3, fontSize: 13, lineHeight: 1.5, marginBottom: 14 }}>{pending.desc}</div>}
+            <div className="tm-halftone-yellow" style={{ margin: "-16px -16px 12px", padding: "10px 16px", borderBottom: "3px solid " + INK, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 36, height: 36, flexShrink: 0, background: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, transform: "rotate(-4deg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name={pending.icon || "bag"} size={19} color={INK} />
+              </span>
+              <div className="tm-display" style={{ color: INK, fontSize: 20, lineHeight: 1.05, minWidth: 0 }}>{pending.name}</div>
+            </div>
+            {pending.desc && <div style={{ color: INK, fontSize: 13, fontWeight: 700, lineHeight: 1.45, marginBottom: 14 }}>{pending.desc}</div>}
             <button style={styles.btnPrimary} onClick={() => purchaseItem(pending)}>
               {pending.type === "subscription" ? "S'abonner" : "Acheter"} · {pending.price}{pending.period ? " " + pending.period : ""}
             </button>

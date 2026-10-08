@@ -17,7 +17,7 @@ function Rubric({ title, aside, color }) {
   return (
     <div className="tm-rubric">
       <span>{title}</span>
-      {aside && <span className="tm-eyebrow" style={{ color: color || T.fg }}>{aside}</span>}
+      {aside && <span style={{ alignSelf: "center", background: color || "#ffffff", color: color ? "#ffffff" : "#141414", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3, padding: "0 6px", textTransform: "uppercase", whiteSpace: "nowrap", maxWidth: "62%", overflow: "hidden", textOverflow: "ellipsis" }}>{aside}</span>}
     </div>
   );
 }
@@ -148,9 +148,9 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
                   Retour dans {injury.weeksRemaining} sem.
                 </span>
               </div>
-              <div className="tm-lettering" style={{ marginTop: 9, background: "#fff6c9", border: "2px solid " + T.ink, padding: "6px 9px", fontSize: 14, lineHeight: 1.3, display: "flex", gap: 7, alignItems: "flex-start" }}>
-                <Icon name="warning" size={15} color="#c4302b" style={{ flexShrink: 0, marginTop: 2 }} />
-                <span>Vous pouvez vous entraîner, mais chaque séance risque fort d'aggraver la blessure et de rallonger l'indisponibilité.</span>
+              <div className="tm-lettering" style={{ marginTop: 9, background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontSize: 14.5, lineHeight: 1.25, display: "flex", alignItems: "stretch" }}>
+                <span style={{ flexShrink: 0, width: 30, display: "flex", alignItems: "center", justifyContent: "center", background: "#e0a21b", borderRight: "2.5px solid " + T.ink }}><Icon name="warning" size={15} color="#141414" /></span>
+                <span style={{ padding: "6px 9px" }}>Vous pouvez vous entraîner, mais chaque séance risque fort d'aggraver la blessure et de rallonger l'indisponibilité.</span>
               </div>
             </div>
           </div>
@@ -223,13 +223,18 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       )}
 
       {player.money < 1000 && (
-        <div style={{ ...styles.alertBox, borderLeftColor: T.red, borderColor: T.red, color: T.fg2 }}>
-          <strong style={{ color: T.red }}>Budget critique</strong> — Inscrivez-vous à des tournois du Circuit Open locaux.
+        <div role="alert" style={{ display: "flex", alignItems: "stretch", background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 12 }}>
+          <span style={{ flexShrink: 0, width: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "#c4302b", borderRight: "3px solid " + T.ink }}>
+            <span style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2px solid " + T.ink, transform: "rotate(-4deg)" }}><Icon name="money" size={15} color="#c4302b" /></span>
+          </span>
+          <div style={{ padding: "7px 10px", fontSize: 13, fontWeight: 700, lineHeight: 1.4 }}>
+            <strong className="tm-display" style={{ color: "#c4302b", fontWeight: 400, fontSize: 14 }}>Budget critique</strong> — Inscrivez-vous à des tournois du Circuit Open locaux.
+          </div>
         </div>
       )}
 
         {!enrolled && (
-          <div style={{ fontSize: 13, color: T.fg3, marginBottom: 10 }}>Aucun tournoi au programme. Inscrivez-vous depuis l'onglet Circuit.</div>
+          <div className="tm-lettering" style={{ fontSize: 15, lineHeight: 1.25, background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "7px 10px", marginBottom: 12, transform: "rotate(-0.5deg)" }}>Aucun tournoi au programme. Inscrivez-vous depuis l'onglet Circuit.</div>
         )}
         {/* Dépenses fixes de la semaine */}
         <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
@@ -277,16 +282,16 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
                   <span className="tm-display" style={{ fontSize: 14 }}>{s.brand}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
                     {weeksLeft !== null && (
-                      <span style={{ color: weeksLeft <= 4 ? T.amber : T.fg5, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      <span style={{ background: weeksLeft <= 4 ? "#e0a21b" : "#ffffff", color: "#141414", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, padding: "0 5px", whiteSpace: "nowrap" }}>
                         {weeksLeft} sem restantes
                       </span>
                     )}
-                    <span className="tm-num" style={{ color: met ? T.green : T.fg4, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{curLabel}</span>
+                    <span className="tm-num" style={{ background: met ? "#1f7a45" : "#ffffff", color: met ? "#ffffff" : "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "0 5px", whiteSpace: "nowrap" }}>{curLabel}</span>
                   </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <span style={{ color: met ? T.green : T.fg4, fontSize: 11 }}>{met && <Icon name="check" size={11} strokeWidth={3} style={{ marginRight: 3, verticalAlign: -1 }} />}{o.label}</span>
-                  <span style={{ color: T.green, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", marginLeft: 8 }}>+{(s.objectiveReward || 0).toLocaleString()}€ / −{(s.objectivePenalty || 0).toLocaleString()}€</span>
+                  <span style={{ color: met ? "#1f7a45" : "#141414", fontSize: 12, fontWeight: 700 }}>{met && <Icon name="check" size={11} strokeWidth={3} style={{ marginRight: 3, verticalAlign: -1 }} />}{o.label}</span>
+                  <span className="tm-num" style={{ color: "#1f7a45", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", marginLeft: 8 }}>+{(s.objectiveReward || 0).toLocaleString()}€ / −{(s.objectivePenalty || 0).toLocaleString()}€</span>
                 </div>
                 <div style={{ height: 12, background: "#ffffff", border: "2px solid " + T.ink, overflow: "hidden" }}>
                   <div style={{ width: (progress * 100).toFixed(0) + "%", height: "100%", background: met ? "#1f7a45" : "#d6ef3c", backgroundImage: "radial-gradient(rgba(20,20,20,0.18) 1.2px, transparent 1.4px)", backgroundSize: "5px 5px", borderRight: progress > 0 && progress < 1 ? "2px solid " + T.ink : "none", transition: "width 0.3s" }} />
@@ -315,44 +320,66 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       {showSetup && (() => {
         const opts = GAME_OPTIONS.filter(o => (player.gameOptions || []).includes(o.id));
         const city = player.startCity;
+        // Étiquette encrée + trait pointillé, comme les rubriques du journal.
+        const label = (txt, icon) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+            <span className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 12, padding: "2px 8px", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+              <Icon name={icon} size={12} color="#d6ef3c" />{txt}
+            </span>
+            <span aria-hidden="true" style={{ flex: 1, borderTop: "2px dashed " + T.ink }} />
+          </div>
+        );
         return (
           <div onClick={() => setShowSetup(false)} style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 380, width: "100%" }}>
-              <div className="tm-display" style={{ background: T.magenta, color: "#ffffff", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <span>Réglages de la partie</span>
-                <span style={{ background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, fontSize: 14, padding: "0 6px" }}>{formatMultiplier(mul)}</span>
+            <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 380, width: "100%", maxHeight: "86vh", overflowY: "auto" }}>
+              {/* Bandeau violet tramé : roue crantée dans une case penchée, multiplicateur en tampon */}
+              <div className="tm-halftone-magenta" style={{ color: "#ffffff", padding: "10px 12px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 34, height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, transform: "rotate(-4deg)" }}>
+                  <Icon name="cog" size={20} color="#141414" strokeWidth={2} />
+                </span>
+                <span className="tm-display" style={{ flex: 1, minWidth: 0, fontSize: 18, lineHeight: 1.05, textShadow: "2px 2px 0 " + T.ink }}>Réglages de la partie</span>
+                <span className="tm-display" style={{ flexShrink: 0, background: "#d6ef3c", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontSize: 16, padding: "1px 7px", transform: "rotate(4deg)" }}>{formatMultiplier(mul)}</span>
               </div>
-              <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}>
-                  <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 12.5, padding: "3px 9px" }}>Difficulté</div>
-                  <div style={{ padding: "6px 9px" }}>
-                    <div className="tm-display" style={{ fontSize: 16 }}>{level.name} <span style={{ color: T.magenta }}>{formatMultiplier(level.scoreMul)}</span></div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 2 }}>{level.desc}</div>
+              <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  {label("Difficulté", "target")}
+                  <div className="tm-halftone-yellow" style={{ border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "8px 10px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <span className="tm-display" style={{ fontSize: 20, lineHeight: 1 }}>{level.name}</span>
+                      <span className="tm-display" style={{ background: "#5b2d8e", color: "#ffffff", border: "2px solid " + T.ink, fontSize: 13, padding: "0 6px", flexShrink: 0 }}>{formatMultiplier(level.scoreMul)}</span>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginTop: 5, lineHeight: 1.35, background: "#ffffff", border: "2px solid " + T.ink, padding: "4px 7px" }}>{level.desc}</div>
                   </div>
                 </div>
-                <div style={{ border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}>
-                  <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 12.5, padding: "3px 9px" }}>Options de partie</div>
-                  <div style={{ padding: "4px 9px 6px" }}>
-                    {opts.length === 0 ? (
-                      <div className="tm-lettering" style={{ fontSize: 15 }}>Aucune option.</div>
-                    ) : opts.map((o, i) => (
-                      <div key={o.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "5px 0", borderTop: i ? "1.5px dashed " + T.ink : "none" }}>
-                        <span style={{ minWidth: 0 }}>
-                          <span style={{ display: "block", fontWeight: 800, fontSize: 13 }}>{o.name}</span>
-                          <span style={{ display: "block", fontSize: 11.5, fontWeight: 600 }}>{o.desc}</span>
-                        </span>
-                        <span className="tm-num" style={{ fontWeight: 800, fontSize: 12.5, color: "#1f7a45", flexShrink: 0 }}>+{Math.round(o.bonus * 100)} %</span>
-                      </div>
-                    ))}
-                  </div>
+                <div>
+                  {label("Options de partie", "flag")}
+                  {opts.length === 0 ? (
+                    <div className="tm-lettering" style={{ fontSize: 16, border: "2.5px solid " + T.ink, background: "#ffffff", padding: "6px 10px", transform: "rotate(-0.6deg)" }}>Aucune option.</div>
+                  ) : (
+                    <div style={{ border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink }}>
+                      {opts.map((o, i) => (
+                        <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "7px 9px", borderTop: i ? "2px dashed " + T.ink : "none" }}>
+                          <span style={{ minWidth: 0 }}>
+                            <span className="tm-display" style={{ display: "block", fontSize: 13.5, lineHeight: 1.1 }}>{o.name}</span>
+                            <span style={{ display: "block", fontSize: 12, fontWeight: 600, marginTop: 2, lineHeight: 1.35 }}>{o.desc}</span>
+                          </span>
+                          <span className="tm-display tm-num" style={{ fontSize: 13, background: "#1f7a45", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", flexShrink: 0, whiteSpace: "nowrap" }}>+{Math.round(o.bonus * 100)} %</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div style={{ border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}>
-                  <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 12.5, padding: "3px 9px" }}>Ville de départ</div>
-                  <div className="tm-display" style={{ padding: "6px 9px", fontSize: 15, display: "flex", alignItems: "center", gap: 7 }}>
-                    {city ? <><FlagFromEmoji emoji={CITIES[city]?.flag} size={15} />{city}{CITIES[city]?.country ? <span style={{ fontFamily: T.body, fontSize: 12, fontWeight: 700 }}>· {CITIES[city].country}</span> : null}</> : <span className="tm-lettering" style={{ fontSize: 15, fontWeight: 400 }}>Non enregistrée pour cette carrière.</span>}
-                  </div>
+                <div>
+                  {label("Ville de départ", "plane")}
+                  {city ? (
+                    <div className="tm-display" style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, background: "#ffffff", padding: "5px 10px", fontSize: 16 }}>
+                      <FlagFromEmoji emoji={CITIES[city]?.flag} size={16} />{city}{CITIES[city]?.country ? <span style={{ fontFamily: T.body, fontSize: 12, fontWeight: 800, textTransform: "none" }}>· {CITIES[city].country}</span> : null}
+                    </div>
+                  ) : (
+                    <div className="tm-lettering" style={{ fontSize: 16, border: "2.5px solid " + T.ink, background: "#ffffff", padding: "6px 10px", transform: "rotate(-0.6deg)" }}>Non enregistrée pour cette carrière.</div>
+                  )}
                 </div>
-                <button style={styles.btnSecondary} onClick={() => setShowSetup(false)}>Fermer</button>
+                <button className="tm-display" style={{ ...styles.btnSecondary, fontFamily: T.display, fontWeight: 400, fontSize: 15, background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }} onClick={() => setShowSetup(false)}>Fermer</button>
               </div>
             </div>
           </div>

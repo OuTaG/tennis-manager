@@ -186,10 +186,10 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
 
         {/* Already replied */}
         {p.repliedWith && (
-          <div className="tm-halftone-lilac" style={{
+          <div className="tm-halftone-lilac tm-lettering" style={{
             marginTop: 12, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK,
-            borderRadius: 0, padding: "8px 12px",
-            color: "#141414", fontSize: 12.5, fontWeight: 600, fontStyle: "italic",
+            borderRadius: 0, padding: "7px 12px",
+            color: "#141414", fontSize: 15, lineHeight: 1.25,
           }}>
             Votre réponse : « {withBdEmoji(p.repliedWith, 16)} »
           </div>

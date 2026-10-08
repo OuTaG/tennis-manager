@@ -321,7 +321,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
 
 // Mini-jeu mental (balle de set au tie-break) : le cœur bat, il faut
 // toucher trois fois quand il est au plus calme (cercle au plus petit,
-// dans l'anneau vert). Le mental du joueur élargit la marge. 2 sur 3 = gagné.
+// dans l'anneau vert). Le mental du joueur élargit la marge. 3 sur 3 = gagné.
 const MENTAL_SPEED0 = 1.4, MENTAL_ACCEL = 1.22;
 function MentalGame({ mental = 60, done, onEnd }) {
   const [t, setT] = useState(0);
@@ -361,13 +361,13 @@ function MentalGame({ mental = 60, done, onEnd }) {
     if (next.length === 3) {
       cancelAnimationFrame(rafRef.current);
       const n = next.filter(Boolean).length;
-      onEnd(n >= 2, n);
+      onEnd(n === 3, n);
     }
   };
   const R = 70;
   return (
     <>
-      <div style={{ fontSize: 13, fontWeight: 700, color: T.fg }}>Touchez « Respirer » quand le cœur est au plus calme (dans l'anneau vert). Trois fois.</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: T.fg }}>Touchez « Respirer » quand le cœur est au plus calme (dans l'anneau vert). Trois fois, sans en rater une.</div>
       <div onPointerDown={tap} style={{ position: "relative", height: 210, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, background: LILAC, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", touchAction: "manipulation", userSelect: "none", overflow: "hidden" }}>
         <svg viewBox="-100 -100 200 200" width="200" height="200" aria-hidden="true">
           <circle r={R * (0.35 + 0.65 * tol * 1.2)} fill="none" stroke={GRASS} strokeWidth={R * 0.65 * tol * 2.4} opacity="0.55" />
@@ -503,7 +503,7 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
       <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, minHeight: "calc(100% - 0px)", margin: "0 auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "3px solid " + INK, paddingBottom: 4 }}>
           <span className="tm-display" style={{ fontSize: 22, color: T.fg }}>{mod.name}</span>
-          <span className="tm-eyebrow" style={{ color: T.fg }}>Programme du jour</span>
+          <span style={{ background: INK, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3, textTransform: "uppercase", padding: "1px 6px", whiteSpace: "nowrap" }}>Programme du jour</span>
         </div>
         {chosen && <Caption>{cardName(chosen.card) + (noStaff ? "… c'est parti." : "… le coach lance le chrono.")}</Caption>}
 
@@ -528,7 +528,7 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: "#3c3c34" }}>{c.desc}</div>
                     <div style={{ height: 10, border: "2px solid " + INK, background: "#ffffff", marginTop: 2 }}>
-                      <div style={{ width: pct + "%", height: "100%", background: GRASS }} />
+                      <div style={{ width: pct + "%", height: "100%", background: GRASS, boxSizing: "border-box", borderRight: pct > 0 && pct < 100 ? "2px solid " + INK : "none" }} />
                     </div>
                   </div>
                   <div style={{ borderLeft: "3px solid " + INK, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#ffffff" }}>
@@ -538,11 +538,11 @@ export function TrainingCards({ mod, energyCost, gains, statLabel, odds, oddsCtx
                 </button>
               );
             })}
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: T.fg3, lineHeight: 1.45 }}>
+            <div className="tm-lettering" style={{ fontSize: 14, color: INK, lineHeight: 1.25, background: "#ffffff", border: "2px solid " + INK, padding: "5px 9px" }}>
               Énergie −{energyCost} quel que soit le programme.
               Les chances montent avec {noStaff ? "votre énergie et votre bonheur" : "votre énergie, votre bonheur et un bon coach"}.
             </div>
-            <button onClick={onClose} style={{ minHeight: 46, border: "2.5px solid " + INK, background: T.bg1, color: T.fg, fontFamily: T.body, fontWeight: 800, textTransform: "uppercase", cursor: "pointer" }}>Annuler</button>
+            <button onClick={onClose} style={{ minHeight: 46, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, background: "#ffffff", color: INK, fontFamily: T.body, fontWeight: 800, textTransform: "uppercase", cursor: "pointer" }}>Annuler</button>
           </div>
         )}
 

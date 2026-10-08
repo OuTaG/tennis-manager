@@ -152,7 +152,7 @@ export function TravelScreen({ player, travelTo }) {
               }}>
                 <div style={{ minWidth: 0 }}>
                   <div className="tm-display" style={{ fontSize: 15 }}>{c.name}</div>
-                  <span className="tm-num" style={{ display: "inline-block", marginTop: 3, fontSize: 11, fontWeight: 800, border: "1.5px solid " + T.ink, padding: "0 5px", background: "#ffffff" }}>{c.distance.toLocaleString("fr-FR")} km</span>
+                  <span className="tm-num" style={{ display: "inline-block", marginTop: 3, fontSize: 11, fontWeight: 800, border: "2px solid " + T.ink, padding: "0 5px", background: "#ffffff" }}>{c.distance.toLocaleString("fr-FR")} km</span>
                 </div>
                 {isHere ? (
                   <span className="tm-display" style={{ background: T.ink, color: "#d6ef3c", padding: "3px 9px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="location" size={12} color="#d6ef3c" /> Ici</span>
@@ -161,7 +161,7 @@ export function TravelScreen({ player, travelTo }) {
                     style={{
                       ...styles.btnSmall,
                       background: canAfford ? "#1f7a45" : "#ffffff",
-                      color: canAfford ? "#ffffff" : T.fg4,
+                      color: canAfford ? "#ffffff" : "#141414",
                       border: "2.5px solid " + T.ink, boxShadow: canAfford ? "2px 2px 0 " + T.ink : "none",
                       fontFamily: T.display, fontSize: 14,
                       opacity: canAfford ? 1 : 0.5,
@@ -179,7 +179,7 @@ export function TravelScreen({ player, travelTo }) {
       {hasMore && (
         <button
           ref={sentinelRef}
-          style={{ ...styles.btnSmall, width: "100%", marginBottom: 12 }}
+          style={{ ...styles.btnSmall, width: "100%", marginBottom: 12, border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}
           onClick={() => setVisibleCities(v => v + CITIES_STEP)}
         >Afficher plus de villes</button>
       )}

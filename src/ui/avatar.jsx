@@ -241,7 +241,7 @@ export function AvatarBuilder({ config, onChange }) {
 
   const swatchRow = (label, options, currentValue, key) => (
     <div style={{ marginBottom: 12 }}>
-      <div className="tm-eyebrow" style={{ color: T.fg, marginBottom: 7 }}>{label}</div>
+      <div style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", padding: "1px 6px", marginBottom: 7 }}>{label}</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {options.map(opt => {
           const active = currentValue === opt;
@@ -267,7 +267,7 @@ export function AvatarBuilder({ config, onChange }) {
   // Grille de vignettes : chaque option dessinée sur l'avatar courant.
   const pickRow = (label, options, currentValue, key) => (
     <div style={{ marginBottom: 12 }}>
-      <div className="tm-eyebrow" style={{ color: T.fg, marginBottom: 7 }}>{label}</div>
+      <div style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", padding: "1px 6px", marginBottom: 7 }}>{label}</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 5 }}>
         {options.map(opt => {
           const on = currentValue === opt;

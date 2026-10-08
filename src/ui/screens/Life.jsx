@@ -44,6 +44,18 @@ export function LifeScreen({ player, doLifeActivity }) {
     </span>
   );
 
+  // Alerte BD : case encrée, colonne rouge avec l'icône dans une case penchée.
+  const alertPanel = (icon, title, rest) => (
+    <div role="alert" style={{ display: "flex", alignItems: "stretch", background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 12 }}>
+      <span style={{ flexShrink: 0, width: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "#c4302b", borderRight: "3px solid " + T.ink }}>
+        <span style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2px solid " + T.ink, transform: "rotate(-4deg)" }}><StatIcon name={icon} size={18} /></span>
+      </span>
+      <div style={{ padding: "7px 10px", fontSize: 13, fontWeight: 700, lineHeight: 1.4 }}>
+        <strong className="tm-display" style={{ color: "#c4302b", fontWeight: 400, fontSize: 14 }}>{title}</strong>{rest}
+      </div>
+    </div>
+  );
+
   return (
     <div style={styles.tabContent}>
       <div style={styles.sectionTitle}>Vie personnelle</div>
@@ -56,21 +68,17 @@ export function LifeScreen({ player, doLifeActivity }) {
       {(() => {
         const caps = lifeCaps(player);
         return (
-          <div style={{ color: T.fg4, fontSize: 12, lineHeight: 1.5, margin: "-6px 2px 14px" }}>
+          <div style={{ color: "#141414", background: "#ffffff", border: "2px dashed " + T.ink, fontSize: 12, fontWeight: 600, lineHeight: 1.5, margin: "-4px 0 14px", padding: "6px 9px" }}>
             Votre classement limite votre notoriété : popularité max <strong className="tm-num" style={{ color: "#141414" }}>{caps.popularity}</strong>, image max <strong className="tm-num" style={{ color: "#141414" }}>{caps.image}</strong>. Grimpez au classement pour aller plus haut.
           </div>
         );
       })()}
 
       {image < 20 && (
-        <div style={styles.alertBox}>
-          <strong style={{ color: T.red }}>Image très basse</strong> — sponsors méfiants, presse hostile.
-        </div>
+        alertPanel("image", "Image très basse", " — sponsors méfiants, presse hostile.")
       )}
       {happiness < 15 && (
-        <div style={styles.alertBox}>
-          <strong style={{ color: T.red }}>Bonheur au plus bas</strong> — entraînement ralenti et léger malus mental en match.
-        </div>
+        alertPanel("happiness", "Bonheur au plus bas", " — entraînement ralenti et léger malus mental en match.")
       )}
 
       <div style={{ ...styles.sectionTitle, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -101,7 +109,7 @@ export function LifeScreen({ player, doLifeActivity }) {
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div className="tm-display" style={{ color: "#141414", fontSize: 14 }}>{act.name}</div>
-                  <div style={{ color: T.fg4, fontSize: 11, marginTop: 2 }}>{act.desc}</div>
+                  <div style={{ color: "#141414", fontSize: 11.5, fontWeight: 600, marginTop: 2 }}>{act.desc}</div>
                 </div>
               </div>
             </div>
@@ -117,8 +125,8 @@ export function LifeScreen({ player, doLifeActivity }) {
             <button
               style={{
                 ...styles.btnSmall, width: "100%",
-                background: canDo ? "#1f7a45" : "#ffffff",
-                color: canDo ? "#ffffff" : "#6b6b6b",
+                background: canDo ? "#1f7a45" : "#ebe8da",
+                color: canDo ? "#ffffff" : "#141414",
                 border: "2.5px solid " + T.ink,
                 boxShadow: canDo ? "2px 2px 0 " + T.ink : "none",
                 fontFamily: T.display, fontWeight: 400, textTransform: "uppercase",

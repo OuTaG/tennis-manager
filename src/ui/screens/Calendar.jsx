@@ -97,7 +97,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
           <span>Surface</span>
           {selSurfaces.length > 0 && (
             <button
-              style={{ background: "none", border: "none", color: T.fg5, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "none", cursor: "pointer", padding: 0 }}
+              style={{ background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "1.5px 1.5px 0 " + T.ink, color: "#c4302b", fontFamily: T.body, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3, textTransform: "uppercase", cursor: "pointer", padding: "0 6px" }}
               onClick={() => setCalFilters({ ...calFilters, surface: [] })}
             >Tout effacer</button>
           )}
@@ -123,7 +123,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
           <span>Catégorie</span>
           {selTiers.length > 0 && (
             <button
-              style={{ background: "none", border: "none", color: T.fg5, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "none", cursor: "pointer", padding: 0 }}
+              style={{ background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "1.5px 1.5px 0 " + T.ink, color: "#c4302b", fontFamily: T.body, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3, textTransform: "uppercase", cursor: "pointer", padding: "0 6px" }}
               onClick={() => setCalFilters({ ...calFilters, tier: [] })}
             >Tout effacer</button>
           )}
@@ -195,7 +195,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                   ...styles.tournCard, padding: 0, overflow: "hidden",
                   opacity: !canE ? 0.6 : 1,
                   border: "3px solid " + T.ink, boxShadow: (isEnrolledTo ? "5px 5px 0 #1f7a45" : "4px 4px 0 " + T.ink),
-                  background: isEnrolledTo ? "rgba(214,239,60,0.18)" : "#ffffff", color: "#141414",
+                  background: "#ffffff", color: "#141414",
                 }}>
                   {/* Bandeau à la couleur de la catégorie */}
                   <div style={{ background: tierColor(t.tier), borderBottom: "2.5px solid " + T.ink, padding: "3px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -210,12 +210,12 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                         style={{ color: "#141414", fontSize: 17, cursor: "pointer", lineHeight: 1.1 }}
                         onClick={() => setTournamentDetail && setTournamentDetail(t.id)}
                       >{t.name}</div>
-                      <div style={{ color: T.fg3, fontSize: 12, marginTop: 4 }}>
+                      <div style={{ color: "#141414", fontSize: 12, fontWeight: 700, marginTop: 4 }}>
                         <SurfaceIcon name={t.surface} /> {t.surface}
                         {player.favoriteSurface === t.surface && (
-                          <span style={{ color: T.green, fontWeight: 700, marginLeft: 5 }} title="Votre surface de prédilection">★</span>
+                          <span style={{ display: "inline-block", background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, fontSize: 10, lineHeight: 1.3, fontWeight: 800, padding: "0 3px", marginLeft: 5 }} title="Votre surface de prédilection">★</span>
                         )}
-                        <span style={{ color: T.fg5, margin: "0 6px" }}>·</span>
+                        <span style={{ color: "#141414", margin: "0 6px" }}>·</span>
                         <FlagFromEmoji emoji={cityInfo?.flag} /> {t.city}{cityInfo?.country ? ", " + cityInfo.country : ""}
                       </div>
                     </div>
@@ -232,12 +232,12 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                       Draw <span className="tm-num">{fmt.drawSize}</span>
                     </span>
                     {!onSite && (
-                      <span style={{ ...styles.tournChip, color: T.red }}>
+                      <span style={{ ...styles.tournChip, background: "#ffffff", color: "#c4302b", fontWeight: 800 }}>
                         <span className="tm-num">{Math.round(dist)}km</span> · {travelCost}€
                       </span>
                     )}
                     {onSite && (
-                      <span style={{ ...styles.tournChip, color: T.green, borderColor: T.greenBrd }}>
+                      <span style={{ ...styles.tournChip, background: "#1f7a45", color: "#ffffff", fontWeight: 800 }}>
                         <Icon name="location" size={11} /> Sur place
                       </span>
                     )}
@@ -258,23 +258,23 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                       <Icon name="x" size={11} color="#ffffff" /> Classement insuffisant
                     </div>
                   )}
-                  {isCurrentWeek && !onSite && <div style={{ color: T.red, fontSize: 11, marginBottom: 10 }}><Icon name="x" size={11} /> Vous devez être à {t.city}</div>}
-                  {blockedByOther && <div style={{ color: T.amber, fontSize: 11, marginBottom: 10 }}><Icon name="warning" size={11} /> Déjà inscrit ailleurs</div>}
-                  {alreadyPlayed && <div style={{ color: T.fg5, fontSize: 11, marginBottom: 10 }}><Icon name="check" size={11} /> Disputé cette semaine</div>}
+                  {isCurrentWeek && !onSite && <div style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content", background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px", marginBottom: 10 }}><Icon name="x" size={11} color="#ffffff" /> Vous devez être à {t.city}</div>}
+                  {blockedByOther && <div style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content", background: "#e0a21b", color: "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px", marginBottom: 10 }}><Icon name="warning" size={11} color="#141414" /> Déjà inscrit ailleurs</div>}
+                  {alreadyPlayed && <div style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content", background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px", marginBottom: 10 }}><Icon name="check" size={11} color="#1f7a45" /> Disputé cette semaine</div>}
 
                   {t.tier === "Finals" ? (
-                    <div style={{ ...styles.btnSmall, width: "100%", textAlign: "center", background: T.bg2, color: T.fg3, cursor: "default" }}>
+                    <div className="tm-lettering" style={{ ...styles.btnSmall, width: "100%", boxSizing: "border-box", textAlign: "center", background: "#c9b6ea", color: "#141414", border: "2.5px dashed " + T.ink, fontFamily: T.hand, fontSize: 14, textTransform: "none", cursor: "default" }}>
                       Inscription automatique si top 8 de la Race
                     </div>
                   ) : isEnrolledTo ? (
-                    <button style={{ ...styles.btnSmall, width: "100%" }} onClick={cancelEnrollment}>Annuler</button>
+                    <button style={{ ...styles.btnSmall, width: "100%", color: "#c4302b", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontFamily: T.display, fontWeight: 400, fontSize: 14 }} onClick={cancelEnrollment}>Annuler</button>
                   ) : (
                     <button
                       style={{
                         ...styles.btnSmall,
                         width: "100%",
                         background: (canE && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? "#1f7a45" : "#ffffff",
-                        color: (canE && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? "#ffffff" : T.fg4,
+                        color: (canE && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? "#ffffff" : "#141414",
                         border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontFamily: T.display, fontSize: 14,
                         opacity: (!canE || blockedByOther || alreadyPlayed || blockedByWeekLimit || (isCurrentWeek && !onSite)) ? 0.5 : 1,
                       }}
@@ -297,7 +297,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
       {hasMore && (
         <button
           ref={sentinelRef}
-          style={{ ...styles.btnSmall, width: "100%", marginBottom: 12 }}
+          style={{ ...styles.btnSmall, width: "100%", marginBottom: 12, border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}
           onClick={() => setVisibleWeeks(v => v + WEEKS_STEP)}
         >Afficher les semaines suivantes</button>
       )}

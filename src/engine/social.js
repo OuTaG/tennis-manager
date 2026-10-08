@@ -127,6 +127,14 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
         "Entraînement sous la pluie. Ça forge le caractère, paraît-il. 🌧️",
         "Quelqu'un a un bon restaurant à conseiller dans le coin ? 🍽️",
         "Mon coach m'a fait servir 200 balles ce matin. Mon épaule me parle.",
+        "Vol de nuit, entraînement ce matin, conférence de presse cet après-midi. On ne s'ennuie pas.",
+        "Le court central est magnifique cette année. Hâte d'y jouer.",
+        "Une victoire, une nuit de sommeil, et on recommence. C'est ça le circuit.",
+        "Séance de mobilité avec le kiné : je découvre des muscles dont j'ignorais l'existence.",
+        "Je viens de perdre au ping-pong contre mon préparateur physique. Journée difficile. 🏓",
+        "Lecture du jour dans l'avion : rien sur le tennis, promis.",
+        "Merci pour tous vos messages après le dernier match, je les lis tous.",
+        "Les balles sont lourdes ici, il va falloir s'adapter vite.",
       ];
       post = {
         author: {
@@ -201,6 +209,10 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
         subject.name + " aurait recruté un ancien préparateur de rugby. Méthodes musclées.",
         "Classement : " + subject.name + " n'a jamais été aussi bien classé de sa carrière.",
         "Coulisses : une partie du vestiaire réclame des balles différentes selon les surfaces.",
+        "Entretien : " + subject.name + " évoque sa préparation et ses objectifs pour la fin de saison.",
+        "Tactique : comment " + subject.name + " a changé sa position de retour cette saison.",
+        "Physique : " + subject.name + " aurait perdu trois kilos cet hiver. Plus mobile que jamais.",
+        "Entourage : " + subject.name + " travaille désormais avec un préparateur mental.",
       ];
       if (young.length) { const y = pickRandom(young); templates.push("Pépite : à " + (y.age || 20) + " ans, " + y.name + " impressionne déjà le circuit."); }
       if (veteran.length) { const v = pickRandom(veteran); templates.push(v.name + " (" + v.age + " ans) n'exclut pas de jouer encore deux saisons. Longévité remarquable."); }
@@ -260,6 +272,14 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
         "Qui veut monter une ligue de pronostics pour la saison ? 📈",
         "Je viens d'acheter ma première raquette pro. Mon niveau, lui, n'a pas changé. 😂",
         "On devrait interdire les cris à chaque frappe. Ou pas ?",
+        "Rien de plus beau qu'un passing en bout de course. Rien.",
+        "Mon voisin tond sa pelouse pile pendant les balles de break. Coïncidence ? 🙄",
+        "Le service-volée revient à la mode et je ne vais pas m'en plaindre.",
+        "Petite pensée pour les juges de ligne qui restent debout trois heures sous le soleil. ☀️",
+        "Le tie-break, c'est vraiment l'invention la plus cruelle du sport.",
+        "J'ai réservé mes billets pour le prochain Majeur. Plus que 64 dodos. 🎟️",
+        "Je ne comprends toujours pas comment on rate un smash au filet. Je dis ça, je rate les miens. 😅",
+        "Match du jour à suivre au boulot en cachette. Mon patron, si tu lis ça : c'est pour le travail.",
       ];
       const withSubject = subject ? [
         "On peut applaudir le mental de " + subject.name + ", franchement.",
@@ -278,6 +298,11 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
         subject.name + " qui fait un câlin à un ramasseur de balles, c'est tout ce dont j'avais besoin aujourd'hui 🥹",
         "Si " + subject.name + " trouve un vrai deuxième service, c'est fini pour les autres.",
         "Le style de " + subject.name + " me fait penser aux légendes des années 2000.",
+        "Le retour de " + subject.name + " sur deuxième balle, c'est de la sorcellerie. 🧙",
+        subject.name + " qui sauve trois balles de break d'affilée sans sourciller… nerfs d'acier.",
+        "Quelqu'un peut m'expliquer comment " + subject.name + " court encore en fin de troisième set ?",
+        "Je viens de revoir le dernier match de " + subject.name + ". Ce revers long de ligne 😮‍💨",
+        subject.name + " a répondu à tous les enfants à la sortie du court. Respect.",
       ] : [];
       const withPair = pair ? [
         pair[0].name + " vs " + pair[1].name + " en finale, c'est tout ce que je demande cette saison.",
@@ -306,66 +331,85 @@ export function generateAuxSocialPosts(atpDb, week, year, playerInfo, recentNews
 }
 
 // Generate a personal post about the human player (after a match)
+// Lu à la fin du parcours dans un tournoi (titre, défaite) : le texte suit le
+// score réel (« 6-4 3-6 7-6(5) », côté joueur) et l'adversaire.
+function readScore(score) {
+  const sets = String(score || "").split(/\s+/).map(x => /^(\d+)-(\d+)/.exec(x)).filter(Boolean).map(m => ({ p: +m[1], o: +m[2] }));
+  const pSets = sets.filter(x => x.p > x.o).length, oSets = sets.length - pSets;
+  return {
+    sets, pSets, oSets,
+    tb: /\(/.test(score || "") || sets.some(x => Math.max(x.p, x.o) === 7 && Math.min(x.p, x.o) === 6),
+    tight: sets.some(x => Math.abs(x.p - x.o) <= 2 || Math.max(x.p, x.o) === 7),
+    pGames: sets.reduce((n, x) => n + x.p, 0),
+    firstSetWon: sets.length > 0 && sets[0].p > sets[0].o,
+  };
+}
+
 export function generatePersonalSocialPost(player, tourn, won, isTitleWin, opponent, score, week, year) {
   const r = random();
   const playerName = player.name;
+  const opp = opponent?.name || "son adversaire";
+  const T = tourn?.name || "ce tournoi";
+  const sc = readScore(score);
+  const scoreTxt = score ? " (" + score + ")" : "";
   let post = null;
+  const make = (tmpl, likes, rts, replies) => {
+    const author = tmpl.from === "fan" ? pickRandom(SOCIAL_AUTHORS.fans)
+      : tmpl.from === "press" ? pickRandom(SOCIAL_AUTHORS.journalists)
+      : pickRandom(SOCIAL_AUTHORS.brands);
+    return {
+      author,
+      content: tmpl.content,
+      likes: randomLikes(likes[0], likes[1]),
+      retweets: randomLikes(rts[0], rts[1]),
+      replyable: tmpl.from === "fan" && !!replies,
+      replies: tmpl.from === "fan" ? replies || null : null,
+    };
+  };
 
   if (isTitleWin) {
     // Branded congrats or fan celebration
     const congratsTemplates = [
-      { from: "fan", content: "ÇA Y EST ! " + playerName + " gagne " + tourn.name + ' !! 🏆 Je suis fier ! On va loin !' },
+      { from: "fan", content: "ÇA Y EST ! " + playerName + " gagne " + T + " !! 🏆 Je n'en reviens pas, on va loin !" },
       { from: "fan", content: playerName + " a tout simplement été énorme cette semaine. Quelle classe." },
-      { from: "press", content: "🚨 " + playerName + " remporte " + tourn.name + " ! Carrière qui décolle." },
-      { from: "brand", content: "Bravo " + playerName + " pour ce titre au " + tourn.name + ". Belle représentation." },
+      { from: "fan", content: "J'ai regardé la balle de match trois fois de suite. " + playerName + ", champion de " + T + " 🥹" },
+      { from: "fan", content: "Une semaine parfaite pour " + playerName + ". Le titre à " + (tourn?.city || T) + ", et avec la manière 🔥" },
+      { from: "press", content: "🚨 " + playerName + " remporte " + T + " en battant " + opp + scoreTxt + "." },
+      { from: "press", content: "Titre pour " + playerName + " à " + (tourn?.city || T) + " : " + opp + " s'incline en finale" + scoreTxt + "." },
+      { from: "press", content: "🏆 " + T + " a un nouveau nom au palmarès : " + playerName + "." },
+      { from: "brand", content: "Bravo " + playerName + " pour ce titre au " + T + ". Belle représentation." },
     ];
-    const tmpl = pickRandom(congratsTemplates);
-    const author = tmpl.from === "fan" ? pickRandom(SOCIAL_AUTHORS.fans)
-                 : tmpl.from === "press" ? pickRandom(SOCIAL_AUTHORS.journalists)
-                 : pickRandom(SOCIAL_AUTHORS.brands);
-    post = {
-      author,
-      content: tmpl.content,
-      likes: randomLikes(50, 1500),
-      retweets: randomLikes(5, 200),
-      replyable: tmpl.from === "fan",
-      replies: tmpl.from === "fan" ? [
-        { label: "Merci, c'est grâce à vous.", effects: { popularity: 1, image: 1 } },
-        { label: "Hâte de la suite. Allez !", effects: { popularity: 1 } },
-        { label: "C'est le travail qui paye.", effects: { image: 1 } },
-      ] : null,
-    };
+    if (sc.tb) congratsTemplates.push({ from: "fan", content: "Une finale au tie-break et c'est " + playerName + " qui la gagne. Mon cœur n'a pas tenu 😮‍💨🏆" });
+    if (sc.sets.length && !sc.firstSetWon) congratsTemplates.push({ from: "press", content: "Mené d'un set en finale, " + playerName + " renverse " + opp + " et s'offre " + T + scoreTxt + "." });
+    post = make(pickRandom(congratsTemplates), [50, 1500], [5, 200], [
+      { label: "Merci, c'est grâce à vous.", effects: { popularity: 1, image: 1 } },
+      { label: "Hâte de la suite. Allez !", effects: { popularity: 1 } },
+      { label: "C'est le travail qui paye.", effects: { image: 1 } },
+    ]);
   } else if (won && (opponent?.rank || 999) <= 30) {
     // Beat a top 30 → buzzworthy post
     const templates = [
-      { from: "press", content: "Belle surprise : " + playerName + " bat " + opponent.name + " (#" + opponent.rank + ") au " + tourn.name + ". Score : " + (score || "—") },
-      { from: "fan", content: "WTF " + playerName + " vient de sortir " + opponent.name + " 😱 il monte il monte !" },
+      { from: "press", content: "Belle surprise : " + playerName + " bat " + opp + " (#" + opponent.rank + ") au " + T + ". Score : " + (score || "—") },
+      { from: "fan", content: "WTF " + playerName + " vient de sortir " + opp + " 😱 il monte il monte !" },
       { from: "fan", content: "Avez-vous vu ce match de " + playerName + " ? Quel niveau." },
+      { from: "fan", content: "Battre le n°" + opponent.rank + " mondial comme ça… " + playerName + ", tu m'as régalé 😍" },
     ];
-    const tmpl = pickRandom(templates);
-    const author = tmpl.from === "press" ? pickRandom(SOCIAL_AUTHORS.journalists) : pickRandom(SOCIAL_AUTHORS.fans);
-    post = {
-      author,
-      content: tmpl.content,
-      likes: randomLikes(100, 800),
-      retweets: randomLikes(10, 100),
-      replyable: tmpl.from === "fan",
-      replies: tmpl.from === "fan" ? [
-        { label: "Encore un effort, on y croit.", effects: { popularity: 1 } },
-        { label: "Restons concentrés, c'est qu'un match.", effects: { image: 1 } },
-        { label: "Merci pour le soutien !", effects: { popularity: 1 } },
-      ] : null,
-    };
+    post = make(pickRandom(templates), [100, 800], [10, 100], [
+      { label: "Encore un effort, on y croit.", effects: { popularity: 1 } },
+      { label: "Restons concentrés, c'est qu'un match.", effects: { image: 1 } },
+      { label: "Merci pour le soutien !", effects: { popularity: 1 } },
+    ]);
   } else if (!won && (opponent?.rank || 0) > 200 && random() < 0.4) {
     // Bad loss → critical fan post
     const templates = [
       "Bon, on peut parler de " + playerName + " ? Cette défaite ça pique quand même.",
       "Sérieux, " + playerName + " contre un " + (opponent?.rank ? "#" + opponent.rank : "joueur inconnu") + " ?? Faut se réveiller.",
       "Inquiétant pour " + playerName + ". Une mauvaise passe ou un vrai problème ?",
+      "Perdre contre " + opp + scoreTxt + "… " + playerName + ", il va falloir m'expliquer 😩",
+      "J'ai éteint la télé au deuxième set. " + playerName + " n'était pas là aujourd'hui.",
     ];
-    const author = pickRandom(SOCIAL_AUTHORS.fans);
     post = {
-      author,
+      author: pickRandom(SOCIAL_AUTHORS.fans),
       content: pickRandom(templates),
       likes: randomLikes(20, 200),
       retweets: randomLikes(1, 30),
@@ -376,6 +420,35 @@ export function generatePersonalSocialPost(player, tourn, won, isTitleWin, oppon
         { label: "Tu joues mieux que moi ? Vas-y, montre.", effects: { popularity: 1, image: -3 } },
       ],
     };
+  } else if (!won && r < 0.6) {
+    // Défaite « normale » : soutien, regrets ou analyse, selon le score.
+    const templates = [];
+    if (sc.tb || (sc.pSets > 0 && sc.tight)) {
+      templates.push(
+        { from: "fan", content: "Si près… " + playerName + " a tout donné contre " + opp + scoreTxt + ". Fier quand même 💚" },
+        { from: "fan", content: "Ce match de " + playerName + " s'est joué à deux ou trois points. Rageant, mais le niveau est là." },
+        { from: "press", content: playerName + " passe tout près face à " + opp + scoreTxt + " à " + T + ". Un match qui laissera des regrets." },
+      );
+    }
+    if (sc.firstSetWon) {
+      templates.push({ from: "fan", content: "Premier set gagné, et puis plus rien… " + playerName + ", qu'est-ce qui s'est passé ? 😕" });
+    }
+    if (sc.sets.length && sc.pSets === 0 && !sc.tight) {
+      templates.push(
+        { from: "fan", content: "Journée sans pour " + playerName + " contre " + opp + ". On efface et on repart 💪" },
+        { from: "press", content: opp + " n'a laissé aucune chance à " + playerName + scoreTxt + " à " + T + "." },
+      );
+    }
+    templates.push(
+      { from: "fan", content: "Fin de l'aventure à " + T + " pour " + playerName + ". Merci pour les émotions, on se retrouve vite 🎾" },
+      { from: "fan", content: "Pas grave " + playerName + ", la saison est longue. Toujours derrière toi !" },
+      { from: "press", content: playerName + " s'arrête à " + T + " face à " + opp + scoreTxt + "." },
+    );
+    post = make(pickRandom(templates), [20, 400], [1, 40], [
+      { label: "Merci, ça fait du bien de vous lire.", effects: { happiness: 2, popularity: 1 } },
+      { label: "Des leçons à tirer, on repart au travail.", effects: { image: 2 } },
+      { label: "Je n'ai pas envie d'en parler ce soir.", effects: { image: -1 } },
+    ]);
   }
 
   if (!post) return null;

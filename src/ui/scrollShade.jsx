@@ -4,7 +4,16 @@
 import { useEffect, useState } from "react";
 
 const SHADE_H = 22;
-const gradient = (side) => "linear-gradient(" + (side === "top" ? "180deg" : "0deg") + ", var(--tm-shadow), transparent)";
+// Style BD : pas d'ombre floue mais une trame de points d'encre qui
+// s'estompe vers le contenu (masque en dégradé).
+const shade = (side) => {
+  const mask = "linear-gradient(" + (side === "top" ? "180deg" : "0deg") + ", #000 0%, rgba(0,0,0,0.55) 45%, transparent 100%)";
+  return {
+    backgroundImage: "radial-gradient(rgba(20,20,20,0.6) 1.3px, transparent 1.6px)",
+    backgroundSize: "5px 5px",
+    WebkitMaskImage: mask, maskImage: mask,
+  };
+};
 
 function edgesOf(el) {
   if (!el) {
@@ -54,7 +63,7 @@ export function BarShade({ side, show }) {
     <div aria-hidden="true" style={{
       position: "absolute", left: 0, right: 0, height: SHADE_H, pointerEvents: "none",
       ...(side === "top" ? { top: "100%" } : { bottom: "100%" }),
-      background: gradient(side), opacity: show ? 1 : 0, transition: "opacity 0.2s",
+      ...shade(side), opacity: show ? 1 : 0, transition: "opacity 0.2s",
     }} />
   );
 }
@@ -65,8 +74,8 @@ export function WindowShades() {
   const base = { position: "fixed", left: 0, right: 0, height: SHADE_H, pointerEvents: "none", zIndex: 40, transition: "opacity 0.2s" };
   return (
     <>
-      <div aria-hidden="true" style={{ ...base, top: 0, background: gradient("top"), opacity: e.top ? 1 : 0 }} />
-      <div aria-hidden="true" style={{ ...base, bottom: 0, background: gradient("bottom"), opacity: e.bottom ? 1 : 0 }} />
+      <div aria-hidden="true" style={{ ...base, top: 0, ...shade("top"), opacity: e.top ? 1 : 0 }} />
+      <div aria-hidden="true" style={{ ...base, bottom: 0, ...shade("bottom"), opacity: e.bottom ? 1 : 0 }} />
     </>
   );
 }
@@ -80,7 +89,7 @@ export function BoxShade({ boxRef, side }) {
       <div style={{
         position: "absolute", left: 0, right: 0, height: SHADE_H,
         ...(side === "top" ? { top: 0 } : { bottom: 0 }),
-        background: gradient(side), opacity: e[side] ? 1 : 0, transition: "opacity 0.2s",
+        ...shade(side), opacity: e[side] ? 1 : 0, transition: "opacity 0.2s",
       }} />
     </div>
   );
