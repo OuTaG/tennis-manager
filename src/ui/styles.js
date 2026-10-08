@@ -32,7 +32,7 @@ export const styles = {
   },
   // TOP BAR — simple, opaque, sans verre dépoli
   topBar: {
-    position: "sticky", top: 0, zIndex: 50,
+    position: "sticky", top: "env(safe-area-inset-top, 0px)", zIndex: 50,
     ...PAPER,
     padding: "10px 14px 8px",
     display: "flex", flexDirection: "column", gap: 7,
@@ -46,7 +46,9 @@ export const styles = {
     background: T.bg1,
     borderTop: "3px solid " + T.ink,
     display: "flex", justifyContent: "space-between",
-    padding: "0 0 env(safe-area-inset-bottom, 0px)", zIndex: 100,
+    // Barre d'accueil de l'iPhone : marge du bas, avec un minimum de 6 px pour
+    // que les cases des bouts ne touchent pas les coins arrondis de l'écran.
+    padding: "0 env(safe-area-inset-right, 0px) max(6px, env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px)", zIndex: 100,
   },
   navBtn: {
     flex: 1, minWidth: 0, minHeight: 56,
