@@ -47,8 +47,8 @@ export const SOCIAL_AUTHORS = {
   ],
 };
 
-// « Pour vous » : au plus 3 nouveaux messages par semaine (matchs compris).
-export const PERSONAL_POSTS_PER_WEEK = 3;
+// « Pour vous » : au plus 2 nouveaux messages par semaine (matchs compris).
+export const PERSONAL_POSTS_PER_WEEK = 2;
 // Garde, parmi candidates, les messages « Pour vous » qui tiennent encore
 // dans le quota de leur semaine (existing = fil actuel). Les autres fils
 // passent tels quels.
