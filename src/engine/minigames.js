@@ -29,7 +29,9 @@ export function opponentRead(history, oppStats) {
   return Math.floor(random() * 3);
 }
 
-// Les 10 façons de jouer le point quand le retour est remis en jeu :
+// Les 10 façons de jouer le point quand le retour est remis en jeu. Chaque
+// texte existe vu par le joueur quand il sert (serve) et quand il retourne
+// (ret) ; text est la version neutre.
 // 6 gagnées par le serveur, 4 par le relanceur, tirées au hasard.
 // rallies = nombre d'allers-retours avant le dernier coup ;
 // end = fin visuelle : "winner" (passe l'adversaire et sort du cadre),
@@ -38,16 +40,26 @@ export function opponentRead(history, oppStats) {
 // ("line" = le long de la ligne, "cross" = croisé) ; shot : "lob" (rebond
 // profond). Sans dir, le gagnant part simplement loin de l'adversaire.
 export const RALLY_POINTS = [
-  { serverWins: true,  rallies: 0, end: "net",    text: "Retour dans le filet." },
-  { serverWins: true,  rallies: 1, end: "winner", text: "Service-volée : volée gagnante." },
-  { serverWins: true,  rallies: 2, end: "winner", text: "Coup droit d'attaque gagnant du serveur." },
-  { serverWins: true,  rallies: 3, end: "drop",   text: "Amortie gagnante du serveur." },
-  { serverWins: true,  rallies: 3, end: "winner", text: "Lob trop court, smash du serveur." },
-  { serverWins: true,  rallies: 5, end: "out",    text: "Long échange, le relanceur finit par sortir la balle." },
-  { serverWins: false, rallies: 2, end: "winner", dir: "line", text: "Passing-shot le long de la ligne !" },
-  { serverWins: false, rallies: 3, end: "net",    text: "Faute directe du serveur dans le filet." },
-  { serverWins: false, rallies: 2, end: "winner", shot: "lob", text: "Lob gagnant par-dessus le serveur !" },
-  { serverWins: false, rallies: 4, end: "winner", dir: "cross", text: "Revers croisé gagnant du relanceur !" },
+  { serverWins: true,  rallies: 0, end: "net",    text: "Retour dans le filet.",
+    serve: "Le retour adverse finit dans le filet.", ret: "Votre retour finit dans le filet." },
+  { serverWins: true,  rallies: 1, end: "winner", text: "Service-volée : volée gagnante.",
+    serve: "Service-volée : votre volée est gagnante.", ret: "Service-volée de l'adversaire : volée gagnante." },
+  { serverWins: true,  rallies: 2, end: "winner", text: "Coup droit d'attaque gagnant du serveur.",
+    serve: "Votre coup droit d'attaque est gagnant.", ret: "Coup droit d'attaque gagnant de l'adversaire." },
+  { serverWins: true,  rallies: 3, end: "drop",   text: "Amortie gagnante du serveur.",
+    serve: "Votre amortie meurt juste derrière le filet.", ret: "Amortie gagnante de l'adversaire." },
+  { serverWins: true,  rallies: 3, end: "winner", text: "Lob trop court, smash du serveur.",
+    serve: "L'adversaire tente le lob, trop court : vous concluez d'un smash.", ret: "Votre lob est trop court : l'adversaire conclut d'un smash." },
+  { serverWins: true,  rallies: 5, end: "out",    text: "Long échange, le relanceur finit par sortir la balle.",
+    serve: "Long échange, l'adversaire finit par sortir la balle.", ret: "Long échange, vous finissez par sortir la balle." },
+  { serverWins: false, rallies: 2, end: "winner", dir: "line", text: "Passing-shot le long de la ligne !",
+    serve: "Passing-shot de l'adversaire le long de la ligne.", ret: "Votre passing-shot passe le long de la ligne !" },
+  { serverWins: false, rallies: 3, end: "net",    text: "Faute directe du serveur dans le filet.",
+    serve: "Vous envoyez la balle dans le filet.", ret: "L'adversaire envoie la balle dans le filet." },
+  { serverWins: false, rallies: 2, end: "winner", shot: "lob", text: "Lob gagnant par-dessus le serveur !",
+    serve: "Lob gagnant de l'adversaire par-dessus vous.", ret: "Votre lob passe par-dessus l'adversaire !" },
+  { serverWins: false, rallies: 4, end: "winner", dir: "cross", text: "Revers croisé gagnant du relanceur !",
+    serve: "Revers croisé gagnant de l'adversaire.", ret: "Votre revers croisé est gagnant !" },
 ];
 
 // Duel service / retour : serveZone = où part le service, readZone = où
@@ -70,7 +82,7 @@ export function serveDuel(pick, guess) {
   const r = resolveServeDuel(pick, guess);
   const text = r.kind === "ace" ? "Il attendait " + ZONE_PHRASES[guess] + ", vous servez " + ZONE_PHRASES[pick] + " : ace !"
     : r.kind === "return_winner" ? "Il avait lu votre service : retour gagnant."
-    : r.rally.text;
+    : r.rally.serve;
   return { ...r, win: r.serverWins, text };
 }
 
@@ -80,7 +92,7 @@ export function returnDuel(guess) {
   const r = resolveServeDuel(target, guess);
   const text = r.kind === "ace" ? "Il a servi " + ZONE_PHRASES[target] + ", vous l'attendiez " + ZONE_PHRASES[guess] + " : ace."
     : r.kind === "return_winner" ? "Bien lu ! Retour gagnant."
-    : r.rally.text;
+    : r.rally.ret;
   return { ...r, target, win: !r.serverWins, text };
 }
 
