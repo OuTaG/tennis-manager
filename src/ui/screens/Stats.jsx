@@ -3,7 +3,7 @@ import { tournamentIdByName } from "../../engine/history.js";
 import { computeCareerSummary } from "../../engine/legacy.js";
 import { SURFACE_BONUS } from "../../engine/player.js";
 import { MiniLineChart } from "../charts.jsx";
-import { historyRoundLabel } from "../format.js";
+import { fmtMoney, fmtMoneyShort, fmtNum, historyRoundLabel, NBSP } from "../format.js";
 import { Icon, SurfaceIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
@@ -46,7 +46,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
           </div>
           <div style={{ textAlign: "right" }}>
             <span style={{ ...chip("#ffffff", "#141414"), marginBottom: 4 }}>Points</span>
-            <div className="tm-display" style={{ fontSize: 24, color: "#141414", lineHeight: 1 }}>{totalPts.toLocaleString("fr-FR")}</div>
+            <div className="tm-display" style={{ fontSize: 24, color: "#141414", lineHeight: 1 }}>{fmtNum(totalPts)}</div>
           </div>
         </div>
       </div>
@@ -56,13 +56,13 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
         const summary = computeCareerSummary(player);
         const played = player.careerWins + player.careerLosses;
         const money = player.totalEarnings || 0;
-        const fmtMoney = money >= 1e6 ? (Math.round(money / 1e5) / 10) + " M€" : money >= 1000 ? (Math.round(money / 100) / 10) + " k€" : money + " €";
+        const moneyShort = fmtMoneyShort(money);
         const seasons = (player.careerSeasons || []).length + 1;
         const items = [
           { icon: "trophy", v: player.titlesWon, l: "Titres", color: "#e0a21b" },
           { icon: "star", v: player.careerBigWins || 0, l: "Vict. top 50", color: "#c4572b" },
           { icon: "trending", v: summary.bestRank < 9999 ? "#" + summary.bestRank : "—", l: "Meilleur rang", color: "#1f7a45" },
-          { icon: "money", v: fmtMoney, l: "Gains", color: "#2c6fd1" },
+          { icon: "money", v: moneyShort, l: "Gains", color: "#2c6fd1" },
           { icon: "activity", v: played, l: "Matchs", color: "#5b2d8e" },
           { icon: "calendar", v: seasons, l: seasons > 1 ? "Saisons" : "Saison", color: "#141414" },
         ];
@@ -117,7 +117,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
           info="Total de vos points ATP sur les 52 dernières semaines. Chaque tournoi rapporte des points selon le tour atteint ; ils expirent un an plus tard." />
         <MiniLineChart data={rankingSeries} label="Classement" color={T.ball} invertY
           info="Votre rang mondial parmi les 1 200 joueurs du circuit, établi d'après vos points ATP. Plus le chiffre est bas, meilleur vous êtes. Il décide de votre accès aux tournois et de la valeur de vos sponsors." />
-        <MiniLineChart data={moneySeries} label="Trésorerie" color={T.green} suffix="€"
+        <MiniLineChart data={moneySeries} label="Trésorerie" color={T.green} suffix={NBSP + "€"}
           info="L'argent dont vous disposez : gains en tournoi, sponsors et primes, moins les dépenses (staff, voyages, entraînements, frais fixes). Sous zéro, c'est la faillite." />
         <MiniLineChart data={ratingSeries} label="Cote moyenne" color={T.green}
           info="La moyenne de vos six statistiques (service, coup droit, revers, endurance, mental, filet). Elle résume votre niveau de jeu global." />
@@ -167,7 +167,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
                 <span><span className="tm-num" style={{ color: "#1f7a45", fontWeight: 800 }}>{s.wins}</span>V</span>
                 <span><span className="tm-num" style={{ color: "#c4302b", fontWeight: 800 }}>{s.losses}</span>D</span>
                 <span><span className="tm-num" style={{ color: "#5b2d8e", fontWeight: 800 }}>{s.titles}</span> titre{s.titles > 1 ? "s" : ""}</span>
-                <span style={{ marginLeft: "auto", fontWeight: 800 }} className="tm-num">{s.earnings.toLocaleString()}€</span>
+                <span style={{ marginLeft: "auto", fontWeight: 800 }} className="tm-num">{fmtMoney(s.earnings)}</span>
               </div>
             </div>
           ))}
@@ -208,8 +208,8 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
                     <span style={{ ...chip(title ? "#d6ef3c" : "#ffffff", "#141414"), marginTop: 4, fontSize: 10 }}>S{g.week} · {g.year} · {outcome}</span>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div className="tm-display" style={{ color: "#1f7a45", fontSize: 13 }}>+{prize.toLocaleString()}€</div>
-                    <div className="tm-num" style={{ color: "#5b2d8e", fontSize: 11, marginTop: 2, fontWeight: 800 }}>+{pts} pts</div>
+                    <div className="tm-display" style={{ color: "#1f7a45", fontSize: 13 }}>{fmtMoney(prize, { sign: true })}</div>
+                    <div className="tm-num" style={{ color: "#5b2d8e", fontSize: 11, marginTop: 2, fontWeight: 800 }}>{fmtNum(pts, { sign: true })}{NBSP}pts</div>
                   </div>
                 </div>
                 {g.matches.map((m, i) => (

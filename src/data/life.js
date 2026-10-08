@@ -62,7 +62,7 @@ export const LIFE_EVENTS = [
     options: [
       { label: "Assumer publiquement", effects: { happiness: 2, popularity: 3, image: -2 } },
       { label: "Démentir via votre agent", effects: { popularity: -1, image: 1 } },
-      { label: "Racheter les photos (5 000€)", effects: { money: -5000, image: 3 } },
+      { label: "Racheter les photos (5\u202f000\u00a0€)", effects: { money: -5000, image: 3 } },
     ],
   },
   {
@@ -71,7 +71,7 @@ export const LIFE_EVENTS = [
     body: "Une marque de luxe vous invite à un gala caritatif. Tenue habillée requise.",
     minSeason: 2,
     options: [
-      { label: "Y aller en grande tenue (2 000€)", effects: { money: -2000, energy: -6, popularity: 4, image: 6, happiness: 2 } },
+      { label: "Y aller en grande tenue (2\u202f000\u00a0€)", effects: { money: -2000, energy: -6, popularity: 4, image: 6, happiness: 2 } },
       { label: "Y aller modestement", effects: { energy: -5, popularity: 2, image: 2 } },
       { label: "Décliner poliment", effects: { popularity: -1 } },
     ],
@@ -89,10 +89,10 @@ export const LIFE_EVENTS = [
   {
     id: "ami_demande_argent",
     title: "Un proche vous demande de l'aide",
-    body: "Un vieil ami traverse une mauvaise passe et vous demande 3 000€.",
+    body: "Un vieil ami traverse une mauvaise passe et vous demande 3\u202f000\u00a0€.",
     options: [
       { label: "Lui prêter sans condition", effects: { money: -3000, happiness: 5 } },
-      { label: "L'aider à moitié (1 500€)", effects: { money: -1500, happiness: 2 } },
+      { label: "L'aider à moitié (1\u202f500\u00a0€)", effects: { money: -1500, happiness: 2 } },
       { label: "Refuser", effects: { happiness: -4 } },
     ],
   },
@@ -124,14 +124,14 @@ export const LIFE_EVENTS = [
     minSeason: 2,
     options: [
       { label: "Communiqué officiel ferme", effects: { image: 3, popularity: -2, happiness: -3 } },
-      { label: "Porter plainte pour diffamation (3 000€)", effects: { money: -3000, image: 4, energy: -4 } },
+      { label: "Porter plainte pour diffamation (3\u202f000\u00a0€)", effects: { money: -3000, image: 4, energy: -4 } },
       { label: "Ignorer, ça passera", effects: { image: -3, happiness: 2, energy: 3 } },
     ],
   },
   {
     id: "pub_marque",
     title: "Tournage publicitaire",
-    body: "Une marque non-sportive vous propose un tournage rapide pour 10 000€.",
+    body: "Une marque non-sportive vous propose un tournage rapide pour 10\u202f000\u00a0€.",
     minSeason: 2,
     options: [
       { label: "Accepter", effects: { money: 10000, energy: -5, popularity: 2, image: -1 } },
@@ -284,7 +284,7 @@ export const LIFE_EVENTS = [
     title: "Votre anniversaire",
     body: "C'est votre anniversaire ! Vos proches veulent organiser quelque chose.",
     options: [
-      { label: "Grande fête (3 000€)", effects: { money: -3000, happiness: 8, energy: -5, popularity: 2 } },
+      { label: "Grande fête (3\u202f000\u00a0€)", effects: { money: -3000, happiness: 8, energy: -5, popularity: 2 } },
       { label: "Dîner intime", effects: { money: -300, happiness: 5 } },
       { label: "Rester focus, juste un gâteau", effects: { happiness: 1 } },
     ],
@@ -295,7 +295,7 @@ export const LIFE_EVENTS = [
     body: "Un capteur de mouvement dernier cri promet d'affiner votre service. Coût non négligeable.",
     minSeason: 2,
     options: [
-      { label: "Investir (4 000€)", effects: { money: -4000, energy: -2, happiness: 2 }, trainBoost: { weeks: 5, mul: 1.15 } },
+      { label: "Investir (4\u202f000\u00a0€)", effects: { money: -4000, energy: -2, happiness: 2 }, trainBoost: { weeks: 5, mul: 1.15 } },
       { label: "Passer son tour", effects: {} },
     ],
   },
@@ -315,7 +315,7 @@ export const LIFE_EVENTS = [
     title: "Escapade improvisée",
     body: "Une fenêtre de calme dans le calendrier : vous pourriez partir quelques jours.",
     options: [
-      { label: "Partir au soleil (2 500€)", effects: { money: -2500, energy: 12, happiness: 7 } },
+      { label: "Partir au soleil (2\u202f500\u00a0€)", effects: { money: -2500, energy: 12, happiness: 7 } },
       { label: "Mini-break local", effects: { money: -400, energy: 6, happiness: 3 } },
       { label: "Rester s'entraîner", effects: { energy: -2, happiness: -2 } },
     ],
@@ -374,7 +374,7 @@ export const LIFE_EVENTS = [
     title: "Raquette fétiche égarée",
     body: "Votre raquette préférée a disparu pendant un transfert d'aéroport.",
     options: [
-      { label: "En racheter une identique (600€)", effects: { money: -600, happiness: 1 } },
+      { label: "En racheter une identique (600\u00a0€)", effects: { money: -600, happiness: 1 } },
       { label: "S'adapter à un nouveau modèle", effects: { happiness: -3 } },
     ],
   },
@@ -404,7 +404,7 @@ export const LIFE_EVENTS = [
     title: "Coup de fatigue mentale",
     body: "La routine du circuit pèse. Vous ressentez une lassitude inhabituelle.",
     options: [
-      { label: "Voir un préparateur mental (1 000€)", effects: { money: -1000, happiness: 6, energy: 2 } },
+      { label: "Voir un préparateur mental (1\u202f000\u00a0€)", effects: { money: -1000, happiness: 6, energy: 2 } },
       { label: "Lever le pied une semaine", effects: { energy: 8, happiness: 3, popularity: -3 } },
       { label: "Serrer les dents", effects: { happiness: -4, energy: -3 } },
     ],
@@ -415,8 +415,8 @@ export const LIFE_EVENTS = [
     body: "Un proche vous propose d'investir dans un petit commerce. Risqué mais tentant.",
     minSeason: 3,
     options: [
-      { label: "Investir gros (15 000€)", effects: { money: -15000, happiness: 1 }, investment: { amount: 15000, plan: "big", weeks: 12 } },
-      { label: "Investir prudemment (4 000€)", effects: { money: -4000 }, investment: { amount: 4000, plan: "safe", weeks: 12 } },
+      { label: "Investir gros (15\u202f000\u00a0€)", effects: { money: -15000, happiness: 1 }, investment: { amount: 15000, plan: "big", weeks: 12 } },
+      { label: "Investir prudemment (4\u202f000\u00a0€)", effects: { money: -4000 }, investment: { amount: 4000, plan: "safe", weeks: 12 } },
       { label: "Refuser", effects: {} },
     ],
   },
@@ -425,7 +425,7 @@ export const LIFE_EVENTS = [
     title: "Vol annulé",
     body: "Votre vol pour le prochain tournoi est annulé. Solution de dernière minute coûteuse.",
     options: [
-      { label: "Réserver un vol privé (8 000€)", effects: { money: -8000, energy: -2 } },
+      { label: "Réserver un vol privé (8\u202f000\u00a0€)", effects: { money: -8000, energy: -2 } },
       { label: "Attendre le prochain vol", effects: { energy: -6, happiness: -3 } },
     ],
   },

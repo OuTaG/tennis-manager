@@ -13,7 +13,7 @@ import { pickComment, pickDebrief, setCloseHow, formRemarks } from "./engine/com
 import { generateAtpDatabase, getPlayerProfile, getRating, pickOpponentForMatch } from "./engine/database.js";
 import { MATCH_FIX_DILEMMA, resolveDilemmaOption } from "./engine/dilemmas.js";
 import { feminizeText } from "./engine/feminize.js";
-import { firstSentence } from "./engine/text.js";
+import { elide, firstSentence } from "./engine/text.js";
 import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/history.js";
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
 import { advanceMatchOneGame, aiMatchProb, clampMomentum, createInitialMatchData } from "./engine/match.js";
@@ -38,7 +38,7 @@ import { loadRosterConfigs, rosterEditCount, rosterEntries } from "./engine/rost
 // Couleur du bandeau de match selon la surface.
 const LIVE_SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2c6fd1", "Indoor": "#5b2d8e" };
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, aiAvatar, femaleHairStyle } from "./ui/avatar.jsx";
-import { rankingName } from "./ui/format.js";
+import { fmtMoney, fmtNum, fmtKm, fmtStatDelta, rankingName } from "./ui/format.js";
 import { BangBadge, FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
@@ -88,6 +88,7 @@ export default function TennisManager() {
     shirt: AVATAR_OPTIONS.shirt[0],
   });
   const [matchState, setMatchState] = useState(null);
+  const [travelSearch, setTravelSearch] = useState(""); // ville pré-remplie dans Voyages (fenêtre de forfait)
   const [rallyAnim, setRallyAnim] = useState(null); // { points, contextLabel, isTiebreak, commit } during point-by-point animation
   // Match mode: "manual" = one game per click; "auto" = games chain with a
   // short pause, stopping on any event (dilemma, match-fix proposal).
@@ -361,9 +362,15 @@ export default function TennisManager() {
       slotRef.current = slotIdx;
       // Anciennes sauvegardes : les pages d'aide sont considérées comme déjà vues.
       if (!Array.isArray(data.player.seenHelp)) data.player.seenHelp = Object.keys(PAGE_HELP);
+      if (data.player.location === "Dubai") data.player.location = "Dubaï";
       if (!data.player.careerId) data.player.careerId = "c" + Date.now().toString(36) + random().toString(36).slice(2, 6);
       setPlayer(data.player);
       setAtpDb(data.atpDb);
+      // Premier sponsor obligatoire : la négociation d'accueil revient si la
+      // page a été rechargée avant qu'elle soit conclue.
+      if (data.player.introSponsorPending && (data.player.sponsorOffers || []).length > 0) {
+        setSponsorNegotiation({ phase: "intro", year: data.player.year || 2026, ranking: 1100, results: [], objMoney: 0 });
+      }
       setNews(data.news || []);
       setActiveTab("hub");
       // Resume a tournament that was saved between two matches.
@@ -1832,7 +1839,7 @@ export default function TennisManager() {
       const swing = miniGameEffect(true).momentumDelta;
       if (win) m.playerMomentum = clampMomentum((m.playerMomentum || 0) + swing);
       else m.oppMomentum = clampMomentum((m.oppMomentum || 0) + swing);
-      if (zone !== null && zone !== undefined) m.serveZones = [...(m.serveZones || []), zone].slice(-8);
+      if (kind === "serve_duel" && zone !== null && zone !== undefined) m.serveZones = [...(m.serveZones || []), zone].slice(-8);
       // Le jeu interrompu reprend : gagné → jeu pour le joueur, perdu → égalité.
       if (m.pendingGame) m.pendingGame = { ...m.pendingGame, miniGameWon: !!win };
       const title = kind === "serve_duel" ? "Duel au service" : kind === "return_duel" ? "Duel au retour" : kind === "mental" ? "Sang-froid" : "Smash";
@@ -1893,8 +1900,8 @@ export default function TennisManager() {
             return np;
           });
           msg = caught
-            ? "Vous touchez " + bribe.toLocaleString() + "€... mais l'enquête vous rattrape : suspension de plusieurs semaines et réputation en miettes."
-            : "Vous touchez " + bribe.toLocaleString() + "€ et levez discrètement le pied. Personne n'a rien vu... cette fois.";
+            ? "Vous touchez " + fmtMoney(bribe) + "... mais l'enquête vous rattrape : suspension de plusieurs semaines et réputation en miettes."
+            : "Vous touchez " + fmtMoney(bribe) + " et levez discrètement le pied. Personne n'a rien vu... cette fois.";
         } else if (option.matchFix === "report") {
           // 30% chance the public doesn't believe the story.
           const believed = random() < 0.70;
@@ -2572,7 +2579,7 @@ export default function TennisManager() {
       setWildcardBlocked({
         title: "Au repos !",
         lead: "Vous êtes au repos imposé encore " + left + " semaine" + (left > 1 ? "s" : "") + "…",
-        body: "Le " + offer.tournamentName + " tombe pendant ce repos : impossible d'accepter la wildcard.",
+        body: elide("Le " + offer.tournamentName + " tombe pendant ce repos : impossible d'accepter la wildcard."),
       });
       return;
     }
@@ -2593,8 +2600,8 @@ export default function TennisManager() {
       const enr = ALL_TOURNAMENTS.find(x => x.id === player.enrollment.tournamentId);
       setWildcardBlocked({
         title: "Déjà inscrit !",
-        lead: "Vous êtes déjà inscrit au " + (enr ? enr.name : "un autre tournoi") + (player.enrollment.week ? " (semaine " + player.enrollment.week + ")" : "") + "…",
-        body: "Pour accepter la wildcard du " + offer.tournamentName + ", annulez d'abord votre inscription à l'autre tournoi (sur l'accueil ou dans Circuit › Tournois), puis acceptez la wildcard.",
+        lead: "Vous êtes déjà inscrit " + (enr ? elide("au " + enr.name) : "à un autre tournoi") + (player.enrollment.week ? " (semaine " + player.enrollment.week + ")" : "") + "…",
+        body: elide("Pour accepter la wildcard du " + offer.tournamentName) + ", annulez d'abord votre inscription à l'autre tournoi (sur l'accueil ou dans Circuit › Tournois), puis acceptez la wildcard.",
       });
       return;
     }
@@ -2603,7 +2610,7 @@ export default function TennisManager() {
       setWildcardBlocked({
         title: "Blessé !",
         lead: player.injury.label + " : vous ne pouvez pas jouer" + (w ? " (retour dans " + w + " sem.)" : "") + "…",
-        body: "Impossible d'accepter la wildcard du " + offer.tournamentName + " tant que la blessure vous empêche de disputer un tournoi.",
+        body: elide("Impossible d'accepter la wildcard du " + offer.tournamentName) + " tant que la blessure vous empêche de disputer un tournoi.",
         injury: true,
       });
       return;
@@ -3045,7 +3052,7 @@ export default function TennisManager() {
                         </div>
                       </div>
                       <div style={{ fontSize: 10.5, color: "#141414", fontWeight: 600, textAlign: "left", lineHeight: 1.3 }}>{desc}</div>
-                      <div className="tm-num" style={{ fontSize: 11, color: "#ffffff", background: "#1f7a45", border: "2px solid " + T.ink, padding: "0 5px", fontWeight: 800 }}>{money.toLocaleString("fr-FR")} € au départ</div>
+                      <div className="tm-num" style={{ fontSize: 11, color: "#ffffff", background: "#1f7a45", border: "2px solid " + T.ink, padding: "0 5px", fontWeight: 800 }}>{fmtMoney(money)} au départ</div>
                     </button>
                   );
                 })}
@@ -3134,7 +3141,7 @@ export default function TennisManager() {
               <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px" }}>Votre départ</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: 10 }}>
                 {[
-                  { icon: "money", label: "Argent", value: startMoney(startCityInput, gameOptionsInput).toLocaleString("fr-FR") + " €", bg: "#d6ef3c" },
+                  { icon: "money", label: "Argent", value: fmtMoney(startMoney(startCityInput, gameOptionsInput)), bg: "#d6ef3c" },
                   { icon: "location", label: "Ville", value: <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><FlagFromEmoji emoji={CITIES[startCityInput]?.flag} size={12} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{startCityInput}</span></span>, bg: "#c9b6ea" },
                   { icon: "trophy", label: "Points", value: "0 pt", bg: "#ffffff" },
                   { icon: "energy", label: "Énergie", value: "100 %", bg: "#ffffff" },
@@ -3168,6 +3175,8 @@ export default function TennisManager() {
                 if (starter) {
                   // Premier sponsor : toujours négociable (pour apprendre).
                   newPlayer.sponsorOffers = [{ ...starter, nonNegotiable: false, week: 1, year: 2026 }];
+                  // Rouverte au chargement tant qu'elle n'a pas été conclue.
+                  newPlayer.introSponsorPending = true;
                 }
                 setPlayer(newPlayer);
                 setAtpDb(newDb);
@@ -3227,7 +3236,7 @@ export default function TennisManager() {
             <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 12, textAlign: "center", overflow: "hidden" }}>
               <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px" }}>Score de légende</div>
               <div style={{ padding: "12px 10px 14px" }}>
-                <div className="tm-display" style={{ color: tier.color, fontSize: 46, lineHeight: 1, WebkitTextStroke: "1.5px " + T.ink }}>{legacy.toLocaleString()}</div>
+                <div className="tm-display" style={{ color: tier.color, fontSize: 46, lineHeight: 1, WebkitTextStroke: "1.5px " + T.ink }}>{fmtNum(legacy)}</div>
                 <span className="tm-display" style={{ display: "inline-block", marginTop: 8, padding: "2px 12px", background: tier.color, color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontSize: 14, textShadow: "1px 1px 0 " + T.ink }}>{tier.label}</span>
               </div>
             </div>
@@ -3239,20 +3248,20 @@ export default function TennisManager() {
                 {breakdown.rows.map((r, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, padding: "5px 0", fontSize: 12.5, fontWeight: 600, borderBottom: "1.5px dashed " + T.ink }}>
                     <span>{r.label} <span style={{ fontSize: 11, opacity: 0.7 }}>({r.detail})</span></span>
-                    <strong className="tm-num">+{r.pts.toLocaleString()}</strong>
+                    <strong className="tm-num">{fmtNum(r.pts, { sign: true })}</strong>
                   </div>
                 ))}
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 4px", fontSize: 12.5, fontWeight: 700, borderBottom: "1.5px dashed " + T.ink }}>
                   <span>Sous-total</span>
-                  <strong className="tm-num">{breakdown.subtotal.toLocaleString()}</strong>
+                  <strong className="tm-num">{fmtNum(breakdown.subtotal)}</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 12.5, fontWeight: 700 }}>
                   <span>{breakdown.diffPct >= 0 ? "Bonus" : "Malus"} difficulté <span style={{ fontSize: 11, opacity: 0.7 }}>({breakdown.mulLabel})</span></span>
-                  <strong className="tm-num" style={{ color: "#5b2d8e" }}>{breakdown.difficultyBonus >= 0 ? "+" : "−"}{Math.abs(breakdown.difficultyBonus).toLocaleString()}</strong>
+                  <strong className="tm-num" style={{ color: "#5b2d8e" }}>{fmtNum(breakdown.difficultyBonus, { sign: true })}</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
                   <span className="tm-display" style={{ fontSize: 14 }}>Total</span>
-                  <span className="tm-display" style={{ background: tier.color, color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px", fontSize: 15, textShadow: "1px 1px 0 " + T.ink }}>{breakdown.total.toLocaleString()}</span>
+                  <span className="tm-display" style={{ background: tier.color, color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px", fontSize: 15, textShadow: "1px 1px 0 " + T.ink }}>{fmtNum(breakdown.total)}</span>
                 </div>
               </div>
             </div>
@@ -3278,7 +3287,7 @@ export default function TennisManager() {
                   { l: "Victoires en carrière", v: player.careerWins, c: "#1f7a45" },
                   { l: "Meilleure série", v: summary.bestStreak + " v.", hide: summary.bestStreak < 2 },
                   { l: "Objectifs sponsors atteints", v: (player.careerObjectivesMet || 0), hide: (player.careerObjectivesMet || 0) === 0 },
-                  { l: "Gains totaux", v: (player.totalEarnings || 0).toLocaleString() + " €", c: "#1f7a45" },
+                  { l: "Gains totaux", v: fmtMoney(player.totalEarnings || 0), c: "#1f7a45" },
                   { l: "Saisons jouées", v: summary.seasons },
                 ].filter(row => !row.hide).map((row, i, arr) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13, fontWeight: 600, borderBottom: i < arr.length - 1 ? "1.5px dashed " + T.ink : "none" }}>
@@ -3462,7 +3471,7 @@ export default function TennisManager() {
     // Gains : deux cases encrées.
     const postGains = (fr) => (
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {[{ icon: "money", l: "Gains", v: "+" + fr.prize.toLocaleString("fr-FR") + " €", c: "#1f7a45" }, { icon: "trending", l: "Points", v: "+" + fr.pts + " pts", c: "#5b2d8e" }].map(x => (
+        {[{ icon: "money", l: "Gains", v: fmtMoney(fr.prize, { sign: true }), c: "#1f7a45" }, { icon: "trending", l: "Points", v: fmtNum(fr.pts, { sign: true }) + "\u00a0pts", c: "#5b2d8e" }].map(x => (
           <div key={x.l} style={{ background: "#ffffff", border: "2.5px solid " + POST_INK, boxShadow: "3px 3px 0 " + POST_INK, padding: "8px 10px", color: "#141414" }}>
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4 }}><Icon name={x.icon} size={11} />{x.l}</div>
             <div className="tm-display" style={{ fontSize: 22, color: x.c }}>{x.v}</div>
@@ -3745,7 +3754,7 @@ export default function TennisManager() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {Object.entries(prog).map(([k, v]) => (
                       <span key={k} style={{ border: "2px solid " + T.ink, background: v >= 0 ? "#1f7a45" : "#c4302b", color: "#ffffff", fontSize: 12, fontWeight: 800, padding: "2px 7px" }}>
-                        {statLabels[k] || k} {v >= 0 ? "+" : ""}{v}
+                        {statLabels[k] || k} {fmtStatDelta(v)}
                       </span>
                     ))}
                   </div>
@@ -4454,7 +4463,7 @@ export default function TennisManager() {
           ranking={ranking}
           onSign={acceptSponsorOffer}
           onClose={() => {
-            setPlayer(p => ({ ...p, sponsorOffers: [] }));
+            setPlayer(p => ({ ...p, sponsorOffers: [], introSponsorPending: false }));
             setSponsorNegotiation(null);
           }}
         />
@@ -4505,7 +4514,7 @@ export default function TennisManager() {
               <div className="tm-num" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap", minWidth: 0 }}>
                 <span>Sem. {player.week}</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 3, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}><FlagFromEmoji emoji={CITIES[player.location]?.flag} size={9} />{player.location}</span>
-                <span style={{ color: player.money >= 0 ? T.fg : T.red }}>{Math.round(player.money).toLocaleString("fr-FR")} €</span>
+                <span style={{ color: player.money >= 0 ? T.fg : T.red }}>{fmtMoney(player.money)}</span>
                 {/* Énergie en tampon BD : couleur selon le niveau, jauge sous le chiffre */}
                 {(() => {
                   const e = Math.max(0, Math.min(100, Math.round(player.energy)));
@@ -4560,14 +4569,24 @@ export default function TennisManager() {
                 <div className="tm-display" style={{ background: "#c4302b", color: "#ffffff", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink }}>Êtes-vous sûr ?</div>
                 <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                   <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
-                    Le {travelWarning.name} commence la semaine prochaine à {travelWarning.city}… et vous êtes encore à {player.location} !
+                    {elide("Le " + travelWarning.name)} commence la semaine prochaine à {travelWarning.city}… et vous êtes encore à {player.location} !
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>
-                    Si vous avancez sans voyager, vous déclarez forfait{travelWarning.entryFee ? " et perdez les " + travelWarning.entryFee.toLocaleString("fr-FR") + " € d'inscription" : ""}.
+                    Si vous avancez sans voyager, vous déclarez forfait{travelWarning.entryFee ? " et perdez les " + fmtMoney(travelWarning.entryFee) + " d'inscription" : ""}.
                   </div>
-                  <button style={styles.btnPrimary} onClick={() => { setTravelWarning(null); setActiveTab("travel"); }}>
-                    Voyager à {travelWarning.city}
-                  </button>
+                  {(() => {
+                    const cost = travelCostBetween(player.location, travelWarning.city);
+                    const canPay = player.money >= cost;
+                    return (
+                      <button style={styles.btnPrimary} onClick={() => {
+                        setTravelWarning(null);
+                        if (canPay) travelTo(travelWarning.city);
+                        else { setTravelSearch(travelWarning.city); setActiveTab("travel"); }
+                      }}>
+                        Voyager à {travelWarning.city} ({fmtMoney(cost)})
+                      </button>
+                    );
+                  })()}
                   <button style={{ ...styles.btnSecondary, color: "#c4302b", boxShadow: "2px 2px 0 " + T.ink }} onClick={() => { setTravelWarning(null); advanceWeek(); }}>
                     Avancer quand même (forfait)
                   </button>
@@ -4621,7 +4640,7 @@ export default function TennisManager() {
           {activeTab === "hub" && player.challenge && <ChallengePanel player={player} atpDb={atpDb} repayDebt={repayDebt} />}
           {activeTab === "hub" && <HubScreen player={player} news={news} advanceWeek={requestAdvanceWeek} rating={rating} ranking={ranking} totalPts={totalPts} cancelEnrollment={cancelEnrollment} isAdvancingWeek={isAdvancingWeek} acceptWildcard={acceptWildcard} declineWildcard={declineWildcard} retire={retire} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "calendar" && <CalendarScreen player={player} ranking={ranking} calFilters={calFilters} setCalFilters={setCalFilters} enrollTournament={enrollTournament} cancelEnrollment={cancelEnrollment} setTournamentDetail={setTournamentDetail} />}
-          {activeTab === "travel" && <TravelScreen player={player} travelTo={travelTo} />}
+          {activeTab === "travel" && <TravelScreen player={player} travelTo={travelTo} initialSearch={travelSearch} onSearchUsed={() => setTravelSearch("")} />}
           {activeTab === "prep" && <PrepScreen player={player} doTraining={doTraining} hireStaff={hireStaff} fireStaff={fireStaff} />}
           {activeTab === "life" && <LifeScreen player={player} doLifeActivity={doLifeActivity} />}
           {activeTab === "stats" && <StatsScreen player={player} rating={rating} ranking={ranking} totalPts={totalPts} setTournamentDetail={setTournamentDetail} />}
@@ -4703,7 +4722,7 @@ export default function TennisManager() {
                     ["Défaites", r.losses, "#c4302b"],
                     ["Taux de victoire", winRate + " %", winRate >= 50 ? "#1f7a45" : "#c4302b"],
                     ["Titres", r.titles, "#5b2d8e"],
-                    ["Gains saison", "+" + r.earnings.toLocaleString() + " €", "#1f7a45"],
+                    ["Gains saison", fmtMoney(r.earnings, { sign: true }), "#1f7a45"],
                   ].map(([l, v, c], i, arr) => (
                     <div key={l} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, padding: "5px 0", borderBottom: i < arr.length - 1 ? "1.5px dashed " + T.ink : "none" }}>
                       <span>{l}</span><strong className="tm-num" style={{ color: c }}>{v}</strong>
@@ -4722,11 +4741,11 @@ export default function TennisManager() {
                     <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12, textAlign: "center" }}>
                       <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px" }}>Score de légende</div>
                       <div style={{ padding: "8px 10px 10px" }}>
-                        <div className="tm-display" style={{ color: tier.color, fontSize: 32, lineHeight: 1, WebkitTextStroke: "1.2px " + T.ink }}>{r.legacyScore.toLocaleString()}</div>
+                        <div className="tm-display" style={{ color: tier.color, fontSize: 32, lineHeight: 1, WebkitTextStroke: "1.2px " + T.ink }}>{fmtNum(r.legacyScore)}</div>
                         <span className="tm-display" style={{ display: "inline-block", marginTop: 6, padding: "1px 10px", background: tier.color, color: "#ffffff", border: "2px solid " + T.ink, fontSize: 12.5, textShadow: "1px 1px 0 " + T.ink }}>{tier.label}</span>
                         {delta !== null && (
                           <div className="tm-lettering" style={{ color: delta > 0 ? "#1f7a45" : delta < 0 ? "#c4302b" : "#141414", fontSize: 15, marginTop: 6 }}>
-                            {delta > 0 ? "↑ +" + delta.toLocaleString() : delta < 0 ? "↓ " + delta.toLocaleString() : "→ 0"} cette saison
+                            {delta > 0 ? "↑ " + fmtNum(delta, { sign: true }) : delta < 0 ? "↓ " + fmtNum(delta, { sign: true }) : "→ 0"} cette saison
                           </div>
                         )}
                       </div>
@@ -4739,18 +4758,18 @@ export default function TennisManager() {
                             <span>{row.label}</span>
                             <span style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                               <span style={{ fontSize: 10.5, opacity: 0.7 }}>{row.detail}</span>
-                              <strong className="tm-num" style={{ minWidth: 50, textAlign: "right" }}>{row.pts.toLocaleString()}</strong>
+                              <strong className="tm-num" style={{ minWidth: 50, textAlign: "right" }}>{fmtNum(row.pts)}</strong>
                             </span>
                           </div>
                         ))}
                         <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 2px", fontSize: 12.5, fontWeight: 700 }}>
                           <span>Sous-total</span>
-                          <strong className="tm-num">{breakdown.subtotal.toLocaleString()}</strong>
+                          <strong className="tm-num">{fmtNum(breakdown.subtotal)}</strong>
                         </div>
                         {breakdown.difficultyBonus !== 0 && (
                           <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", color: breakdown.difficultyBonus > 0 ? "#1f7a45" : "#c4302b", fontSize: 12.5, fontWeight: 700 }}>
                             <span>{breakdown.diffPct > 0 ? "Bonus" : "Malus"} difficulté ({breakdown.mulLabel})</span>
-                            <strong className="tm-num">{breakdown.difficultyBonus > 0 ? "+" : ""}{breakdown.difficultyBonus.toLocaleString()}</strong>
+                            <strong className="tm-num">{fmtNum(breakdown.difficultyBonus, { sign: true })}</strong>
                           </div>
                         )}
                       </div>
@@ -4827,12 +4846,12 @@ export default function TennisManager() {
                       <span style={{ color: "#141414", fontSize: 12.5, fontWeight: 800 }}>{r.label}</span>
                       <span style={{ display: "block", color: "#141414", fontSize: 11, fontWeight: 600 }}>{r.detail}</span>
                     </span>
-                    <span className="tm-num" style={{ color: "#141414", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{r.pts.toLocaleString("fr-FR")}</span>
+                    <span className="tm-num" style={{ color: "#141414", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{fmtNum(r.pts)}</span>
                   </div>
                 ))}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8 }}>
                   <span className="tm-display" style={{ fontSize: 14 }}>Score du défi</span>
-                  <span className="tm-display tm-num" style={{ background: "#5b2d8e", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "0 8px", fontSize: 17 }}>{(res.score || 0).toLocaleString("fr-FR")}</span>
+                  <span className="tm-display tm-num" style={{ background: "#5b2d8e", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "0 8px", fontSize: 17 }}>{fmtNum(res.score || 0)}</span>
                 </div>
               </div>
               {!ok && def && (
@@ -4870,7 +4889,7 @@ export default function TennisManager() {
               {ev.options.map((opt, i) => {
                 const eff = opt.effects || {};
                 const chips = [];
-                if (eff.money) chips.push({ label: (eff.money > 0 ? "+" : "") + eff.money.toLocaleString() + "€", color: eff.money > 0 ? T.green : T.red });
+                if (eff.money) chips.push({ label: fmtMoney(eff.money, { sign: true }), color: eff.money > 0 ? T.green : T.red });
                 if (eff.energy) chips.push({ label: (eff.energy > 0 ? "+" : "") + eff.energy, color: eff.energy > 0 ? T.green : T.red, icon: "energy" });
                 if (eff.happiness) chips.push({ label: (eff.happiness > 0 ? "+" : "") + eff.happiness, color: eff.happiness > 0 ? "var(--tm-amber)" : T.red, icon: "heart" });
                 if (eff.popularity) chips.push({ label: (eff.popularity > 0 ? "+" : "") + eff.popularity, color: eff.popularity > 0 ? T.green : T.red, icon: "sparkles" });
@@ -4969,7 +4988,7 @@ export default function TennisManager() {
                     <Icon name="money" size={18} color="#1f7a45" />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="tm-display" style={{ fontSize: 16 }}>{claimableTotal.toLocaleString()} € à réclamer</div>
+                    <div className="tm-display" style={{ fontSize: 16 }}>{fmtMoney(claimableTotal)} à réclamer</div>
                     <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 1 }}>{claimableCount} récompense{claimableCount > 1 ? "s" : ""} en attente</div>
                   </div>
                   <button className="tm-display" onClick={claimAll} style={{ background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "7px 10px", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>Tout réclamer</button>
@@ -5021,17 +5040,17 @@ export default function TennisManager() {
                                   <div style={{ flex: 1, height: 9, background: "#ffffff", border: "2px solid " + T.ink }}>
                                     <div style={{ height: "100%", width: Math.min(100, result.progress.current / result.progress.target * 100) + "%", background: "#d6ef3c", borderRight: "2px solid " + T.ink }} />
                                   </div>
-                                  <span className="tm-num" style={{ fontSize: 10.5, fontWeight: 800 }}>{result.progress.current.toLocaleString()} / {result.progress.target.toLocaleString()}</span>
+                                  <span className="tm-num" style={{ fontSize: 10.5, fontWeight: 800 }}>{fmtNum(result.progress.current)} / {fmtNum(result.progress.target)}</span>
                                 </div>
                               )}
                             </div>
                             <div style={{ display: "flex", alignItems: "center", padding: "0 10px 0 4px", flexShrink: 0 }}>
                               {isUnlocked && !isClaimed ? (
-                                <button className="tm-display" onClick={(e) => { e.stopPropagation(); claimTrophy(t.id, reward); }} style={{ background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "5px 8px", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>+{reward} €</button>
+                                <button className="tm-display" onClick={(e) => { e.stopPropagation(); claimTrophy(t.id, reward); }} style={{ background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "5px 8px", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>{fmtMoney(reward, { sign: true })}</button>
                               ) : isUnlocked ? (
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 800 }}><Icon name="check" size={12} color="#1f7a45" strokeWidth={3} /> {reward} €</span>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 800 }}><Icon name="check" size={12} color="#1f7a45" strokeWidth={3} /> {fmtMoney(reward)}</span>
                               ) : (
-                                <span style={{ fontSize: 11, fontWeight: 800, color: "#6f6a5f" }}>+{reward} €</span>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: "#6f6a5f" }}>{fmtMoney(reward, { sign: true })}</span>
                               )}
                             </div>
                           </div>
@@ -5062,16 +5081,16 @@ export default function TennisManager() {
                     ...(objPenalty > 0 ? [["Objectif non atteint", objPenalty]] : []),
                   ].map(([l, v]) => (
                     <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, fontWeight: 600, padding: "5px 0", borderBottom: "1.5px dashed " + T.ink }}>
-                      <span>{l}</span><span className="tm-num" style={{ color: "#c4302b", fontWeight: 800 }}>−{v.toLocaleString()} €</span>
+                      <span>{l}</span><span className="tm-num" style={{ color: "#c4302b", fontWeight: 800 }}>{fmtMoney(-v, { sign: true })}</span>
                     </div>
                   ))}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
                     <span className="tm-display" style={{ fontSize: 13.5 }}>Total</span>
-                    <span className="tm-display" style={{ background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 14 }}>−{penalty.toLocaleString()} €</span>
+                    <span className="tm-display" style={{ background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 14 }}>{fmtMoney(-penalty, { sign: true })}</span>
                   </div>
                 </div>
                 <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.45 }}>
-                  Vous perdrez le revenu hebdomadaire de {s.weeklyPay} € et le bonus titre de {s.titleBonus.toLocaleString()} €.
+                  Vous perdrez le revenu hebdomadaire de {fmtMoney(s.weeklyPay)} et le bonus titre de {fmtMoney(s.titleBonus)}.
                 </div>
                 <button style={{ ...styles.btnPrimary, background: "#c4302b" }} onClick={() => { cancelSponsor(s); setConfirmCancelSponsor(null); }}>Confirmer la résiliation</button>
                 <button style={styles.btnSecondary} onClick={() => setConfirmCancelSponsor(null)}>Annuler</button>
@@ -5114,9 +5133,9 @@ export default function TennisManager() {
                       <span style={{ width: 28, height: 28, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, fontWeight: 800, fontSize: 14 }}>✕</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="tm-display" style={{ fontSize: 14 }}>{s.brand}</div>
-                        <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 2 }}>{s.weeklyPay} €/sem · {s.weeksLeft} sem. restantes</div>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 2 }}>{fmtMoney(s.weeklyPay)}/sem · {s.weeksLeft} sem. restantes</div>
                       </div>
-                      <span className="tm-display" style={{ flexShrink: 0, background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontSize: 13 }}>−{penalty.toLocaleString()} €</span>
+                      <span className="tm-display" style={{ flexShrink: 0, background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontSize: 13 }}>{fmtMoney(-penalty, { sign: true })}</span>
                     </button>
                   );
                 })}
@@ -5155,8 +5174,8 @@ export default function TennisManager() {
                   {[
                     ["Surface", <span key="s" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><SurfaceIcon name={t.surface} size={16} />{t.surface}</span>, "#141414"],
                     ["Semaine", "Semaine " + t.week, "#141414"],
-                    ["Dotation totale", t.prize.toLocaleString() + " €", "#1f7a45"],
-                    ["Points (vainqueur)", t.points + " pts", "#5b2d8e"],
+                    ["Dotation totale", fmtMoney(t.prize), "#1f7a45"],
+                    ["Points (vainqueur)", fmtNum(t.points) + "\u00a0pts", "#5b2d8e"],
                   ].map(([l, v, c]) => (
                     <div key={l} style={{ background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "6px 8px" }}>
                       <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>{l}</div>
@@ -5201,8 +5220,8 @@ export default function TennisManager() {
                       {entry.status === "blocked" && <span style={{ background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>Classement insuffisant</span>}
                       {playerIsSeed && <span style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>Tête de série · exempté au 1er tour</span>}
                     </div>
-                    <div>Distance : {Math.round(dist)} km ({travelCost} € de voyage)</div>
-                    {t.entryFee > 0 && <div>Frais d'inscription : {t.entryFee} €</div>}
+                    <div>Distance : {fmtKm(dist)} ({fmtMoney(travelCost)} de voyage)</div>
+                    {t.entryFee > 0 && <div>Frais d'inscription : {fmtMoney(t.entryFee)}</div>}
                   </div>
                 </div>
 
@@ -5242,7 +5261,7 @@ export default function TennisManager() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
                 <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
                   <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Points ATP</div>
-                  <div style={{ color: "#5b2d8e", fontFamily: T.display, fontSize: 18 }}>{p.points.toLocaleString()}</div>
+                  <div style={{ color: "#5b2d8e", fontFamily: T.display, fontSize: 18 }}>{fmtNum(p.points)}</div>
                 </div>
                 <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
                   <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Âge</div>
@@ -5270,7 +5289,7 @@ export default function TennisManager() {
                   <span>Titres</span><strong className="tm-num" style={{ color: "#5b2d8e", display: "inline-flex", alignItems: "center", gap: 3 }}><Icon name="trophy" size={11} /> {p.seasonTitles}</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", color: "#141414", fontSize: 12.5, fontWeight: 600, padding: "4px 0" }}>
-                  <span>Gains saison</span><strong className="tm-num" style={{ color: "#1f7a45" }}>{(p.seasonEarnings || 0).toLocaleString()}€</strong>
+                  <span>Gains saison</span><strong className="tm-num" style={{ color: "#1f7a45" }}>{fmtMoney(p.seasonEarnings || 0)}</strong>
                 </div>
               </div>
 
@@ -5310,7 +5329,7 @@ export default function TennisManager() {
                         <div style={{ display: "inline-flex", alignItems: "center", gap: 3, marginTop: 2, background: r.isWinner ? "#d6ef3c" : "#ffffff", color: "#141414", border: "2px solid " + T.ink, fontSize: 10, fontWeight: 800, padding: "0 5px" }}>{r.isWinner && <Icon name="trophy" size={10} />} {r.roundReached}</div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <div className="tm-num" style={{ color: "#1f7a45", fontSize: 11.5, fontWeight: 800 }}>+{r.prize.toLocaleString()}€</div>
+                        <div className="tm-num" style={{ color: "#1f7a45", fontSize: 11.5, fontWeight: 800 }}>{fmtMoney(r.prize, { sign: true })}</div>
                         <div className="tm-num" style={{ color: "#5b2d8e", fontSize: 11, fontWeight: 800 }}>+{r.pts}p</div>
                       </div>
                     </div>

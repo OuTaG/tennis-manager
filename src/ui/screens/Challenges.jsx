@@ -6,6 +6,7 @@ import { randomFullName } from "../../engine/names.js";
 import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
+import { fmtMoney, fmtNum } from "../format.js";
 
 // ─── ÉCRANS DES DÉFIS ────────────────────────────────────────────────────────
 const INK = T.ink;
@@ -89,7 +90,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
               ))}
               {results[def.id] && (
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: "2px dashed " + INK, color: "#141414", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  Record : <strong className="tm-display" style={{ ...chip("#d6ef3c", "#141414"), fontWeight: 400, fontSize: 13 }}>{(results[def.id].score || 0).toLocaleString("fr-FR")} pts</strong>
+                  Record : <strong className="tm-display" style={{ ...chip("#d6ef3c", "#141414"), fontWeight: 400, fontSize: 13 }}>{fmtNum(results[def.id].score || 0)} pts</strong>
                   {results[def.id].medal && <MedalBadge medal={results[def.id].medal} weeks={results[def.id].weeks} />}
                 </div>
               )}
@@ -176,7 +177,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
               {results[c.id] && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                   {results[c.id].medal && <MedalBadge medal={results[c.id].medal} />}
-                  <span className="tm-display" style={{ ...chip("#d6ef3c", "#141414"), fontWeight: 400, fontSize: 12 }}>{(results[c.id].score || 0).toLocaleString("fr-FR")} pts</span>
+                  <span className="tm-display" style={{ ...chip("#d6ef3c", "#141414"), fontWeight: 400, fontSize: 12 }}>{fmtNum(results[c.id].score || 0)} pts</span>
                 </span>
               )}
             </div>
@@ -212,19 +213,19 @@ export function ChallengePanel({ player, atpDb, repayDebt }) {
         <div style={{ color: "#141414", fontSize: 12.5, fontWeight: 700, marginTop: 3 }}>{obj.progress}</div>
         <div className="tm-lettering" style={{ color: "#141414", fontSize: 13.5, marginTop: 4 }}>
           {finished
-            ? "Score du défi : " + (c.result?.score || 0).toLocaleString("fr-FR") + " pts"
-            : "Score provisoire : " + computeChallengeScore(player, atpDb, null).score.toLocaleString("fr-FR") + " pts (hors objectif)"}
+            ? "Score du défi : " + fmtNum(c.result?.score || 0) + "\u00a0pts"
+            : "Score provisoire : " + fmtNum(computeChallengeScore(player, atpDb, null).score) + "\u00a0pts (hors objectif)"}
         </div>
 
         {!finished && c.id === "fauche" && (c.debt || 0) > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ color: "#141414", fontSize: 11.5, fontWeight: 700, marginBottom: 6 }}>
-              Prochaine échéance obligatoire : 2 500 € dans {Math.max(0, (c.nextDueAbs || 0) - ctx.abs)} sem.
+              Prochaine échéance obligatoire : {fmtMoney(2500)} dans {Math.max(0, (c.nextDueAbs || 0) - ctx.abs)} sem.
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               {[1000, 5000].map(a => (
                 <button key={a} style={{ ...styles.btnSmall, flex: 1, background: "#ffffff", color: "#141414", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK }} disabled={player.money < 1} onClick={() => repayDebt(a)}>
-                  −{a.toLocaleString("fr-FR")} €
+                  {fmtMoney(-a, { sign: true })}
                 </button>
               ))}
               <button className="tm-display" style={{ ...styles.btnSmall, fontFamily: T.display, flex: 1, background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontWeight: 400 }} disabled={player.money < 1} onClick={() => repayDebt(Infinity)}>

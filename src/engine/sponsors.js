@@ -1,6 +1,7 @@
 // Sponsors : objectifs, offres, catégories, wildcards.
 import { difficultyFactors } from "./player.js";
 import { random } from "./rng.js";
+import { fmtMoney } from "./text.js";
 
 // ─── SPONSOR OBJECTIVES ───────────────────────────────────────────────────────
 // Each sponsor contract carries a performance objective evaluated over a season
@@ -333,7 +334,7 @@ export function sponsorSlotWarning(player, offer, ranking) {
   if (same.length < cap) return null;
   const costs = same.map(s => sponsorCancelBreakdownFor(player, s, ranking).total);
   const minCost = Math.min(...costs), maxCost = Math.max(...costs);
-  const range = minCost === maxCost ? minCost.toLocaleString() + "€" : minCost.toLocaleString() + "€ à " + maxCost.toLocaleString() + "€";
+  const range = minCost === maxCost ? fmtMoney(minCost) : fmtMoney(minCost) + " à " + fmtMoney(maxCost);
   const catName = cat === "equipment" ? "équipementier" : "partenaires";
   return {
     short: "Emplacements " + catName + " pleins (" + same.length + "/" + cap + ") : signer impose de résilier un contrat (pénalité " + range + ").",

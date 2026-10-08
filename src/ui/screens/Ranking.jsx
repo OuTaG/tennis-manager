@@ -1,8 +1,9 @@
 // Écran Carrière › Classement (classique et Race).
+import { elide } from "../../engine/text.js";
 import { useState, useMemo } from "react";
 import { ALL_TOURNAMENTS } from "../../engine/circuit.js";
 import { racePointsOf, raceStandings } from "../../engine/race.js";
-import { rankingName } from "../format.js";
+import { fmtNum, rankingName } from "../format.js";
 import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
@@ -89,13 +90,13 @@ export function RaceScreen({ atpDb, player, raceRank, setAtpPlayerDetail }) {
             {isMe && <span style={{ ...chip(INK, "#ffffff"), fontSize: 10, flexShrink: 0 }}>VOUS</span>}
           </span>
           <span className="tm-display" style={{ color: "#141414", fontSize: 13.5, width: 70, textAlign: "right" }}>
-            {(isMe ? myPts : r.pts).toLocaleString()}
+            {fmtNum(isMe ? myPts : r.pts)}
           </span>
         </div>
         {rank === 8 && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 10px" }}>
             <div style={{ flex: 1, borderTop: "2.5px dashed " + INK }} />
-            <span style={{ ...chip("#5b2d8e", "#ffffff"), fontSize: 10, textAlign: "center" }}>Qualification pour le {finals ? finals.name : "Masters"}</span>
+            <span style={{ ...chip("#5b2d8e", "#ffffff"), fontSize: 10, textAlign: "center" }}>{elide("Qualification pour le " + (finals ? finals.name : "Masters"))}</span>
             <div style={{ flex: 1, borderTop: "2.5px dashed " + INK }} />
           </div>
         )}
@@ -114,13 +115,13 @@ export function RaceScreen({ atpDb, player, raceRank, setAtpPlayerDetail }) {
           </div>
           <div style={{ textAlign: "right" }}>
             <span style={chip("#ffffff", "#141414")}>Points {year}</span>
-            <div className="tm-display" style={{ color: "#141414", fontSize: 22, lineHeight: 1.1, marginTop: 4 }}>{myPts.toLocaleString()}</div>
+            <div className="tm-display" style={{ color: "#141414", fontSize: 22, lineHeight: 1.1, marginTop: 4 }}>{fmtNum(myPts)}</div>
           </div>
         </div>
         <div style={{ background: "#ffffff", border: "2px solid " + INK, padding: "6px 9px", color: "#141414", fontSize: 12.5, fontWeight: 700, lineHeight: 1.5, marginTop: 10 }}>
           {raceRank <= 8
-            ? "Dans le top 8 : " + gap.toLocaleString() + " pts d'avance sur la 9e place."
-            : "À " + Math.max(0, gap).toLocaleString() + " pts de la 8e place."}
+            ? "Dans le top 8 : " + fmtNum(gap) + "\u00a0pts d'avance sur la 9e place."
+            : "À " + fmtNum(Math.max(0, gap)) + "\u00a0pts de la 8e place."}
           {finals && (player.week <= finals.week
             ? " " + finals.name + " en semaine " + finals.week + (weeksLeft > 0 ? " (dans " + weeksLeft + " sem.)" : " (cette semaine)") + "."
             : " La Race repart de zéro le 1er janvier.")}
@@ -231,7 +232,7 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
                 <span style={{ ...chip(INK, "#ffffff"), fontSize: 10, flexShrink: 0 }}>VOUS</span>
               </span>
               <span className="tm-display" style={{ color: "#141414", fontSize: 13.5, width: 70, textAlign: "right" }}>
-                {totalPts.toLocaleString()}
+                {fmtNum(totalPts)}
               </span>
             </div>
           );
@@ -268,7 +269,7 @@ export function AtpScreen({ atpDb, player, ranking, totalPts, atpPage, setAtpPag
             <span className="tm-display" style={{
               color: "#141414",
               fontSize: 13.5, width: 70, textAlign: "right",
-            }}>{p.points.toLocaleString()}</span>
+            }}>{fmtNum(p.points)}</span>
           </div>
         );
       })}

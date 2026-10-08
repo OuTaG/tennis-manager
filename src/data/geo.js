@@ -57,7 +57,6 @@ export const CITIES = {
   "Cairns": { lat: -16.92, lon: 145.77, country: "Australie", flag: "🇦🇺" },
   "Shanghai": { lat: 31.23, lon: 121.47, country: "Chine", flag: "🇨🇳" },
   "Pékin": { lat: 39.90, lon: 116.41, country: "Chine", flag: "🇨🇳" },
-  "Dubai": { lat: 25.20, lon: 55.27, country: "Émirats", flag: "🇦🇪" },
   "Rio de Janeiro": { lat: -22.91, lon: -43.17, country: "Brésil", flag: "🇧🇷" },
   "Santiago": { lat: -33.45, lon: -70.67, country: "Chili", flag: "🇨🇱" },
 
@@ -291,6 +290,10 @@ export const CITIES = {
   "Wellington": { lat: -41.29, lon: 174.78, country: "Nouvelle-Zélande", flag: "🇳🇿" },
   "Christchurch": { lat: -43.53, lon: 172.64, country: "Nouvelle-Zélande", flag: "🇳🇿" },
 };
+
+// Ancien nom sans tréma, gardé pour les vieilles sauvegardes. Non énumérable :
+// il n'apparaît pas en doublon dans les listes de villes.
+Object.defineProperty(CITIES, "Dubai", { value: CITIES["Dubaï"], enumerable: false });
 
 export const TRAVEL_COST_PER_KM = 0.18;
 export const TRAVEL_FIXED_COST = 30;

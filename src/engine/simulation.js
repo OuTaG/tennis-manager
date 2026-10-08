@@ -8,6 +8,7 @@ import { generateName, namesForCountry, pickNationality } from "./names.js";
 import { RETIREMENT_AGE } from "./player.js";
 import { pointsWeekAfter, raceStandings } from "./race.js";
 import { random } from "./rng.js";
+import { elide, fmtMoney, fmtNum } from "./text.js";
 
 // Taux de participation hebdomadaire au circuit hors calendrier (voir
 // simulateAtpWeek). Valeurs calibrées par simulation sur plusieurs saisons.
@@ -960,8 +961,8 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
   const surface = tourn.surface.toLowerCase();
   const tier = tierLabel(tourn.tier);
   const city = tourn.city;
-  const prize = tourn.prize.toLocaleString();
-  const points = tourn.points;
+  const prize = fmtMoney(tourn.prize);
+  const points = fmtNum(tourn.points);
 
   // Title templates (lots of variety)
   const titleTemplates = [
@@ -1064,9 +1065,9 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
   // Closing - prize and points (sometimes omitted)
   if (random() < 0.6) {
     const closings = [
-      " " + w + " empoche " + prize + "€ et " + points + " points ATP.",
-      " À la clé : " + prize + "€ et " + points + " points pour le vainqueur.",
-      " Le sacre rapporte à " + w + " la somme de " + prize + "€ et " + points + " points ATP.",
+      " " + w + " empoche " + prize + " et " + points + " points ATP.",
+      " À la clé : " + prize + " et " + points + " points pour le vainqueur.",
+      " Le sacre rapporte à " + w + " la somme de " + prize + " et " + points + " points ATP.",
     ];
     body += closings[Math.floor(random() * closings.length)];
   }
@@ -1076,8 +1077,8 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
   return {
     id: "article_" + Date.now() + "_" + random().toString(36).slice(2, 6),
     week: tourn.week,
-    title,
-    body,
+    title: elide(title),
+    body: elide(body),
     tournament: tourn.name,
     tier: tourn.tier,
     surface: tourn.surface,

@@ -1,6 +1,7 @@
 // Records de carrière (stockés sur l'appareil).
 import { computeCareerSummary, computeLegacyScore, getTitlesByTier } from "./legacy.js";
 import { getPlayerRanking, totalAtpPoints } from "./player.js";
+import { fmtMoneyShort, fmtNum } from "./text.js";
 
 // ─── RECORDS (toutes carrières) ──────────────────────────────────────────
 // Un résumé de chaque carrière est gardé à part (localStorage « tm-records »),
@@ -64,19 +65,19 @@ export function updateCareerRecords(player, atpDb) {
 export const RECORD_DEFS = [
   { key: "bestRank", label: "Meilleur classement", icon: "trending", lower: true, fmt: v => "#" + v, valid: v => v && v < 9999,
     when: c => c.bestRankWhen ? "S" + c.bestRankWhen.week + " · " + c.bestRankWhen.year : null },
-  { key: "legacy", label: "Score de légende", icon: "award", fmt: v => v.toLocaleString() },
+  { key: "legacy", label: "Score de légende", icon: "award", fmt: v => fmtNum(v) },
   { key: "titles", label: "Titres", icon: "trophy", fmt: v => v },
   { key: "gsTitles", label: "Titres du Grand Chelem", icon: "star", fmt: v => v },
   { key: "mastersTitles", label: "Titres Grand 1000", icon: "star", fmt: v => v },
   { key: "weeksNo1", label: "Semaines n°1 mondial", icon: "trophy", fmt: v => v },
   { key: "weeksTop10", label: "Semaines dans le top 10", icon: "chart", fmt: v => v },
-  { key: "maxPoints", label: "Points ATP (maximum)", icon: "chart", fmt: v => v.toLocaleString() },
+  { key: "maxPoints", label: "Points ATP (maximum)", icon: "chart", fmt: v => fmtNum(v) },
   { key: "wins", label: "Victoires", icon: "success", fmt: v => v },
   { key: "winRate", label: "Pourcentage de victoires (20 matchs min.)", icon: "activity", fmt: v => v + " %", valid: v => v !== null && v !== undefined },
   { key: "bestStreak", label: "Série de victoires", icon: "fire", fmt: v => v },
   { key: "bigWins", label: "Victoires contre le top 50", icon: "target", fmt: v => v },
   { key: "earnings", label: "Gains en tournoi", icon: "money",
-    fmt: v => v >= 1e6 ? (Math.round(v / 1e5) / 10) + " M€" : v >= 1000 ? (Math.round(v / 100) / 10) + " k€" : v + " €" },
+    fmt: v => fmtMoneyShort(v) },
   { key: "seasons", label: "Saisons jouées", icon: "calendar", fmt: v => v },
 ];
 

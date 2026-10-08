@@ -19,7 +19,7 @@ import { getPlayerRanking, totalAtpPoints } from "./player.js";
 export const SHOP_ITEMS = [
   {
     id: "online_ranked", category: "En ligne", type: "once", icon: "trophy",
-    name: "Accès Classements", price: "2,99 €", status: "soon",
+    name: "Accès Classements", price: "2,99\u00a0€", status: "soon",
     desc: "Payé une fois. Vos carrières comptent dans les classements en ligne. Aucun avantage en jeu.",
     perks: [
       { label: "Défis hebdomadaires", ready: false },
@@ -28,19 +28,19 @@ export const SHOP_ITEMS = [
   },
   {
     id: "online_full", category: "En ligne", type: "once", icon: "users",
-    name: "Accès En ligne complet", price: "4,99 €", status: "soon",
-    desc: "Payé une fois. Tout l'accès Classements, plus les carrières coop. Déjà l'accès Classements ? Le passage coûte la différence (2,00 €).",
+    name: "Accès En ligne complet", price: "4,99\u00a0€", status: "soon",
+    desc: "Payé une fois. Tout l'accès Classements, plus les carrières coop. Déjà l'accès Classements ? Le passage coûte la différence (2,00\u00a0€).",
     perks: [
       { label: "Défis hebdomadaires", ready: false },
       { label: "Classement mondial de carrière (masculin, féminin, par style)", ready: false },
       { label: "Carrières coop", ready: false },
     ],
   },
-  { id: "dlc_challenges", category: "Modes de jeu", type: "dlc", icon: "target", name: "Défis scénarisés", price: "2,99 €", status: "available",
+  { id: "dlc_challenges", category: "Modes de jeu", type: "dlc", icon: "target", name: "Défis scénarisés", price: "2,99\u00a0€", status: "available",
     desc: "Des situations imposées à renverser : blessure, dette, remontée au classement…" },
   {
     id: "custom_mode", category: "Options", type: "once", icon: "edit",
-    name: "Mode Personnalisation", price: "2,99 €", status: "available",
+    name: "Mode Personnalisation", price: "2,99\u00a0€", status: "available",
     desc: "Payé une fois. Renommez et redessinez tous les joueurs du jeu, comme à la création de votre joueur, puis jouez vos carrières avec votre propre base.",
     perks: [
       { label: "Nom, nationalité et portrait des 1 200 joueurs de chaque circuit", ready: true },
@@ -48,7 +48,7 @@ export const SHOP_ITEMS = [
       { label: "Choix de la base au lancement de chaque carrière", ready: true },
     ],
   },
-  { id: "multi_careers", category: "Options", type: "once", icon: "history", name: "Carrières multiples", price: "1,99 €", status: "available",
+  { id: "multi_careers", category: "Options", type: "once", icon: "history", name: "Carrières multiples", price: "1,99\u00a0€", status: "available",
     desc: "Deux emplacements de sauvegarde en plus, pour mener jusqu'à 3 carrières en parallèle." },
 ];
 export const SHOP_STORAGE_KEY = "tm-purchases";

@@ -87,6 +87,28 @@ describe("mini-jeux", () => {
     expect(r.win).toBe(!r.serverWins);
   });
 
+  it("phrases de zones : prépositions correctes, T en majuscule", async () => {
+    const { ZONES, ZONE_PHRASES, returnDuel } = await import("../src/engine/minigames.js");
+    expect(ZONE_PHRASES).toEqual(["à l'extérieur", "dans le corps", "au T"]);
+    expect(ZONE_PHRASES.length).toBe(ZONES.length);
+    expect(serveDuel(0, 2).text).toBe("Il attendait au T, vous servez à l'extérieur : ace !");
+    expect(serveDuel(2, 0).text).toBe("Il attendait à l'extérieur, vous servez au T : ace !");
+    // Retour : on cherche un ace adverse (le service part au hasard).
+    const aces = new Set();
+    for (let s = 1; s < 200 && aces.size < 2; s++) {
+      seedRandom(s);
+      const g = s % 2 ? 0 : 2;
+      const r = returnDuel(g);
+      if (r.kind === "ace") aces.add(r.text);
+    }
+    expect([...aces].sort()).toEqual([
+      "Il a servi au T, vous l'attendiez à l'extérieur : ace.",
+      "Il a servi à l'extérieur, vous l'attendiez au T : ace.",
+    ].sort());
+    // Aucune phrase ne garde une zone brute en minuscule (« au t », « servi corps »).
+    for (const t of aces) expect(t).not.toMatch(/ au t[ ,:]|servi (corps|extérieur)|attendait (corps|extérieur)/);
+  });
+
   it("un adversaire au gros mental repère la zone favorite", () => {
     seedRandom(4);
     let read = 0;

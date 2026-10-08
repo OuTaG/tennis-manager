@@ -1,5 +1,6 @@
 // Bilan de carrière et score de légende.
 import { difficultyLevel, formatMultiplier, scoreMultiplier } from "./difficulty.js";
+import { fmtMoney } from "./text.js";
 
 // ─── HALL OF FAME / TROPHIES ─────────────────────────────────────────────────
 // Career summary + "legacy score" shown on the end-of-career screen. Gives a
@@ -115,7 +116,7 @@ export function computeLegacyBreakdown(player, summary) {
     { label: "Victoires en carrière", detail: (player.careerWins || 0) + " × 4", pts: (player.careerWins || 0) * 4 },
     { label: "Meilleure série", detail: s.bestStreak + " × 20", pts: s.bestStreak * 20 },
     { label: "Objectifs sponsors", detail: (player.careerObjectivesMet || 0) + " × 60", pts: (player.careerObjectivesMet || 0) * 60 },
-    { label: "Gains", detail: (player.totalEarnings || 0).toLocaleString() + "€", pts: Math.floor((player.totalEarnings || 0) / 20000) },
+    { label: "Gains", detail: fmtMoney(player.totalEarnings || 0), pts: Math.floor((player.totalEarnings || 0) / 20000) },
   ].filter(r => r.pts > 0);
   const subtotal = rows.reduce((a, r) => a + r.pts, 0);
   const difficultyBonus = Math.round(subtotal * (diffMul - 1));

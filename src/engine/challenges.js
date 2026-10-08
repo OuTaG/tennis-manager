@@ -6,6 +6,7 @@ import { getPlayerRanking, totalAtpPoints } from "./player.js";
 import { playerRaceRank, racePointsOf, raceStandings } from "./race.js";
 import { pickRandom } from "./social.js";
 import { random } from "./rng.js";
+import { fmtMoney, fmtNum } from "./text.js";
 
 // ─── DÉFIS SCÉNARISÉS ────────────────────────────────────────────────────────
 // Chaque défi démarre une partie dans une situation imposée (âge, classement,
@@ -139,13 +140,13 @@ export const CHALLENGES = [
   },
   {
     id: "fauche", circuit: "wta", name: "Fauché", difficulty: 3,
-    tagline: "50 000 € de dettes, aucun sponsor",
-    context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes 150e mondiale, vous devez 50 000 € et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
-    objectiveLabel: "Rembourser 50 000 €",
+    tagline: "50\u202f000\u00a0€ de dettes, aucun sponsor",
+    context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes 150e mondiale, vous devez 50\u202f000\u00a0€ et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
+    objectiveLabel: "Rembourser 50\u202f000\u00a0€",
     deadlineLabel: "Avant la fin de la saison 2026",
     perks: [
       "Remboursez quand vous voulez depuis l'accueil",
-      "Échéance obligatoire de 2 500 € toutes les 4 semaines, sinon +10 % de pénalité",
+      "Échéance obligatoire de 2\u202f500\u00a0€ toutes les 4 semaines, sinon +10 % de pénalité",
       "Aucun sponsor au départ et une image écornée",
       "Des propositions douteuses vont arriver…",
     ],
@@ -163,7 +164,7 @@ export const CHALLENGES = [
     },
     objective(p) {
       const debt = Math.max(0, Math.round(p.challenge.debt || 0));
-      return { done: debt <= 0, progress: debt <= 0 ? "Dette remboursée !" : "Dette restante : " + debt.toLocaleString("fr-FR") + " €" };
+      return { done: debt <= 0, progress: debt <= 0 ? "Dette remboursée !" : "Dette restante : " + fmtMoney(debt) };
     },
   },
   {
@@ -281,7 +282,7 @@ export const CHALLENGES = [
       return {
         done: reached && ctx.raceRank <= 8,
         failNow: reached && ctx.raceRank > 8 ? "Pas qualifié pour " + (finals ? finals.name : "le Masters") : null,
-        progress: "Race : #" + ctx.raceRank + " · " + (ctx.raceRank <= 8 ? "dans le top 8" : "à " + Math.max(0, ctx.raceGap) + " pts de la 8e place"),
+        progress: "Race : #" + ctx.raceRank + " · " + (ctx.raceRank <= 8 ? "dans le top 8" : "à " + fmtNum(Math.max(0, ctx.raceGap)) + " pts de la 8e place"),
       };
     },
     medal(p, ctx) { return ctx.raceRank <= 2 ? "gold" : ctx.raceRank <= 5 ? "silver" : "bronze"; },
@@ -420,7 +421,7 @@ export function computeChallengeScore(p, db, status, weeksUsed) {
   rows.push({ label: "Titres", detail: titleCount + " titre" + (titleCount > 1 ? "s" : ""), pts: titlePts });
   if (tally.top10) rows.push({ label: "Victoires contre le top 10", detail: tally.top10 + " × 60", pts: tally.top10 * 60 });
   // Bonus propre au défi.
-  if (c.id === "fauche") rows.push({ label: "Trésorerie finale", detail: Math.max(0, Math.round(p.money)).toLocaleString("fr-FR") + " €", pts: Math.min(1000, Math.max(0, Math.round(p.money / 50))) });
+  if (c.id === "fauche") rows.push({ label: "Trésorerie finale", detail: fmtMoney(Math.max(0, p.money)), pts: Math.min(1000, Math.max(0, Math.round(p.money / 50))) });
   if (c.id === "pression") rows.push({ label: "Sang-froid", detail: "Bonheur final " + Math.round(p.happiness ?? 0), pts: Math.max(0, Math.round((p.happiness ?? 0) * 10)) });
   if (c.id === "derniere_danse") rows.push({ label: "Adieux au public", detail: "Popularité " + Math.round(p.popularity ?? 0), pts: Math.round((p.popularity ?? 0) * 5) });
   if (c.id === "retour") rows.push({ label: "Entrées protégées gardées", detail: (c.protectedUses || 0) + " × 50", pts: (c.protectedUses || 0) * 50 });
@@ -477,19 +478,19 @@ export const CHALLENGE_EVENTS = [
     body: "Une douleur sourde au genou opéré après l'entraînement. Votre kiné conseille de lever le pied.",
     options: [
       { label: "Une semaine de repos complet", restWeeks: 1, effects: { energy: 15, happiness: -2 } },
-      { label: "Infiltration et on continue (3 000€)", effects: { money: -3000 }, injuryRisk: 0.15 },
+      { label: "Infiltration et on continue (3\u202f000\u00a0€)", effects: { money: -3000 }, injuryRisk: 0.15 },
       { label: "Serrer les dents", effects: { happiness: -1 }, injuryRisk: 0.35 },
     ] },
   { id: "ch_retour_rival", challenge: "retour", once: true, title: "L'ancien rival",
     body: "Votre grand rival de l'époque, désormais retraité, propose de devenir votre coach le temps du retour.",
     options: [
-      { label: "Accepter (40 000€)", effects: { money: -40000, happiness: 4, popularity: 4 }, apply: p => addStats(p, { mental: 2, forehand: 1 }), chips: [{ label: "Mental +2 · Coup droit +1", color: "var(--tm-green)" }] },
+      { label: "Accepter (40\u202f000\u00a0€)", effects: { money: -40000, happiness: 4, popularity: 4 }, apply: p => addStats(p, { mental: 2, forehand: 1 }), chips: [{ label: "Mental +2 · Coup droit +1", color: "var(--tm-green)" }] },
       { label: "Décliner poliment", effects: { image: 1 } },
     ] },
   { id: "ch_retour_doc", challenge: "retour", once: true, title: "Documentaire « Le Retour »",
     body: "Une plateforme veut filmer votre retour au sommet, caméras dans le vestiaire comprises.",
     options: [
-      { label: "Signer (60 000€)", effects: { money: 60000, popularity: 8, energy: -10, happiness: -3 } },
+      { label: "Signer (60\u202f000\u00a0€)", effects: { money: 60000, popularity: 8, energy: -10, happiness: -3 } },
       { label: "Refuser, rester concentré", effects: { image: 2, happiness: 2 } },
     ] },
   { id: "ch_retour_jeunes", challenge: "retour", once: true, title: "Les jeunes n'ont plus peur",
@@ -502,7 +503,7 @@ export const CHALLENGE_EVENTS = [
   { id: "ch_retour_protege", challenge: "retour", once: true, when: p => (p.challenge.protectedUses || 0) <= 2, title: "Fin du classement protégé",
     body: "La fédération vous rappelle qu'il ne vous reste presque plus d'entrées avec votre classement protégé.",
     options: [
-      { label: "Faire valoir votre statut (5 000€ d'avocats)", effects: { money: -5000, happiness: 2 }, apply: p => patchChallenge(p, { protectedUses: (p.challenge.protectedUses || 0) + 2 }), chips: [{ label: "+2 entrées protégées", color: "var(--tm-green)" }] },
+      { label: "Faire valoir votre statut (5\u202f000\u00a0€ d'avocats)", effects: { money: -5000, happiness: 2 }, apply: p => patchChallenge(p, { protectedUses: (p.challenge.protectedUses || 0) + 2 }), chips: [{ label: "+2 entrées protégées", color: "var(--tm-green)" }] },
       { label: "Accepter et compter sur son classement réel", effects: { image: 1 } },
     ] },
 
@@ -543,19 +544,19 @@ export const CHALLENGE_EVENTS = [
 
   // ── Fauché ────────────────────────────────────────────────────────────────
   { id: "ch_fauche_usurier", challenge: "fauche", title: "Un prêteur généreux",
-    body: "Un « ami d'ami » propose 10 000 € tout de suite. Il récupérera 15 000 € sur votre dette.",
+    body: "Un « ami d'ami » propose 10\u202f000\u00a0€ tout de suite. Il récupérera 15\u202f000\u00a0€ sur votre dette.",
     options: [
-      { label: "Accepter", effects: { money: 10000, happiness: 2 }, apply: p => patchChallenge(p, { debt: (p.challenge.debt || 0) + 15000 }), chips: [{ label: "Dette +15 000€", color: "var(--tm-red)" }] },
+      { label: "Accepter", effects: { money: 10000, happiness: 2 }, apply: p => patchChallenge(p, { debt: (p.challenge.debt || 0) + 15000 }), chips: [{ label: "Dette +15\u202f000\u00a0€", color: "var(--tm-red)" }] },
       { label: "Refuser", effects: { image: 1 } },
     ] },
   { id: "ch_fauche_trophees", challenge: "fauche", once: true, title: "Vendre ses trophées",
     body: "Un collectionneur veut racheter les trophées de vos premiers titres.",
     options: [
-      { label: "Vendre (8 000€)", effects: { money: 8000, happiness: -6 } },
+      { label: "Vendre (8\u202f000\u00a0€)", effects: { money: 8000, happiness: -6 } },
       { label: "Hors de question", effects: { happiness: 2 } },
     ] },
   { id: "ch_fauche_arrange", challenge: "fauche", once: true, title: "Une offre à ne pas accepter",
-    body: "Un inconnu vous propose 25 000 € pour perdre un match de Circuit Pro. « Personne ne saura. »",
+    body: "Un inconnu vous propose 25\u202f000\u00a0€ pour perdre un match de Circuit Pro. « Personne ne saura. »",
     options: [
       { label: "Accepter", effects: { money: 25000 }, outcomes: [
         { chance: 0.6, msg: "Personne n'a rien vu… pour l'instant", effects: { happiness: -8 } },
@@ -567,19 +568,19 @@ export const CHALLENGE_EVENTS = [
   { id: "ch_fauche_exhib", challenge: "fauche", title: "Exhibition rémunérée",
     body: "Un club privé vous paie pour une exhibition le week-end. Ça fatigue, mais ça rapporte.",
     options: [
-      { label: "Jouer l'exhibition (6 000€)", effects: { money: 6000, energy: -18 } },
+      { label: "Jouer l'exhibition (6\u202f000\u00a0€)", effects: { money: 6000, energy: -18 } },
       { label: "Refuser, préserver l'énergie", effects: { energy: 5 } },
     ] },
   { id: "ch_fauche_stage", challenge: "fauche", title: "Stage pour enfants",
     body: "Une académie cherche quelqu'un pour animer un stage d'une journée.",
     options: [
-      { label: "Accepter (2 500€)", effects: { money: 2500, energy: -8, image: 2, happiness: 2 } },
+      { label: "Accepter (2\u202f500\u00a0€)", effects: { money: 2500, energy: -8, image: 2, happiness: 2 } },
       { label: "Pas cette semaine", effects: {} },
     ] },
   { id: "ch_fauche_sponsor", challenge: "fauche", once: true, when: p => (p.image ?? 0) >= 50, title: "Une marque revient",
     body: "Votre image remonte : une petite marque locale propose une avance si vous portez son logo.",
     options: [
-      { label: "Signer (avance de 12 000€)", effects: { money: 12000, popularity: 2 } },
+      { label: "Signer (avance de 12\u202f000\u00a0€)", effects: { money: 12000, popularity: 2 } },
       { label: "Attendre mieux", effects: { image: 1 } },
     ] },
 
@@ -606,7 +607,7 @@ export const CHALLENGE_EVENTS = [
   { id: "ch_prodige_agent", challenge: "prodige", once: true, title: "Un agent pressé",
     body: "Un agent célèbre vous promet des millions si vous signez un contrat de dix ans.",
     options: [
-      { label: "Signer (20 000€ tout de suite)", effects: { money: 20000, popularity: 4, happiness: -2 } },
+      { label: "Signer (20\u202f000\u00a0€ tout de suite)", effects: { money: 20000, popularity: 4, happiness: -2 } },
       { label: "Refuser, trop tôt", effects: { image: 2 } },
     ] },
   { id: "ch_prodige_burnout", challenge: "prodige", title: "Coup de fatigue",
@@ -620,13 +621,13 @@ export const CHALLENGE_EVENTS = [
   { id: "ch_terrien_stage", challenge: "terrien", once: true, when: p => challengeAbs(p) >= 2026 * 52 + 30, title: "Stage sur gazon",
     body: "Un club anglais propose de vous ouvrir ses courts en gazon pour un stage de trois semaines.",
     options: [
-      { label: "Stage intensif (30 000€)", effects: { money: -30000, energy: -10 }, apply: p => addStats(p, { serve: 2, net: 2.5 }), chips: [{ label: "Service +2 · Filet +2,5", color: "var(--tm-green)" }] },
+      { label: "Stage intensif (30\u202f000\u00a0€)", effects: { money: -30000, energy: -10 }, apply: p => addStats(p, { serve: 2, net: 2.5 }), chips: [{ label: "Service +2 · Filet +2,5", color: "var(--tm-green)" }] },
       { label: "Pas maintenant", effects: {} },
     ] },
   { id: "ch_terrien_mentor", challenge: "terrien", once: true, when: p => challengeAbs(p) >= 2026 * 52 + 36, title: "Le mentor du gazon",
     body: "Une légende du service-volée, plusieurs fois titrée à Londres, accepte de vous conseiller.",
     options: [
-      { label: "Accepter (50 000€)", effects: { money: -50000, happiness: 3 }, apply: p => addStats(p, { serve: 1.5, net: 1.5, mental: 1 }), chips: [{ label: "Service +1,5 · Filet +1,5 · Mental +1", color: "var(--tm-green)" }] },
+      { label: "Accepter (50\u202f000\u00a0€)", effects: { money: -50000, happiness: 3 }, apply: p => addStats(p, { serve: 1.5, net: 1.5, mental: 1 }), chips: [{ label: "Service +1,5 · Filet +1,5 · Mental +1", color: "var(--tm-green)" }] },
       { label: "Décliner", effects: {} },
     ] },
   { id: "ch_terrien_refonte", challenge: "terrien", once: true, when: p => challengeAbs(p) >= 2026 * 52 + 44, title: "Refondre son tennis",
@@ -668,7 +669,7 @@ export const CHALLENGE_EVENTS = [
   { id: "ch_seul_cordage", challenge: "seul", title: "Cordage maison",
     body: "Votre machine à corder fait des siennes. Faire réparer coûte cher, bricoler prend du temps.",
     options: [
-      { label: "Faire réparer (800€)", effects: { money: -800 } },
+      { label: "Faire réparer (800\u00a0€)", effects: { money: -800 } },
       { label: "Bricoler soi-même", effects: { energy: -6, happiness: -1 } },
     ] },
   { id: "ch_seul_solitude", challenge: "seul", title: "La solitude du circuit",
@@ -744,7 +745,7 @@ export const CHALLENGE_EVENTS = [
   { id: "ch_pression_psy", challenge: "pression", once: true, title: "Un préparateur mental",
     body: "Votre entourage vous conseille un préparateur mental spécialisé dans la gestion des médias.",
     options: [
-      { label: "Commencer un suivi (10 000€)", effects: { money: -10000, happiness: 12 }, apply: p => addStats(p, { mental: 2 }), chips: [{ label: "Mental +2", color: "var(--tm-green)" }] },
+      { label: "Commencer un suivi (10\u202f000\u00a0€)", effects: { money: -10000, happiness: 12 }, apply: p => addStats(p, { mental: 2 }), chips: [{ label: "Mental +2", color: "var(--tm-green)" }] },
       { label: "Je n'en ai pas besoin", effects: { happiness: -3 } },
     ] },
   { id: "ch_pression_fans", challenge: "pression", title: "Le soutien des fans",

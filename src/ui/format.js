@@ -1,5 +1,9 @@
 // Petits formats d'affichage partagés.
 import { ALL_TOURNAMENTS, getTournamentFormat } from "../engine/circuit.js";
+// Formats de nombres français centralisés (milliers « 12 000 », « 12 000 € »,
+// « 17 250 km », gains de stats « +0,34 ») : définis côté moteur pour servir
+// aussi aux textes générés, réexportés ici pour l'UI.
+export { fmtNum, fmtDec, fmtMoney, fmtMoneyShort, fmtKm, fmtStatDelta, STAT_DECIMALS, NBSP, NNBSP, MINUS } from "../engine/text.js";
 
 // Premium SVG line chart with gradient area, dots, and smooth curve
 // Round in which a history match was PLAYED (a quarter-final loss is a
