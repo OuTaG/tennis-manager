@@ -2276,7 +2276,7 @@ export default function TennisManager() {
         tournamentEarnings: [
           ...(p.tournamentEarnings || tournamentEarningsFromHistory(p.matchHistory))
             .filter(e => !(e.name === tourn.name && e.week === p.week && e.year === p.year)),
-          { tid: tourn.id, name: tourn.name, week: p.week, year: p.year, prize: prizeEntitled },
+          { tid: tourn.id, name: tourn.name, week: p.week, year: p.year, prize: prizeEntitled, round: roundLabel, won },
         ],
         seasonStats: {
           ...(p.seasonStats || { wins: 0, losses: 0, titles: 0, earnings: 0, year: p.year }),
@@ -2658,25 +2658,32 @@ export default function TennisManager() {
   setActiveChallenge(player?.challenge || null);
 
   // ─── MENU ──────────────────────────────────────────────────────────────────
+  // État pressé des boutons de BD : l'ombre d'encre s'écrase, le bouton s'enfonce.
+  const BD_PRESS_CSS = ".tm-bd-press { transition: transform 0.08s, box-shadow 0.08s; } .tm-bd-press:active:not(:disabled) { transform: translate(3px, 3px) !important; box-shadow: 1px 1px 0 #141414 !important; }";
   const deleteSaveDialog = confirmDelete !== null && (
     <div style={{
       position: "fixed", inset: 0, background: T.overlay,
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: 16, zIndex: 500,
     }} onClick={() => setConfirmDelete(null)}>
+      <style>{BD_PRESS_CSS}</style>
       <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 340, width: "100%" }}>
-        <div className="tm-display" style={{ background: "#c4302b", color: "#ffffff", fontSize: 18, padding: "6px 12px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 8 }}>
-          <Icon name="trash" size={18} color="#ffffff" /> Effacer la carrière ?
+        <div aria-hidden="true" style={{ height: 10, background: "repeating-linear-gradient(-45deg, #e0a21b 0 10px, #141414 10px 20px)", borderBottom: "3px solid " + T.ink }} />
+        <div className="tm-display" style={{ background: "#c4302b", backgroundImage: "radial-gradient(rgba(20,20,20,0.22) 1.3px, transparent 1.5px)", backgroundSize: "6px 6px", color: "#ffffff", fontSize: 18, padding: "8px 12px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 10, textShadow: "1px 1px 0 " + T.ink }}>
+          <span style={{ width: 32, height: 32, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, transform: "rotate(-4deg)" }}>
+            <Icon name="trash" size={20} />
+          </span>
+          Effacer la carrière ?
         </div>
-        <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-          <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
+        <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="tm-lettering" style={{ fontSize: 18, lineHeight: 1.25, transform: "rotate(-0.5deg)" }}>
             {slotMetas[confirmDelete]?.name ? "La carrière de " + slotMetas[confirmDelete].name + " va disparaître…" : "Cette carrière va disparaître…"}
           </div>
-          <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.45, borderTop: "2px dashed " + T.ink, paddingTop: 10 }}>
             Son classement, vos titres et votre argent seront définitivement supprimés. <strong style={{ color: "#c4302b" }}>Aucun retour en arrière ne sera possible.</strong>
           </div>
-          <button style={{ ...styles.btnPrimary, background: "#c4302b" }} onClick={doDeleteSave}>Oui, tout effacer</button>
-          <button style={styles.btnSecondary} onClick={() => setConfirmDelete(null)}>Annuler</button>
+          <button className="tm-bd-press" style={{ ...styles.btnPrimary, background: "#c4302b", fontSize: 17, textShadow: "1px 1px 0 " + T.ink, marginBottom: 0 }} onClick={doDeleteSave}>Oui, tout effacer</button>
+          <button className="tm-bd-press tm-display" style={{ ...styles.btnSecondary, background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, fontFamily: T.display, fontWeight: 400, fontSize: 15 }} onClick={() => setConfirmDelete(null)}>Annuler</button>
         </div>
       </div>
     </div>
@@ -3320,92 +3327,131 @@ export default function TennisManager() {
 
   // ─── SETTINGS SCREEN ───────────────────────────────────────────────────────
   if (screen === "settings") {
+    // Boutons de BD : cernés d'encre épaisse, ombre décalée, case d'icône.
+    const setBtn = (bg, fg, extra = {}) => ({
+      width: "100%", minHeight: 54, display: "flex", alignItems: "center", gap: 10,
+      padding: "8px 14px 8px 8px", cursor: "pointer", borderRadius: 0,
+      background: bg, color: fg, border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink,
+      fontFamily: T.display, fontWeight: 400, fontSize: 15, lineHeight: 1.1, textAlign: "left",
+      ...extra,
+    });
+    const iconCase = (bg, rot = -4) => ({
+      width: 34, height: 34, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+      background: bg, border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, transform: "rotate(" + rot + "deg)",
+    });
+    const hazard = "repeating-linear-gradient(-45deg, #e0a21b 0 10px, #141414 10px 20px)";
     return (
       <div style={styles.root}>
+        <style>{BD_PRESS_CSS}</style>
         {deleteSaveDialog}
-        <div style={{ ...styles.menuBg, padding: 24, flexDirection: "column", alignItems: "center", justifyContent: "flex-start", paddingTop: 40 }}>
+        <div style={{ ...styles.menuBg, padding: "40px 20px 28px", flexDirection: "column", alignItems: "center", justifyContent: "flex-start" }}>
           <WindowShades />
-          <div style={{ ...styles.menuCard, maxWidth: 380, alignItems: "stretch", gap: 14 }}>
+          <div style={{ ...styles.menuCard, maxWidth: 380, alignItems: "stretch", gap: 16, padding: "28px 20px 22px" }}>
             {/* En-tête BD : bandeau violet tramé, roue crantée dans une case penchée */}
-            <div className="tm-halftone-magenta" style={{ margin: "-28px -28px 4px", borderBottom: "3px solid " + T.ink, padding: "16px 18px 14px", display: "flex", alignItems: "center", gap: 12, color: "#ffffff" }}>
-              <span style={{ width: 46, height: 46, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", border: "3px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, transform: "rotate(-4deg)" }}>
-                <Icon name="cog" size={28} color="#141414" strokeWidth={2} />
+            <div className="tm-halftone-magenta" style={{ margin: "-28px -20px 2px", borderBottom: "3px solid " + T.ink, padding: "16px 18px 14px", display: "flex", alignItems: "center", gap: 12, color: "#ffffff" }}>
+              <span style={{ width: 50, height: 50, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", border: "3px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, transform: "rotate(-6deg)" }}>
+                <Icon name="cog" size={30} color="#141414" strokeWidth={2} />
               </span>
               <div style={{ minWidth: 0 }}>
-                <h1 className="tm-display" style={{ color: "#ffffff", fontSize: 30, lineHeight: 1, margin: 0, textShadow: "2px 2px 0 " + T.ink }}>Réglages</h1>
-                <p className="tm-lettering" style={{ display: "inline-block", margin: "6px 0 0", background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, padding: "1px 8px", fontSize: 14, transform: "rotate(-1deg)" }}>Paramètres de la partie en cours</p>
+                <h1 className="tm-display" style={{ color: "#d6ef3c", fontSize: 32, lineHeight: 1, margin: 0, WebkitTextStroke: "1.5px " + T.ink, textShadow: "3px 3px 0 " + T.ink, transform: "rotate(-2deg)", transformOrigin: "left center" }}>Réglages</h1>
+                <p className="tm-lettering" style={{ display: "inline-block", margin: "8px 0 0", background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px", fontSize: 14, transform: "rotate(-1deg)" }}>Paramètres de la partie en cours</p>
               </div>
             </div>
 
-            {/* Pages d'aide */}
+            {/* Pages d'aide : case tramée lilas, récitatif, gros bouton vert */}
             <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
               <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px", display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", color: "#141414", border: "2px solid #ffffff", fontSize: 12, textTransform: "none", transform: "rotate(-4deg)" }}>i</span>
+                <span style={{ width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", color: "#141414", border: "2px solid #ffffff", fontSize: 13, textTransform: "none", transform: "rotate(-6deg)" }}>i</span>
                 Pages d'aide
               </div>
-              <div style={{ padding: 12 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 12, lineHeight: 1.45 }}>
-                L'aide de chaque page s'ouvre à votre première visite, puis reste disponible via le bouton « i » en haut à droite. Vous pouvez la faire réapparaître automatiquement sur toutes les pages.
-              </div>
-              <button
-                style={{ ...styles.btnPrimary, width: "100%", background: "#1f7a45", fontSize: 15, minHeight: 46, marginBottom: 0 }}
-                onClick={() => {
-                  setPlayer(p => ({ ...p, seenHelp: [] }));
-                  setActiveTab("hub");
-                  setScreen("hub");
-                }}
-              >
-                Réafficher les pages d'aide
-              </button>
+              <div className="tm-halftone-lilac" style={{ padding: "12px 12px 14px" }}>
+                <div className="tm-lettering" style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "8px 10px", fontSize: 15, lineHeight: 1.25, marginBottom: 14, transform: "rotate(-0.5deg)" }}>
+                  L'aide de chaque page s'ouvre à votre première visite, puis reste disponible via le bouton « i » en haut à droite. Vous pouvez la faire réapparaître automatiquement sur toutes les pages.
+                </div>
+                <button
+                  className="tm-bd-press tm-halftone-cyan"
+                  style={setBtn("#1f7a45", "#ffffff", { transform: "rotate(-1deg)", textShadow: "1px 1px 0 " + T.ink, textTransform: "uppercase" })}
+                  onClick={() => {
+                    setPlayer(p => ({ ...p, seenHelp: [] }));
+                    setActiveTab("hub");
+                    setScreen("hub");
+                  }}
+                >
+                  <span style={iconCase("#ffffff")}><Icon name="lightbulb" size={22} /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>Réafficher les pages d'aide</span>
+                </button>
               </div>
             </div>
+
+            {/* Séparateur encré */}
+            <div aria-hidden="true" style={{ borderTop: "2px dashed " + T.ink, margin: "2px 0" }} />
 
             {/* Back to game */}
             <button
-              className="tm-display"
-              style={{ ...styles.btnSecondary, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: T.display, fontWeight: 400, fontSize: 15, border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, background: "#ffffff", color: "#141414" }}
+              className="tm-bd-press tm-halftone-yellow"
+              style={setBtn("#d6ef3c", "#141414", { textTransform: "uppercase" })}
               onClick={() => setScreen("hub")}
             >
-              <Icon name="arrowLeft" size={14} /> Retour au jeu
+              <span style={iconCase("#ffffff")}><Icon name="arrowLeft" size={18} color="#141414" strokeWidth={3} /></span>
+              <span style={{ flex: 1 }}>Retour au jeu</span>
             </button>
 
             {/* Main menu */}
-            <button
-              className="tm-display"
-              style={{ ...styles.btnSecondary, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: T.display, fontWeight: 400, fontSize: 15, border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, background: "#ffffff", color: "#141414" }}
-              onClick={() => returnToMenu()}
-            >
-              <Icon name="home" size={14} /> Menu principal
-            </button>
-            <div className="tm-lettering" style={{ alignSelf: "center", background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, fontSize: 14, textAlign: "center", marginTop: -2, padding: "3px 10px", lineHeight: 1.2, transform: "rotate(-1deg)" }}>
-              La carrière est sauvegardée et reste disponible depuis le menu.
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <button
+                className="tm-bd-press"
+                style={setBtn("#ffffff", "#141414", { textTransform: "uppercase" })}
+                onClick={() => returnToMenu()}
+              >
+                <span style={iconCase("#c9b6ea", 4)}><Icon name="home" size={20} /></span>
+                <span style={{ flex: 1 }}>Menu principal</span>
+              </button>
+              {/* Bulle : pointe vers le bouton du menu */}
+              <div style={{ position: "relative", alignSelf: "center", maxWidth: 300 }}>
+                <svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true" style={{ position: "absolute", left: 40, top: -11, overflow: "visible" }}>
+                  <path d="M2 14 L8 0 L18 14" fill="#ffffff" stroke={T.ink} strokeWidth="2.5" strokeLinejoin="round" />
+                </svg>
+                <div className="tm-lettering" style={{ background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, borderRadius: "22px / 16px", boxShadow: "2px 2px 0 " + T.ink, fontSize: 14.5, textAlign: "center", padding: "6px 14px", lineHeight: 1.2 }}>
+                  La carrière est sauvegardée et reste disponible depuis le menu.
+                </div>
+              </div>
             </div>
 
-            {/* Danger zone */}
-            <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginTop: 8 }}>
-              <div className="tm-display" style={{ background: "#c4302b", backgroundImage: "radial-gradient(rgba(20,20,20,0.22) 1.3px, transparent 1.5px)", backgroundSize: "6px 6px", color: "#ffffff", fontSize: 14, padding: "5px 10px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 8, textShadow: "1px 1px 0 " + T.ink }}>
-                <Icon name="warning" size={14} color="#ffffff" /> Zone sensible
-              </div>
-              <div style={{ padding: 12 }}>
-                <button
-                  className="tm-display"
-                  style={{ ...styles.btnSecondary, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: T.display, fontWeight: 400, fontSize: 13, padding: "12px 10px", whiteSpace: "nowrap", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, background: "#ffffff", color: "#c4302b" }}
-                  onClick={() => deleteSave(slot)}
-                >
-                  <Icon name="trash" size={14} color="#c4302b" /> Effacer cette carrière
-                </button>
+            {/* Danger zone : panneau d'avertissement, bordure à rayures */}
+            <div style={{ background: hazard, border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, padding: 7, marginTop: 6 }}>
+              <div style={{ background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink }}>
+                <div className="tm-display" style={{ background: "#c4302b", backgroundImage: "radial-gradient(rgba(20,20,20,0.22) 1.3px, transparent 1.5px)", backgroundSize: "6px 6px", color: "#ffffff", fontSize: 15, padding: "6px 10px", borderBottom: "2.5px solid " + T.ink, display: "flex", alignItems: "center", gap: 9, textShadow: "1px 1px 0 " + T.ink }}>
+                  <span style={{ width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#e0a21b", border: "2px solid " + T.ink, transform: "rotate(-6deg)" }}>
+                    <Icon name="warning" size={17} />
+                  </span>
+                  Zone sensible
+                </div>
+                <div style={{ padding: "12px 14px 14px 10px" }}>
+                  <button
+                    className="tm-bd-press"
+                    style={setBtn("#c4302b", "#ffffff", { fontSize: 14, textTransform: "uppercase", textShadow: "1px 1px 0 " + T.ink })}
+                    onClick={() => deleteSave(slot)}
+                  >
+                    <span style={iconCase("#ffffff")}><Icon name="trash" size={20} /></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>Effacer cette carrière</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
           {/* Petit secret : trois touches sur la balle ouvrent « Le mur ». */}
-          <div style={{ width: "100%", maxWidth: 380, margin: "18px auto 0" }}>
+          <div style={{ width: "100%", maxWidth: 380, margin: "22px auto 0" }}>
             {wallTaps >= 3 ? <WallGame /> : (
-              <button aria-label="Balle" onClick={() => setWallTaps(n => n + 1)} style={{ display: "block", margin: "0 auto", background: "none", border: 0, padding: 6, cursor: "pointer", opacity: 0.55 + wallTaps * 0.15, transform: "rotate(" + (wallTaps * 25) + "deg)", transition: "transform 0.2s" }}>
-                <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-                  <circle cx="11" cy="11" r="9" fill="#d6ef3c" stroke="#141414" strokeWidth="2" />
-                  <path d="M3.5 7 Q11 11 3.5 15 M18.5 7 Q11 11 18.5 15" fill="none" stroke="#141414" strokeWidth="1.5" />
-                </svg>
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span aria-hidden="true" style={{ flex: 1, borderTop: "2px dashed " + T.ink, opacity: 0.35 }} />
+                <button aria-label="Balle" onClick={() => setWallTaps(n => n + 1)} style={{ display: "block", background: "none", border: 0, padding: 6, cursor: "pointer", opacity: 0.55 + wallTaps * 0.15, transform: "rotate(" + (wallTaps * 25) + "deg)", transition: "transform 0.2s" }}>
+                  <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+                    <circle cx="11" cy="11" r="9" fill="#d6ef3c" stroke="#141414" strokeWidth="2" />
+                    <path d="M3.5 7 Q11 11 3.5 15 M18.5 7 Q11 11 18.5 15" fill="none" stroke="#141414" strokeWidth="1.5" />
+                  </svg>
+                </button>
+                <span aria-hidden="true" style={{ flex: 1, borderTop: "2px dashed " + T.ink, opacity: 0.35 }} />
+              </div>
             )}
           </div>
         </div>
