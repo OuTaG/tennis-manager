@@ -115,6 +115,14 @@ if (typeof document !== "undefined" && !document.getElementById("tm-global-style
     :root { ${cssVars(PALETTE)} }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; padding: 0; background: ${T.bg0}; }
+    /* iPhone (viewport-fit=cover) : le jeu reste hors de l'encoche, des coins
+       arrondis et de la barre d'accueil. Une bande de papier masque ce qui
+       défile sous la barre d'état. */
+    body { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); }
+    body::before {
+      content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: env(safe-area-inset-top, 0px); background: ${T.bg0}; pointer-events: none;
+    }
     body {
       font-family: ${T.body};
       color: ${T.fg};
