@@ -4746,8 +4746,18 @@ export default function TennisManager() {
       {player.pendingSeasonRecap && (() => {
         const r = player.pendingSeasonRecap;
         const winRate = (r.wins + r.losses) > 0 ? Math.round(r.wins / (r.wins + r.losses) * 100) : 0;
-        const prev = (player.careerSeasons || []).slice(-2)[0]; // previous season (if any)
-        const rankDelta = prev ? prev.endOfYearRanking - r.endOfYearRanking : null;
+        // Saison précédente : l'avant-dernière entrée (la dernière est cette
+        // saison). Première saison : on part de zéro (non classé, 0 point,
+        // score de légende 0).
+        const seasons = player.careerSeasons || [];
+        const prev = seasons.length >= 2 ? seasons[seasons.length - 2] : { endOfYearRanking: 1201, endOfYearPoints: 0, legacyScore: 0 };
+        const rankDelta = prev.endOfYearRanking - r.endOfYearRanking;
+        const ptsDelta = r.endOfYearPoints - (prev.endOfYearPoints || 0);
+        const deltaChip = (d, unit) => (
+          <span className="tm-display" style={{ display: "inline-block", marginTop: 4, background: d > 0 ? "#1f7a45" : d < 0 ? "#c4302b" : "#ffffff", color: d ? "#ffffff" : "#141414", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontSize: 11.5, padding: "1px 7px" }}>
+            {d > 0 ? "↑ " + fmtNum(d, { sign: true }) : d < 0 ? "↓ " + fmtNum(d, { sign: true }) : "→ 0"} {unit}
+          </span>
+        );
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 250, padding: 16 }}>
             <div className="tm-paper" style={{ border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, maxWidth: 380, width: "100%", maxHeight: "85vh", overflowY: "auto", color: "#141414" }}>
@@ -4764,17 +4774,14 @@ export default function TennisManager() {
               <div style={{ padding: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "8px 10px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Classement final</div>
+                  <div className="tm-display" style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 11, padding: "1px 7px", transform: "rotate(-2deg)" }}>Classement final</div>
                   <div className="tm-display" style={{ fontSize: 22, color: "#5b2d8e" }}>#{r.endOfYearRanking}</div>
-                  {rankDelta !== null && (
-                    <span style={{ display: "inline-block", background: rankDelta > 0 ? "#1f7a45" : rankDelta < 0 ? "#c4302b" : "#ffffff", color: rankDelta ? "#ffffff" : "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "0 6px" }}>
-                      {rankDelta > 0 ? "↑ +" + rankDelta : rankDelta < 0 ? "↓ " + rankDelta : "→ 0"} place{Math.abs(rankDelta) > 1 ? "s" : ""}
-                    </span>
-                  )}
+                  <div>{deltaChip(rankDelta, Math.abs(rankDelta) > 1 ? "places" : "place")}</div>
                 </div>
                 <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "8px 10px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Points</div>
-                  <div className="tm-display" style={{ fontSize: 22, color: "#1f7a45" }}>{r.endOfYearPoints}</div>
+                  <div className="tm-display" style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 11, padding: "1px 7px", transform: "rotate(2deg)" }}>Points</div>
+                  <div className="tm-display" style={{ fontSize: 22, color: "#1f7a45" }}>{fmtNum(r.endOfYearPoints)}</div>
+                  <div>{deltaChip(ptsDelta, "pts")}</div>
                 </div>
               </div>
               <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12 }}>
@@ -4787,15 +4794,14 @@ export default function TennisManager() {
                     ["Titres", r.titles, "#5b2d8e"],
                     ["Gains saison", fmtMoney(r.earnings, { sign: true }), "#1f7a45"],
                   ].map(([l, v, c], i, arr) => (
-                    <div key={l} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, padding: "5px 0", borderBottom: i < arr.length - 1 ? "1.5px dashed " + T.ink : "none" }}>
-                      <span>{l}</span><strong className="tm-num" style={{ color: c }}>{v}</strong>
+                    <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "5px 0", borderBottom: i < arr.length - 1 ? "2px dashed " + T.ink : "none" }}>
+                      <span className="tm-lettering" style={{ fontSize: 15.5 }}>{l}</span><strong className="tm-display" style={{ color: c, fontSize: 15 }}>{v}</strong>
                     </div>
                   ))}
                 </div>
               </div>
               {typeof r.legacyScore === "number" && (() => {
-                const prevScore = prev && typeof prev.legacyScore === "number" ? prev.legacyScore : null;
-                const delta = prevScore !== null ? r.legacyScore - prevScore : null;
+                const delta = r.legacyScore - (typeof prev.legacyScore === "number" ? prev.legacyScore : 0);
                 const tier = legacyTier(r.legacyScore);
                 // Même détail que l'écran de fin de carrière.
                 const breakdown = computeLegacyBreakdown(player);
@@ -4806,31 +4812,27 @@ export default function TennisManager() {
                       <div style={{ padding: "8px 10px 10px" }}>
                         <div className="tm-display" style={{ color: tier.color, fontSize: 32, lineHeight: 1, WebkitTextStroke: "1.2px " + T.ink }}>{fmtNum(r.legacyScore)}</div>
                         <span className="tm-display" style={{ display: "inline-block", marginTop: 6, padding: "1px 10px", background: tier.color, color: "#ffffff", border: "2px solid " + T.ink, fontSize: 12.5, textShadow: "1px 1px 0 " + T.ink }}>{tier.label}</span>
-                        {delta !== null && (
-                          <div className="tm-lettering" style={{ color: delta > 0 ? "#1f7a45" : delta < 0 ? "#c4302b" : "#141414", fontSize: 15, marginTop: 6 }}>
-                            {delta > 0 ? "↑ " + fmtNum(delta, { sign: true }) : delta < 0 ? "↓ " + fmtNum(delta, { sign: true }) : "→ 0"} cette saison
-                          </div>
-                        )}
+                        <div>{deltaChip(delta, "cette saison")}</div>
                       </div>
                     </div>
                     <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12 }}>
                       <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px" }}>Détail du score</div>
                       <div style={{ padding: "2px 10px 8px" }}>
                         {breakdown.rows.map((row, i) => (
-                          <div key={i} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, padding: "4px 0", borderBottom: "1.5px dashed " + T.ink, fontSize: 12, fontWeight: 600 }}>
-                            <span>{row.label}</span>
+                          <div key={i} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, padding: "4px 0", borderBottom: "2px dashed " + T.ink }}>
+                            <span className="tm-lettering" style={{ fontSize: 14.5 }}>{row.label}</span>
                             <span style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                              <span style={{ fontSize: 10.5, opacity: 0.7 }}>{row.detail}</span>
-                              <strong className="tm-num" style={{ minWidth: 50, textAlign: "right" }}>{fmtNum(row.pts)}</strong>
+                              <span className="tm-lettering" style={{ fontSize: 12.5, opacity: 0.75 }}>{row.detail}</span>
+                              <strong className="tm-display" style={{ minWidth: 50, textAlign: "right", fontSize: 13.5 }}>{fmtNum(row.pts)}</strong>
                             </span>
                           </div>
                         ))}
-                        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 2px", fontSize: 12.5, fontWeight: 700 }}>
+                        <div className="tm-display" style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 2px", fontSize: 14 }}>
                           <span>Sous-total</span>
-                          <strong className="tm-num">{fmtNum(breakdown.subtotal)}</strong>
+                          <strong>{fmtNum(breakdown.subtotal)}</strong>
                         </div>
                         {breakdown.difficultyBonus !== 0 && (
-                          <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", color: breakdown.difficultyBonus > 0 ? "#1f7a45" : "#c4302b", fontSize: 12.5, fontWeight: 700 }}>
+                          <div className="tm-display" style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", color: breakdown.difficultyBonus > 0 ? "#1f7a45" : "#c4302b", fontSize: 13 }}>
                             <span>{breakdown.diffPct > 0 ? "Bonus" : "Malus"} difficulté ({breakdown.mulLabel})</span>
                             <strong className="tm-num">{fmtNum(breakdown.difficultyBonus, { sign: true })}</strong>
                           </div>
