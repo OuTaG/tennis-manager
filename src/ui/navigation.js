@@ -54,7 +54,6 @@ export const PAGE_HELP = {
   stats: { title: "Statistiques", items: [
     ["Vos stats", "Service, coup droit, revers, endurance, mental et filet déterminent votre force en match."],
     ["Graphiques", "Touchez le nom d'une courbe pour en avoir la définition."],
-    ["Score de légende", "Un score global de carrière : meilleur classement, semaines en tête, titres (un Majeur vaut bien plus qu'un Tour 250), victoires, séries, objectifs sponsors. Son détail s'affiche à chaque fin de saison."],
     ["Historique", "Vos derniers tournois, match par match, avec les gains et les points obtenus."],
   ] },
   atp: { title: "Top 100", items: [
