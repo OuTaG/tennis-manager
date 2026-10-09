@@ -8,7 +8,7 @@ import { ROSTER_SLOTS, baseRoster, loadRosterConfigs, rosterEditCount, rosterEnt
 import { Avatar, AvatarBuilder, aiAvatar } from "../avatar.jsx";
 import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { BoxShade } from "../scrollShade.jsx";
-import { styles } from "../styles.js";
+import { FULL_H, styles } from "../styles.js";
 import { T } from "../theme.js";
 
 const INK = "#141414";
@@ -61,7 +61,7 @@ export function CustomizeScreen({ onBack }) {
 
   return (
     <div style={styles.root}>
-      <div className="tm-paper" style={{ minHeight: "100vh", padding: "16px 16px 40px", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="tm-paper" style={{ minHeight: FULL_H, padding: "16px 16px 40px", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
         <button style={{ ...styles.btnSmall, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6 }} onClick={onBack}>
           <Icon name="arrowLeft" size={14} /> Menu principal
         </button>
@@ -155,7 +155,7 @@ export function CustomizeScreen({ onBack }) {
               </select>
             </div>
             <div style={{ background: "#ffffff", border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK, padding: 12 }}>
-              <AvatarBuilder config={{ ...editing.avatar, female }} onChange={(a) => setEditing({ ...editing, avatar: a })} />
+              <AvatarBuilder config={{ ...editing.avatar, female }} onChange={(a) => setEditing({ ...editing, avatar: a })} stickyTop={0} />
             </div>
             <button style={styles.btnPrimary} onClick={saveEditor}>Enregistrer</button>
             {editing.edited && <button style={styles.btnSecondary} onClick={resetPlayer}>Rétablir le joueur d'origine</button>}

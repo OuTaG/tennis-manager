@@ -40,7 +40,7 @@ export function difficultyFactors(player) {
     moodDecayMul: 1 + step * 0.18,    // d1:0.64  d3:1.00  d5:1.36 (faster drop)
     moodGainMul: 1 - step * 0.08,     // d1:1.16  d3:1.00  d5:0.84
     // Sponsor objectives: harder levels demand more and pay relatively less.
-    sponsorTargetMul: 1 + step * 0.12, // d1:0.76  d3:1.00  d5:1.24 (tougher targets)
+    sponsorTargetMul: 1 + step * 0.06, // d1:0.88  d3:1.00  d5:1.12 (tougher targets)
     sponsorRewardMul: 1 - step * 0.06, // slightly lower rewards when hard
   };
 }
@@ -112,6 +112,7 @@ export function createInitialPlayer(name, styleId, startCity, startNationality, 
     seasonStats: { wins: 0, losses: 0, titles: 0, earnings: 0, year: 2026 },
     seasonBigWins: 0,    // wins vs top-50 this season (for sponsor objectives)
     careerBigWins: 0,    // lifetime wins vs top-50 (for sponsor objective baselines)
+    careerWinsTop100: 0, careerWinsTop200: 0, careerWinsTop400: 0, // same vs top 100/200/400 (prestige objectives)
     careerObjectivesMet: 0, // lifetime sponsor objectives achieved (legacy score)
     careerSeasons: [],   // archived seasonStats at end of each season
     pendingSeasonRecap: null,

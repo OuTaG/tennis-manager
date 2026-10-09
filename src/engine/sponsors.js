@@ -4,65 +4,109 @@ import { random } from "./rng.js";
 import { fmtMoney } from "./text.js";
 
 // ─── SPONSOR OBJECTIVES ───────────────────────────────────────────────────────
-// Each sponsor contract carries a performance objective evaluated over a season
-// window. Meeting it pays a bonus; failing it costs a penalty and breaks the
-// contract early. Objectives are scaled to the player's ranking at signing.
-// objective: { type, target, label }
+// Each sponsor contract carries a performance objective evaluated over the
+// whole contract. Meeting it pays a bonus; failing it costs a penalty.
+// Objectives are scaled to the player's ranking at signing and to the contract
+// length (explicit 26- and 52-week tables, calibrated on a "moderate" career
+// in Pro difficulty).
+// objective: { type, target, label, level, threshold? }
+//   threshold (bigwins only): opponents must be ranked inside this top N.
+//   Contracts signed before thresholds existed have none → top 50.
 // On the contract: objectiveReward (money), objectivePenalty (money), and the
 // evaluation deadline (objectiveYear/objectiveWeek = next negotiation phase).
-export const SPONSOR_OBJECTIVE_TARGETS = (ranking) => {
-  if (ranking <= 10)      return { rank: Math.max(1, ranking - 1), titles: 2, wins: 22, bigwins: 4 };
-  if (ranking <= 30)      return { rank: 12,  titles: 1, wins: 20, bigwins: 3 };
-  if (ranking <= 75)      return { rank: 32,  titles: 1, wins: 18, bigwins: 2 };
-  if (ranking <= 150)     return { rank: 78,  titles: 1, wins: 15, bigwins: 1 };
-  if (ranking <= 350)     return { rank: 155, titles: 1, wins: 12, bigwins: 1 };
-  return { rank: 360, titles: 1, wins: 10, bigwins: 1 };
+
+// Ranking brackets: ≤10 / ≤30 / ≤75 / ≤150 / ≤350 / >350.
+export const sponsorObjectiveBracket = (r) => r <= 10 ? 0 : r <= 30 ? 1 : r <= 75 ? 2 : r <= 150 ? 3 : r <= 350 ? 4 : 5;
+
+// "Medium" target per bracket and contract length (weeks). null = no such
+// objective for that bracket (titles over 26 weeks past #350 → wins instead).
+export const SPONSOR_OBJECTIVE_TARGETS = {
+  wins:    { 26: [40, 32, 24, 22, 20, 22], 52: [85, 70, 52, 50, 48, 65] },
+  titles:  { 26: [6, 4, 2, 2, 1, null],    52: [12, 9, 5, 4, 3, 3] },
+  bigwins: { 26: [8, 6, 3, 4, 3, 2],       52: [16, 12, 6, 9, 6, 5] },
 };
+// "Prestige wins" count victories against opponents inside this top N,
+// depending on the player's own bracket.
+export const SPONSOR_BIGWIN_THRESHOLDS = [50, 50, 50, 100, 200, 400];
+// Ranking objective: target = current rank × factor (easy / medium / hard),
+// with a gentler scale past #350. Bounded to 1–1200.
+export const SPONSOR_RANK_FACTORS = {
+  26: { base: [1.1, 0.85, 0.6], low: [1.0, 0.95, 0.8] },
+  52: { base: [0.9, 0.6, 0.35], low: [0.6, 0.4, 0.25] },
+};
+// Per level: target multiplier (counts) and reward / penalty multipliers.
+export const SPONSOR_OBJECTIVE_LEVELS = [
+  { level: "easy",   targetMul: 0.6, rewardMul: 0.6, penaltyMul: 0.4 },
+  { level: "medium", targetMul: 1.0, rewardMul: 1.0, penaltyMul: 0.8 },
+  { level: "hard",   targetMul: 1.3, rewardMul: 2.0, penaltyMul: 1.2 },
+];
+export const SPONSOR_OBJECTIVE_TYPES = ["rank", "titles", "wins", "bigwins"];
 
-// Build the THREE objective levels (easy / medium / hard) for an offer. The
-// objective type varies per offer; each level scales the target and the
-// reward/penalty multipliers. Returns an array of 3 level objects:
-// { level, type, target, label, rewardMul, penaltyMul }
-export function buildSponsorObjectiveLevels(ranking, year, seed) {
-  const t = SPONSOR_OBJECTIVE_TARGETS(ranking);
-  // Choose the objective TYPE for this offer (deterministic per offer via seed).
-  const types = ["rank", "titles", (year % 2 === 0) ? "wins" : "bigwins"];
-  const type = types[Math.abs(seed) % types.length];
+export const sponsorBigWinThreshold = (ranking) => SPONSOR_BIGWIN_THRESHOLDS[sponsorObjectiveBracket(ranking)];
 
-  const mk = (level, target, rewardMul, penaltyMul) => {
-    let label;
-    if (type === "rank") label = "Finir dans le top " + target;
-    else if (type === "titles") label = "Remporter " + target + " titre" + (target > 1 ? "s" : "");
-    else if (type === "wins") label = "Gagner " + target + " matchs";
-    else label = "Battre " + target + " joueur" + (target > 1 ? "s" : "") + " du top 50";
-    return { level, type, target, label, rewardMul, penaltyMul };
-  };
-
-  // Targets per level. "rank" gets harder as the number shrinks; others grow.
-  if (type === "rank") {
-    return [
-      mk("easy",   Math.round(t.rank * 1.6),         0.6, 0.4),
-      mk("medium", t.rank,                            1.0, 0.8),
-      mk("hard",   Math.max(1, Math.round(t.rank * 0.55)), 1.8, 1.5),
-    ];
-  }
-  const base = type === "titles" ? t.titles : type === "wins" ? t.wins : t.bigwins;
-  return [
-    mk("easy",   Math.max(1, Math.round(base * 0.6)),  0.6, 0.4),
-    mk("medium", Math.max(1, base),                     1.0, 0.8),
-    mk("hard",   Math.round(base * 1.6) || 2,           1.8, 1.5),
-  ];
+export function sponsorObjectiveLabel(type, target, threshold) {
+  if (type === "rank") return "Finir dans le top " + target;
+  if (type === "titles") return "Remporter " + target + " titre" + (target > 1 ? "s" : "");
+  if (type === "wins") return "Gagner " + target + " matchs";
+  return "Battre " + target + " joueur" + (target > 1 ? "s" : "") + " du top " + (threshold || 50);
 }
 
-// Evaluate a single objective given the season counters captured for its window.
-// We snapshot the player's season counters at signing and compare deltas at the
-// deadline. progress = { titles, wins, bigwins } deltas; ranking = current rank.
+// Lifetime counters used by objectives (baselines are snapshots of these).
+// bw100/bw200/bw400 = wins against the top 100/200/400; bigwins = top 50.
+export function sponsorObjectiveCounters(p) {
+  return {
+    titles: p?.titlesWon || 0, wins: p?.careerWins || 0, bigwins: p?.careerBigWins || 0,
+    bw100: p?.careerWinsTop100 || 0, bw200: p?.careerWinsTop200 || 0, bw400: p?.careerWinsTop400 || 0,
+  };
+}
+const bigWinsKey = (threshold) => (!threshold || threshold <= 50) ? "bigwins" : "bw" + threshold;
+
+// Progress (count since signing) of a counting objective; null for "rank".
+export function sponsorObjectiveProgress(objective, baseline, current) {
+  if (!objective || objective.type === "rank") return null;
+  const key = objective.type === "bigwins" ? bigWinsKey(objective.threshold) : objective.type;
+  return ((current || {})[key] || 0) - ((baseline || {})[key] || 0);
+}
+
+// Build the THREE objective levels (easy / medium / hard) for an offer.
+// The type is drawn among the four (deterministic per offer via seed);
+// targetMul = difficulty factor (higher = tougher). Strict hierarchy:
+// easy < medium < hard in demand. Returns
+// [{ level, type, target, label, rewardMul, penaltyMul, threshold? }] ×3.
+export function buildSponsorObjectiveLevels(ranking, durationWeeks, seed, targetMul = 1) {
+  const b = sponsorObjectiveBracket(ranking);
+  const D = durationWeeks >= 52 ? 52 : 26;
+  let type = SPONSOR_OBJECTIVE_TYPES[Math.abs(seed) % SPONSOR_OBJECTIVE_TYPES.length];
+  if (type !== "rank" && SPONSOR_OBJECTIVE_TARGETS[type][D][b] == null) type = "wins";
+  const threshold = type === "bigwins" ? SPONSOR_BIGWIN_THRESHOLDS[b] : undefined;
+  let t;
+  if (type === "rank") {
+    const f = SPONSOR_RANK_FACTORS[D][b === 5 ? "low" : "base"];
+    t = f.map(x => Math.max(1, Math.min(1200, Math.round(ranking * x / targetMul))));
+    if (t[1] >= t[0]) t[1] = Math.max(1, t[0] - 1);
+    if (t[2] >= t[1]) t[2] = Math.max(1, t[1] - 1);
+    // Near #1 the floor can collapse levels: relax the easier ones instead.
+    if (t[1] <= t[2]) t[1] = t[2] + 1;
+    if (t[0] <= t[1]) t[0] = t[1] + 1;
+  } else {
+    const med = SPONSOR_OBJECTIVE_TARGETS[type][D][b] * targetMul;
+    t = SPONSOR_OBJECTIVE_LEVELS.map(l => Math.max(1, Math.round(med * l.targetMul)));
+    if (t[1] <= t[0]) t[1] = t[0] + 1;
+    if (t[2] <= t[1]) t[2] = t[1] + 1;
+  }
+  return SPONSOR_OBJECTIVE_LEVELS.map((l, i) => ({
+    level: l.level, type, target: t[i], label: sponsorObjectiveLabel(type, t[i], threshold),
+    rewardMul: l.rewardMul, penaltyMul: l.penaltyMul,
+    ...(threshold ? { threshold } : {}),
+  }));
+}
+
+// Evaluate a single objective given the lifetime counters snapshotted at
+// signing (baseline) and now (current, see sponsorObjectiveCounters).
 export function evaluateSponsorObjective(objective, baseline, current, ranking) {
   if (!objective) return true;
   if (objective.type === "rank") return ranking <= objective.target;
-  if (objective.type === "titles") return (current.titles - baseline.titles) >= objective.target;
-  if (objective.type === "wins") return (current.wins - baseline.wins) >= objective.target;
-  if (objective.type === "bigwins") return (current.bigwins - baseline.bigwins) >= objective.target;
+  if (["titles", "wins", "bigwins"].includes(objective.type)) return sponsorObjectiveProgress(objective, baseline, current) >= objective.target;
   return true;
 }
 
@@ -198,41 +242,12 @@ export function generateSponsorOffer(ranking, recentTitlePerf, existingBrands, i
 
   // Three objective levels (easy/medium/hard) the player can choose during the
   // negotiation. The base reward/penalty scale by the chosen level's multipliers.
+  // Targets come from the 26- or 52-week table (the objective covers the WHOLE
+  // contract); difficulty makes sponsors more demanding (sponsorTargetMul).
   const seed = picked.name.length * 7 + Math.floor(weeklyPay);
   const df = difficultyFactors({ startDifficulty: difficulty || 3 });
-  let objectiveLevels = buildSponsorObjectiveLevels(ranking, year || 2026, seed);
-  // Difficulty makes sponsors more demanding: tougher targets, slightly lower reward.
-  if (df.sponsorTargetMul !== 1) {
-    objectiveLevels = objectiveLevels.map(l => {
-      let target = l.target;
-      if (l.type === "rank") target = Math.max(1, Math.round(l.target / df.sponsorTargetMul)); // lower rank = harder
-      else target = Math.max(1, Math.round(l.target * df.sponsorTargetMul));                    // higher count = harder
-      // Rebuild label with the new target.
-      let label;
-      if (l.type === "rank") label = "Finir dans le top " + target;
-      else if (l.type === "titles") label = "Remporter " + target + " titre" + (target > 1 ? "s" : "");
-      else if (l.type === "wins") label = "Gagner " + target + " matchs";
-      else label = "Battre " + target + " joueur" + (target > 1 ? "s" : "") + " du top 50";
-      return { ...l, target, label };
-    });
-  }
-  // The objective covers the WHOLE contract. 52-week contracts get tougher
-  // targets (a bit more than one 26-week window) and a bigger reward.
+  const objectiveLevels = buildSponsorObjectiveLevels(ranking, durationWeeks, seed, df.sponsorTargetMul);
   const longContract = durationWeeks === 52;
-  if (longContract) {
-    objectiveLevels = objectiveLevels.map(l => {
-      let target = l.target;
-      if (l.type === "rank") target = Math.max(1, Math.round(l.target * 0.85));
-      else if (l.type === "titles") target = Math.max(l.target + 1, Math.round(l.target * 1.6));
-      else target = Math.max(l.target + 1, Math.round(l.target * 1.8));
-      let label;
-      if (l.type === "rank") label = "Finir dans le top " + target;
-      else if (l.type === "titles") label = "Remporter " + target + " titre" + (target > 1 ? "s" : "");
-      else if (l.type === "wins") label = "Gagner " + target + " matchs";
-      else label = "Battre " + target + " joueur" + (target > 1 ? "s" : "") + " du top 50";
-      return { ...l, target, label };
-    });
-  }
   const durMul = longContract ? 1.8 : 1;
   const baseReward = Math.round(weeklyPay * (10 + random() * 8) * df.sponsorRewardMul * durMul);   // ~10-18 weeks of pay (×1.8 over 52 weeks)
   const basePenalty = Math.round(weeklyPay * (5 + random() * 5) * (longContract ? 1.5 : 1));   // ~5-10 weeks of pay
@@ -320,8 +335,7 @@ export function sponsorCancelBreakdownFor(player, sponsor, ranking) {
   const rupture = Math.min(sponsor.weeklyPay * 26, sponsor.weeklyPay * (sponsor.weeksLeft || 0));
   let objective = 0;
   if (sponsor.objective && player) {
-    const cur = { titles: player.titlesWon || 0, wins: player.careerWins || 0, bigwins: player.careerBigWins || 0 };
-    const met = evaluateSponsorObjective(sponsor.objective, sponsor.objectiveBaseline || { titles: 0, wins: 0, bigwins: 0 }, cur, ranking ?? 9999);
+    const met = evaluateSponsorObjective(sponsor.objective, sponsor.objectiveBaseline || {}, sponsorObjectiveCounters(player), ranking ?? 9999);
     if (!met) objective = sponsor.objectivePenalty || 0;
   }
   return { rupture, objective, total: rupture + objective };

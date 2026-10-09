@@ -12,6 +12,10 @@ export const PAPER = {
   backgroundImage: "radial-gradient(" + T.dot + " 1.1px, transparent 1.3px)",
   backgroundSize: "6px 6px",
 };
+// Hauteur d'un écran plein : la fenêtre moins la zone de la barre d'état
+// (le body la réserve déjà en marge haute). Avec 100vh, la page dépasse de
+// cette hauteur et peut glisser sous la bande du haut.
+export const FULL_H = "calc(100vh - env(safe-area-inset-top, 0px))";
 export const cardBase = {
   background: T.bg1,
   border: INK_BORDER,
@@ -21,8 +25,8 @@ export const cardBase = {
 
 export const styles = {
   // ROOT / LAYOUT
-  root: { ...PAPER, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: T.body, color: T.fg, maxWidth: 440, margin: "0 auto", position: "relative" },
-  screen: { flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" },
+  root: { ...PAPER, minHeight: FULL_H, display: "flex", flexDirection: "column", fontFamily: T.body, color: T.fg, maxWidth: 440, margin: "0 auto", position: "relative" },
+  screen: { flex: 1, display: "flex", flexDirection: "column", minHeight: FULL_H },
   content: { flex: 1, overflowY: "auto", paddingBottom: 110 },
 
   header: {
@@ -75,7 +79,7 @@ export const styles = {
 
   // MENU
   menuBg: {
-    minHeight: "100vh",
+    minHeight: FULL_H,
     ...PAPER,
     display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
     position: "relative",

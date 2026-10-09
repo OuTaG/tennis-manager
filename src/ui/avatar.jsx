@@ -234,7 +234,9 @@ export function Avatar({ config, size = 96, style, bare = false }) {
   );
 }
 
-export function AvatarBuilder({ config, onChange }) {
+// stickyTop : bord où l'aperçu se colle. Par défaut sous la barre d'état
+// (la page défile) ; 0 dans une fiche plein écran qui défile elle-même.
+export function AvatarBuilder({ config, onChange, stickyTop = "env(safe-area-inset-top, 0px)" }) {
   const cfg = config || {};
   const a = normalizeAvatar(cfg);
   const update = (key, value) => onChange({ ...cfg, ...a, [key]: value });
@@ -297,7 +299,7 @@ export function AvatarBuilder({ config, onChange }) {
     <div>
       {/* Aperçu : grande case de BD */}
       {/* Collé en haut de l'écran : la tête reste visible pendant qu'on choisit les dernières options. */}
-      <div className="tm-halftone-lilac" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", justifyContent: "center", alignItems: "flex-end", height: 170, marginBottom: 16, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, overflow: "hidden" }}>
+      <div className="tm-halftone-lilac" style={{ position: "sticky", top: stickyTop, zIndex: 2, display: "flex", justifyContent: "center", alignItems: "flex-end", height: 170, marginBottom: 16, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, overflow: "hidden" }}>
         <Avatar config={a} size={170} bare />
         <div className="tm-lettering" style={{ position: "absolute", left: 8, top: 8, background: T.gold, border: "2.5px solid " + T.ink, padding: "2px 8px", fontSize: 15, color: "#141414" }}>Le futur n° 1 ?</div>
       </div>
