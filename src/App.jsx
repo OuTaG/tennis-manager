@@ -3785,10 +3785,10 @@ export default function TennisManager() {
 
               {fr.isTitleWin && lore && postPanel("Histoire du tournoi", (
                 <>
-                  <div style={{ fontSize: 12.5, lineHeight: 1.55, marginBottom: 10 }}>{lore.history}</div>
-                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}><Icon name="trophy" size={11} /> Légendes du tournoi</div>
+                  <div className="tm-lettering" style={{ fontSize: 15.5, lineHeight: 1.3, marginBottom: 10 }}>{lore.history}</div>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: T.ink, color: "#d6ef3c", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, padding: "2px 8px", marginBottom: 4 }}><Icon name="trophy" size={12} color="#d6ef3c" /> Légendes du tournoi</div>
                   {lore.legends.map((legend, i) => (
-                    <div key={i} style={{ fontSize: 12.5, padding: "3px 0", borderBottom: i < lore.legends.length - 1 ? "1.5px dashed " + T.ink : "none" }}>• {legend}</div>
+                    <div key={i} className="tm-display" style={{ fontSize: 13.5, padding: "4px 0", borderBottom: i < lore.legends.length - 1 ? "2px dashed " + T.ink : "none" }}>• {legend}</div>
                   ))}
                   <div style={{ marginTop: 10, padding: "8px 10px", background: "#d6ef3c", border: "2.5px solid " + T.ink }}>
                     <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase" }}>Vainqueur {player.year}</div>
@@ -3797,7 +3797,11 @@ export default function TennisManager() {
                 </>
               ))}
               {fr.isTitleWin && !lore && postPanel("Palmarès", (
-                <div style={{ fontSize: 13, lineHeight: 1.5 }}>Votre nom rejoint désormais la liste des vainqueurs de {tourn.name}. Une belle ligne ajoutée à votre carrière.</div>
+                <div className="tm-lettering" style={{ fontSize: 16, lineHeight: 1.3 }}>
+                  Votre nom rejoint désormais la liste des vainqueurs de{" "}
+                  <span className="tm-display" style={{ fontSize: 14, background: "#d6ef3c", border: "2px solid " + T.ink, padding: "0 5px", whiteSpace: "nowrap" }}>{tourn.name}</span>.
+                  {" "}Une belle ligne ajoutée à votre carrière.
+                </div>
               ))}
 
               {postDebrief(fr)}
