@@ -238,22 +238,18 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         {!enrolled && (
           <div className="tm-lettering" style={{ fontSize: 15, lineHeight: 1.25, background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "7px 10px", marginBottom: 12, transform: "rotate(-0.5deg)" }}>Aucun tournoi au programme. Inscrivez-vous depuis l'onglet Circuit.</div>
         )}
-        {/* Dépenses fixes de la semaine */}
-        <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
-          <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px" }}>Dépenses de la semaine</div>
-          <div style={{ padding: "2px 12px 10px" }}>
-            {[["Staff", staffWeeklyCost], ["Charges", player.weeklyExpenses]].map(([l, v]) => (
-              <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "2px dashed " + T.ink, fontSize: 13.5, fontWeight: 700 }}>
-                <span>{l}</span>
-                <span className="tm-num" style={{ color: "#c4302b", fontWeight: 800 }}>{fmtMoney(-v, { sign: true })}</span>
-              </div>
-            ))}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 9 }}>
-              <span className="tm-display" style={{ fontSize: 14 }}>Total</span>
-              <span className="tm-display" style={{ fontSize: 15, background: "#c4302b", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px" }}>{fmtMoney(-(staffWeeklyCost + player.weeklyExpenses), { sign: true })}/sem.</span>
+        {/* Bilan hebdomadaire : un seul montant (revenus sponsors − staff −
+            charges). Le détail est dans Bureau › Finances. */}
+        {(() => {
+          const net = (player.sponsors || []).reduce((a, s) => a + (s.weeklyPay || 0), 0) - staffWeeklyCost - player.weeklyExpenses;
+          const up = net >= 0;
+          return (
+            <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px" }}>
+              <span className="tm-display" style={{ fontSize: 14 }}>Bilan de la semaine</span>
+              <span className="tm-display" style={{ fontSize: 15, background: up ? "#1f7a45" : "#c4302b", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px", whiteSpace: "nowrap" }}>{fmtMoney(net, { sign: true })}/sem.</span>
             </div>
-          </div>
-        </div>
+          );
+        })()}
       </section>
 
       {(player.sponsors || []).some(s => s.objective) && (
