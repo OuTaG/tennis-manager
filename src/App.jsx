@@ -4571,7 +4571,7 @@ export default function TennisManager() {
                 <span className="tm-num" style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: "#ffffff", background: T.blue, border: "2px solid " + T.ink, padding: "0 5px" }}>#{ranking}</span>
               </div>
               <div className="tm-num" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap", minWidth: 0 }}>
-                <span>Sem. {player.week}</span>
+                <span>Sem. {player.week} · {player.year}</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 3, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}><FlagFromEmoji emoji={CITIES[player.location]?.flag} size={9} />{player.location}</span>
                 <span style={{ color: player.money >= 0 ? T.fg : T.red }}>{fmtMoney(player.money)}</span>
                 {/* Énergie en tampon BD : couleur selon le niveau, jauge sous le chiffre */}
