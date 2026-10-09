@@ -28,7 +28,7 @@ export const PAGE_HELP = {
     ["Semaine suivante", "Fait avancer le temps d'une semaine : énergie récupérée, salaires et sponsors réglés, circuit simulé. Si vous êtes inscrit à un tournoi cette semaine-là, il se lance."],
     ["Récupération", "Chaque semaine rend 25 d'énergie (plus le bonus du kiné ou du nutritionniste). En match, chaque pause entre deux sets rend 3 à 5. Entre deux matchs d'un tournoi, vous récupérez 10 à 20 selon votre endurance."],
     ["Votre tournoi", "L'encart d'inscription rappelle le tournoi prévu. Vous pouvez l'annuler (frais remboursés)."],
-    ["Objectifs sponsors", "Chaque contrat fixe un objectif à tenir avant sa fin : prime si réussi, pénalité sinon."],
+    ["Objectifs sponsors", "Chaque contrat fixe un objectif à tenir avant sa fin : prime si réussi, pénalité sinon. Quatre types possibles : classement, titres, victoires, ou victoires de prestige contre le top 50, 100, 200 ou 400 (selon votre rang). Vous choisissez le niveau : facile, moyen ou ambitieux (plus exigeant, mieux payé)."],
     ["Événements", "Des imprévus surviennent parfois : chaque choix a ses conséquences sur l'argent, l'énergie, le bonheur, la popularité ou l'image."],
   ] },
   calendar: { title: "Tournois", items: [

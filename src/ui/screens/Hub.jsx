@@ -5,6 +5,7 @@ import { ALL_TOURNAMENTS, tierColor, tierLabel } from "../../engine/circuit.js";
 import { GAME_OPTIONS, difficultyLevel, formatMultiplier, scoreMultiplier } from "../../engine/difficulty.js";
 import { CITIES } from "../../data/geo.js";
 import { buildFrontPage } from "../../engine/frontpage.js";
+import { sponsorObjectiveCounters, sponsorObjectiveProgress } from "../../engine/sponsors.js";
 import { Avatar } from "../avatar.jsx";
 import { FlagFromEmoji, Icon, StatIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
@@ -262,12 +263,9 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
           </div>
           {(player.sponsors || []).filter(s => s.objective).map((s, i, arr) => {
             const o = s.objective;
-            const base = s.objectiveBaseline || { titles: 0, wins: 0, bigwins: 0 };
             let cur = 0, met = false, curLabel = "";
             if (o.type === "rank") { cur = ranking; met = ranking <= o.target; curLabel = "#" + ranking + " / top " + o.target; }
-            else if (o.type === "titles") { cur = (player.titlesWon || 0) - base.titles; met = cur >= o.target; curLabel = cur + "/" + o.target; }
-            else if (o.type === "wins") { cur = (player.careerWins || 0) - base.wins; met = cur >= o.target; curLabel = cur + "/" + o.target; }
-            else if (o.type === "bigwins") { cur = (player.careerBigWins || 0) - base.bigwins; met = cur >= o.target; curLabel = cur + "/" + o.target; }
+            else { cur = sponsorObjectiveProgress(o, s.objectiveBaseline || {}, sponsorObjectiveCounters(player)) ?? 0; met = cur >= o.target; curLabel = cur + "/" + o.target; }
             const progress = o.type === "rank" ? (met ? 1 : Math.max(0, Math.min(1, o.target / Math.max(1, ranking)))) : Math.max(0, Math.min(1, cur / o.target));
             // Weeks left until this objective is evaluated (next negotiation phase).
             let weeksLeft = null;

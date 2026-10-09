@@ -25,7 +25,7 @@ import { expireOldPoints, playerRaceRank, pointsWeekAfter, raceStandings } from 
 import { updateCareerRecords } from "./engine/records.js";
 import { FINALS_PRIZE, FINALS_PTS, RR_SCHEDULE, buildFinalsDraw, finalizeHumanTournamentBracket, finalsAiMatch, finalsAiResults, finalsPlayMatchday, finalsRanked, generateTournamentArticle, simulateAtpWeek } from "./engine/simulation.js";
 import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, limitPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
-import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor } from "./engine/sponsors.js";
+import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor, sponsorObjectiveCounters } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
 import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
@@ -593,9 +593,9 @@ export default function TennisManager() {
         if (next.weeksLeft > 0) { remaining.push(next); continue; }
         // Contract ends: settle its objective now.
         if (s.objective) {
-          const cur = { titles: p.titlesWon || 0, wins: p.careerWins || 0, bigwins: p.careerBigWins || 0 };
+          const cur = sponsorObjectiveCounters(p);
           const rk = getPlayerRanking(totalAtpPoints(p.atpPointsLog), atpDb);
-          const met = evaluateSponsorObjective(s.objective, s.objectiveBaseline || { titles: 0, wins: 0, bigwins: 0 }, cur, rk);
+          const met = evaluateSponsorObjective(s.objective, s.objectiveBaseline || {}, cur, rk);
           const amount = met ? (s.objectiveReward || 0) : -(s.objectivePenalty || 0);
           p.money += amount;
           if (amount > 0) p.totalEarnings = (p.totalEarnings || 0) + amount;
@@ -631,7 +631,7 @@ export default function TennisManager() {
       // (1) Evaluate due objectives on active contracts. We use lifetime career
       // counters so the per-contract baseline subtraction is robust across the
       // season reset (season counters would reset mid-window).
-      const current = { titles: p.titlesWon || 0, wins: p.careerWins || 0, bigwins: p.careerBigWins || 0 };
+      const current = sponsorObjectiveCounters(p);
       const keptSponsors = [];
       let objMoney = 0;
       const negotiationResults = []; // for the overlay summary
@@ -641,7 +641,7 @@ export default function TennisManager() {
         const deadlineReached = s.objective && s.objectiveYear !== undefined &&
           ((newYear > s.objectiveYear) || (newYear === s.objectiveYear && newWeek >= s.objectiveWeek));
         if (!deadlineReached) { keptSponsors.push(s); continue; }
-        const base = s.objectiveBaseline || { titles: 0, wins: 0, bigwins: 0 };
+        const base = s.objectiveBaseline || {};
         const met = evaluateSponsorObjective(s.objective, base, current, rankingNow);
         if (met) {
           objMoney += s.objectiveReward || 0;
@@ -2158,6 +2158,9 @@ export default function TennisManager() {
         careerLosses: won ? p.careerLosses : p.careerLosses + 1,
         seasonBigWins: (p.seasonBigWins || 0) + (won && (ms.opponentRank || 999) <= 50 ? 1 : 0),
         careerBigWins: (p.careerBigWins || 0) + (won && (ms.opponentRank || 999) <= 50 ? 1 : 0),
+        careerWinsTop100: (p.careerWinsTop100 || 0) + (won && (ms.opponentRank || 9999) <= 100 ? 1 : 0),
+        careerWinsTop200: (p.careerWinsTop200 || 0) + (won && (ms.opponentRank || 9999) <= 200 ? 1 : 0),
+        careerWinsTop400: (p.careerWinsTop400 || 0) + (won && (ms.opponentRank || 9999) <= 400 ? 1 : 0),
         // Récupération entre deux matchs du tournoi : 10 à 20 selon l'endurance.
         energy: Math.min(100, postMatchEnergy + betweenMatchRecovery(p.stats.stamina)),
         matchHistory: [matchEntry, ...p.matchHistory].slice(0, 80),
@@ -2263,6 +2266,9 @@ export default function TennisManager() {
         careerLosses: !won ? p.careerLosses + 1 : p.careerLosses,
         seasonBigWins: (p.seasonBigWins || 0) + (won && (ms.opponentRank || 999) <= 50 ? 1 : 0),
         careerBigWins: (p.careerBigWins || 0) + (won && (ms.opponentRank || 999) <= 50 ? 1 : 0),
+        careerWinsTop100: (p.careerWinsTop100 || 0) + (won && (ms.opponentRank || 9999) <= 100 ? 1 : 0),
+        careerWinsTop200: (p.careerWinsTop200 || 0) + (won && (ms.opponentRank || 9999) <= 200 ? 1 : 0),
+        careerWinsTop400: (p.careerWinsTop400 || 0) + (won && (ms.opponentRank || 9999) <= 400 ? 1 : 0),
         titlesWon: isTitleWin ? p.titlesWon + 1 : p.titlesWon,
         titlesByTier: isTitleWin
           ? { ...(p.titlesByTier || {}), [tourn.tier]: ((p.titlesByTier || {})[tourn.tier] || 0) + 1 }
@@ -2484,7 +2490,7 @@ export default function TennisManager() {
     const titleBonus = terms?.titleBonus ?? offer.titleBonus;
     const reward = Math.round((offer.baseReward || 0) * (lvl?.rewardMul || 1));
     const penalty = Math.round((offer.basePenalty || 0) * (lvl?.penaltyMul || 1));
-    const objective = lvl ? { type: lvl.type, target: lvl.target, label: lvl.label, level: lvl.level } : null;
+    const objective = lvl ? { type: lvl.type, target: lvl.target, label: lvl.label, level: lvl.level, ...(lvl.threshold ? { threshold: lvl.threshold } : {}) } : null;
     // Deadline = end of the contract, aligned on the negotiation phases
     // (weeks 26 / 52): 26-week contract → next phase, 52-week → the one after.
     const nextPhase = (w, y) => (w < 26 ? { w: 26, y } : w < 52 ? { w: 52, y } : { w: 26, y: y + 1 });
@@ -2494,7 +2500,7 @@ export default function TennisManager() {
     if (offer.midSeason && (dl.y - p.year) * 52 + (dl.w - p.week) < 13) dl = nextPhase(dl.w, dl.y);
     const objectiveWeek = dl.w, objectiveYear = dl.y;
     const weeksToDeadline = (dl.y - p.year) * 52 + (dl.w - p.week);
-    const baseline = { titles: p.titlesWon || 0, wins: p.careerWins || 0, bigwins: p.careerBigWins || 0 };
+    const baseline = sponsorObjectiveCounters(p);
     return {
       id: offer.id, brand: offer.brand, cat: offer.cat || "other", tier: offer.tier,
       weeklyPay, titleBonus,
