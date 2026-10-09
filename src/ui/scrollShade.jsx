@@ -74,7 +74,7 @@ export function WindowShades() {
   const base = { position: "fixed", left: 0, right: 0, height: SHADE_H, pointerEvents: "none", zIndex: 40, transition: "opacity 0.2s" };
   return (
     <>
-      <div aria-hidden="true" style={{ ...base, top: 0, ...shade("top"), opacity: e.top ? 1 : 0 }} />
+      <div aria-hidden="true" style={{ ...base, top: "env(safe-area-inset-top, 0px)", ...shade("top"), opacity: e.top ? 1 : 0 }} />
       <div aria-hidden="true" style={{ ...base, bottom: 0, ...shade("bottom"), opacity: e.bottom ? 1 : 0 }} />
     </>
   );

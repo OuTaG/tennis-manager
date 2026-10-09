@@ -56,7 +56,7 @@ import { ShopScreen } from "./ui/screens/Shop.jsx";
 import { SOCIAL_HISTORY_WEEKS, SocialScreen } from "./ui/screens/Social.jsx";
 import { StatsScreen } from "./ui/screens/Stats.jsx";
 import { TravelScreen } from "./ui/screens/Travel.jsx";
-import { styles } from "./ui/styles.js";
+import { FULL_H, styles } from "./ui/styles.js";
 import { T, applyCircuitAccent } from "./ui/theme.js";
 import { getRngState, newSeed, random, setRngState, setSeed } from "./engine/rng.js";
 import { TACTIC_DEFS, adviceStars, coachAdvice, normalizeTactics } from "./engine/tactics.js";
@@ -210,10 +210,14 @@ export default function TennisManager() {
     try { localStorage.removeItem("tm-theme"); } catch (e) {}
   }, [activeCircuit]);
 
-  // Changement de page ou de menu : on repart toujours du haut.
+  // Changement de page ou de menu : on repart toujours du haut. Les étapes
+  // de création et les phases du match (avant-match → direct → résultat)
+  // sont aussi des pages : sans cela, le défilement de la précédente est
+  // conservé et le haut de la nouvelle passe sous la barre d'état.
+  const matchPhase = matchState ? matchState.phase : null;
   useEffect(() => {
     try { window.scrollTo(0, 0); } catch (e) {}
-  }, [activeTab, screen]);
+  }, [activeTab, screen, createStep, matchPhase]);
 
   // Carrière WTA : accorde au féminin tous les textes affichés.
   useEffect(() => {
@@ -4010,7 +4014,10 @@ export default function TennisManager() {
               onSkip={rallyAnim.commit}
             />
           )}
-          <div style={{ ...styles.screen, height: "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))", minHeight: 0, overflowY: "auto" }}>
+          {/* Hauteur exacte de l'écran sous la barre d'état (flex: none : ne pas
+              grandir au-delà) ; la barre d'actions du bas réserve elle-même la
+              zone de la barre d'accueil. La page ne défile donc pas. */}
+          <div style={{ ...styles.screen, flex: "none", height: "calc(100dvh - env(safe-area-inset-top, 0px))", minHeight: 0, overflowY: "auto" }}>
             {/* Bandeau du tournoi, à la couleur de la surface (comme l'avant-match) */}
             <div style={{
               background: LIVE_SURF_BG[tourn.surface] || T.ink, color: "#ffffff",
@@ -5021,7 +5028,7 @@ export default function TennisManager() {
 
         return (
           <div className="tm-paper" style={{ position: "fixed", inset: 0, zIndex: 250, overflowY: "auto" }} onClick={() => setShowHallOfFame(false)}>
-            <div onClick={e => e.stopPropagation()} style={{ maxWidth: 440, margin: "0 auto", minHeight: "100vh", color: "#141414" }}>
+            <div onClick={e => e.stopPropagation()} style={{ maxWidth: 440, margin: "0 auto", minHeight: FULL_H, color: "#141414" }}>
               {/* En-tête BD : bandeau noir collant, compteur en tampon */}
               <div style={{ position: "sticky", top: 0, zIndex: 2, background: T.ink, color: "#ffffff", padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, borderBottom: "3px solid " + T.ink }}>
                 <button aria-label="Fermer" onClick={() => setShowHallOfFame(false)} style={{ width: 34, height: 34, flexShrink: 0, background: "#ffffff", border: "2.5px solid " + T.ink, color: T.ink, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
