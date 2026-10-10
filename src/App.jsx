@@ -39,6 +39,7 @@ import { loadRosterConfigs, rosterEditCount, rosterEntries } from "./engine/rost
 const LIVE_SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2c6fd1", "Indoor": "#5b2d8e" };
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, aiAvatar, femaleHairStyle } from "./ui/avatar.jsx";
 import { fmtMoney, fmtNum, fmtKm, fmtStatDelta, rankingName } from "./ui/format.js";
+import { showLoadingScreen } from "./ui/loading.js";
 import { BangBadge, FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
@@ -88,7 +89,18 @@ export default function TennisManager() {
     shirt: AVATAR_OPTIONS.shirt[0],
   });
   const [matchState, setMatchState] = useState(null);
-  const [travelSearch, setTravelSearch] = useState(""); // ville pré-remplie dans Voyages (fenêtre de forfait)
+  const [travelSearch, setTravelSearch] = useState("");
+  // Écran de chargement : affiché pendant les opérations lourdes (création de
+  // la base de joueurs, lecture d'une sauvegarde). Deux images d'animation
+  // sont laissées au navigateur pour peindre l'écran avant de lancer le calcul.
+  // Construit directement dans le DOM (hors React) pour s'afficher quel que
+  // soit l'écran en cours et retirer l'écran dès que React a fini.
+  const runHeavy = (msg, fn) => {
+    const el = showLoadingScreen(msg);
+    requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => {
+      try { fn(); } finally { setTimeout(() => el.remove(), 60); }
+    }, 0)));
+  }; // ville pré-remplie dans Voyages (fenêtre de forfait)
   const [rallyAnim, setRallyAnim] = useState(null); // { points, contextLabel, isTiebreak, commit } during point-by-point animation
   // Match mode: "manual" = one game per click; "auto" = games chain with a
   // short pause, stopping on any event (dilemma, match-fix proposal).
@@ -2709,7 +2721,7 @@ export default function TennisManager() {
       <ChallengesScreen
         onBack={() => { refreshSlots(); setScreen("menu"); }}
         onStart={startChallenge}
-        onResume={() => loadSave(CHALLENGE_SLOT)}
+        onResume={() => runHeavy("Reprise du défi…", () => loadSave(CHALLENGE_SLOT))}
         onAbandon={() => deleteSave(CHALLENGE_SLOT)}
         current={challengeMeta}
         owned={hasPurchased("dlc_challenges")}
@@ -2765,7 +2777,7 @@ export default function TennisManager() {
                         onClick={() => deleteSave(i)} title="Effacer cette carrière"
                       ><Icon name="trash" size={16} color="#c4302b" /></button>
                     </div>
-                    <button style={{ ...styles.btnPrimary, padding: "11px 16px", fontSize: 14 }} onClick={() => loadSave(i)}>Reprendre</button>
+                    <button style={{ ...styles.btnPrimary, padding: "11px 16px", fontSize: 14 }} onClick={() => runHeavy("Reprise de la carrière…", () => loadSave(i))}>Reprendre</button>
                   </div>
                 );
               }
@@ -3176,7 +3188,7 @@ export default function TennisManager() {
             <button
               style={{ ...styles.btnPrimary, opacity: nameInput.length < 2 ? 0.4 : 1 }}
               disabled={nameInput.length < 2}
-              onClick={() => {
+              onClick={() => runHeavy("Création du circuit…", () => {
                 setSeed(newSeed());
                 setCircuit(circuitInput);
                 const newPlayer = createInitialPlayer(nameInput, styleInput, startCityInput, nationalityInput || undefined, avatarInput, difficultyInput, gameOptionsInput, surfaceInput);
@@ -3208,7 +3220,7 @@ export default function TennisManager() {
                     results: [], objMoney: 0,
                   });
                 }
-              }}
+              })}
             >
               Lancer la carrière
             </button>
