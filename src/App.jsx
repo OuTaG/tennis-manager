@@ -95,10 +95,14 @@ export default function TennisManager() {
   // sont laissées au navigateur pour peindre l'écran avant de lancer le calcul.
   // Construit directement dans le DOM (hors React) pour s'afficher quel que
   // soit l'écran en cours et retirer l'écran dès que React a fini.
+  // L'écran n'est retiré qu'une fois le nouvel écran React rendu et peint :
+  // le setTimeout passe après la tâche de rendu planifiée par React, puis deux
+  // images d'animation laissent le navigateur l'afficher.
   const runHeavy = (msg, fn) => {
     const el = showLoadingScreen(msg);
+    const done = () => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => el.remove())), 0);
     requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => {
-      try { fn(); } finally { setTimeout(() => el.remove(), 60); }
+      try { fn(); } finally { done(); }
     }, 0)));
   }; // ville pré-remplie dans Voyages (fenêtre de forfait)
   const [rallyAnim, setRallyAnim] = useState(null); // { points, contextLabel, isTiebreak, commit } during point-by-point animation
@@ -2861,7 +2865,7 @@ export default function TennisManager() {
                 { id: "wta", label: "Circuit féminin", sub: "Carrière d'une joueuse", accent: "#5b2d8e", sample: { female: true, hairStyle: "queue", accessory: "visiere", shirt: "#5b2d8e" } },
               ].map(c => {
                 return (
-                  <button key={c.id} data-nofem="" onClick={() => pick(c.id)} style={{
+                  <button key={c.id} data-nofem="" onClick={() => runHeavy(c.id === "wta" ? "Préparation du circuit féminin…" : "Préparation du circuit masculin…", () => pick(c.id))} style={{
                     display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
                     background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, borderLeft: "10px solid " + c.accent, boxShadow: "4px 4px 0 " + T.ink, borderRadius: 0,
                     padding: 14, cursor: "pointer", fontFamily: T.body,
@@ -2918,7 +2922,7 @@ export default function TennisManager() {
               {!owned && (
                 <div className="tm-lettering" style={{ fontSize: 14.5, color: "#141414", background: "#d6ef3c", border: "2px solid " + T.ink, padding: "4px 8px", lineHeight: 1.25, textAlign: "center", transform: "rotate(-0.6deg)" }}>Les bases personnalisées s'ouvrent avec le mode Personnalisation (boutique).</div>
               )}
-              <button style={styles.btnPrimary} onClick={() => setCreateStep(0)}>Suivant</button>
+              <button style={styles.btnPrimary} onClick={() => runHeavy("Préparation de l'identité…", () => setCreateStep(0))}>Suivant</button>
               <button style={styles.btnSecondary} onClick={() => setCreateStep(-1)}>Retour</button>
             </div>
           </div>
