@@ -6,7 +6,21 @@
 // TennisManager), sans dupliquer les textes. Règles des plus précises aux plus
 // générales ; les limites de mots tiennent compte des lettres accentuées.
 export const _B = "(?<![\\p{L}\\p{N}])", _E = "(?![\\p{L}\\p{N}])";
-export const _fr = (pattern, repl) => [new RegExp(_B + pattern + _E, "gu"), repl];
+// Chaque règle porte aussi un « mot obligatoire » (littéral présent dans
+// tout texte qu'elle peut modifier) : un simple includes() évite de lancer la
+// regex (lookbehind Unicode, lente sur iPhone) sur les textes qui ne
+// contiennent pas ce mot. Vide quand on ne peut pas le garantir.
+export function requiredLiteral(pattern) {
+  let p = pattern.replace(/\\./g, "\u0000");            // échappements
+  let prev;
+  do { prev = p; p = p.replace(/\[[^\]]*\]/g, "\u0000"); } while (p !== prev); // classes
+  do { prev = p; p = p.replace(/\([^()]*\)/g, "\u0000"); } while (p !== prev); // groupes
+  if (/[|()]/.test(p)) return "";                           // alternative hors groupe
+  p = p.replace(/.[?*]/g, "\u0000").replace(/[+{}^$.]/g, "\u0000");
+  const runs = p.split("\u0000").map(r => r.trim()).filter(r => r.length >= 2);
+  return runs.sort((x, y) => y.length - x.length)[0] || "";
+}
+export const _fr = (pattern, repl) => [new RegExp(_B + pattern + _E, "gu"), repl, requiredLiteral(pattern)];
 export const WTA_TEXT_RULES = [
   // Phrases précises (commentaires, interviews, réseaux, événements)
   _fr("est-il le joueur le plus régulier", "est-elle la joueuse la plus régulière"),
@@ -281,8 +295,23 @@ export const WTA_TEXT_RULES = [
   _fr("M25", "W35"),
   _fr("M15", "W15"),
 ];
-export function feminizeText(txt) {
+// Version de référence (toutes les règles, sans raccourci) : sert aux tests.
+export function feminizeTextSlow(txt) {
   let out = txt;
   for (const [re, rp] of WTA_TEXT_RULES) out = out.replace(re, rp);
+  return out;
+}
+// Mémo des textes déjà traités : les mêmes libellés reviennent à chaque rendu.
+const FEM_CACHE = new Map();
+export function feminizeText(txt) {
+  const hit = FEM_CACHE.get(txt);
+  if (hit !== undefined) return hit;
+  let out = txt;
+  for (const [re, rp, lit] of WTA_TEXT_RULES) {
+    if (lit && !out.includes(lit)) continue;
+    out = out.replace(re, rp);
+  }
+  if (FEM_CACHE.size > 5000) FEM_CACHE.clear();
+  FEM_CACHE.set(txt, out);
   return out;
 }
