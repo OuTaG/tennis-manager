@@ -95,11 +95,21 @@ export const WTA_ACCENT = { green: "#a3267c", greenHi: "#b8318d", greenDk: "#731
 const cssVars = (p) => Object.keys(p).map(k => "--tm-" + k + ":" + p[k] + ";").join("");
 
 // Applique l'accent du circuit en écrivant les variables CSS sur :root.
+// Seules les variables de l'accent changent d'un circuit à l'autre : on
+// n'écrit qu'elles, et rien quand le circuit est déjà appliqué (chaque
+// écriture sur :root force le recalcul du style de toute la page, très
+// coûteux sur iPhone).
+let appliedAccent = "atp";
 export function applyCircuitAccent(circuit) {
   if (typeof document === "undefined") return;
-  const p = circuit === "wta" ? { ...PALETTE, ...WTA_ACCENT } : PALETTE;
+  const c = circuit === "wta" ? "wta" : "atp";
+  if (c === appliedAccent) return;
+  appliedAccent = c;
   const root = document.documentElement;
-  Object.keys(p).forEach(k => root.style.setProperty("--tm-" + k, p[k]));
+  Object.keys(WTA_ACCENT).forEach(k => {
+    if (c === "wta") root.style.setProperty("--tm-" + k, WTA_ACCENT[k]);
+    else root.style.removeProperty("--tm-" + k);
+  });
 }
 
 // Injecte le CSS global une fois. Les polices sont embarquées avec le jeu
