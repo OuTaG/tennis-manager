@@ -315,3 +315,16 @@ export function feminizeText(txt) {
   FEM_CACHE.set(txt, out);
   return out;
 }
+
+// Précompile les règles en tâche de fond (par petits paquets) : sur iPhone,
+// chaque regex Unicode est compilée à sa première exécution, ce qui figeait
+// le premier passage au circuit féminin.
+export function warmFeminize(batch = 16) {
+  let i = 0;
+  const step = () => {
+    const end = Math.min(i + batch, WTA_TEXT_RULES.length);
+    for (; i < end; i++) { const re = WTA_TEXT_RULES[i][0]; re.lastIndex = 0; re.test("a"); re.lastIndex = 0; }
+    if (i < WTA_TEXT_RULES.length) setTimeout(step, 0);
+  };
+  setTimeout(step, 0);
+}
