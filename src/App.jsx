@@ -100,12 +100,32 @@ export default function TennisManager() {
   // mise au féminin) avant de rendre la main : tout le travail se fait
   // derrière l'écran de chargement, qui n'est retiré qu'ensuite, une fois la
   // nouvelle page peinte (deux images d'animation).
+  // Le recalcul de style et la mise en page sont forcés (offsetHeight) avant
+  // le retrait, sinon ils tombaient sur l'image suivante, écran déjà retiré.
+  const preLoader = useRef(null);
   const runHeavy = (msg, fn) => {
-    const el = showLoadingScreen(msg);
+    const el = preLoader.current || showLoadingScreen(msg);
+    preLoader.current = null;
+    el.style.pointerEvents = "";
     requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => {
-      try { flushSync(fn); } finally { requestAnimationFrame(() => requestAnimationFrame(() => el.remove())); }
+      try { flushSync(fn); void document.body.offsetHeight; } finally { requestAnimationFrame(() => requestAnimationFrame(() => el.remove())); }
     }, 0)));
-  }; // ville pré-remplie dans Voyages (fenêtre de forfait)
+  };
+  // Écran affiché dès le contact du doigt : il a le temps d'être peint
+  // avant le clic. Retiré si le geste est annulé (défilement).
+  const preHeavy = (msg) => ({
+    onPointerDown: () => {
+      if (preLoader.current) return;
+      const el = showLoadingScreen(msg);
+      // pointer-events: none laisse le relâchement et le clic atteindre le bouton.
+      el.style.pointerEvents = "none";
+      preLoader.current = el;
+      // Geste annulé ou doigt relâché hors du bouton : pas de clic, on retire l'écran.
+      const end = () => setTimeout(() => { if (preLoader.current === el) { el.remove(); preLoader.current = null; } }, 400);
+      document.addEventListener("pointerup", end, { once: true });
+      document.addEventListener("pointercancel", end, { once: true });
+    },
+  });
   const [rallyAnim, setRallyAnim] = useState(null); // { points, contextLabel, isTiebreak, commit } during point-by-point animation
   // Match mode: "manual" = one game per click; "auto" = games chain with a
   // short pause, stopping on any event (dilemma, match-fix proposal).
@@ -2872,7 +2892,7 @@ export default function TennisManager() {
                 { id: "wta", label: "Circuit féminin", sub: "Carrière d'une joueuse", accent: "#5b2d8e", sample: { female: true, hairStyle: "queue", accessory: "visiere", shirt: "#5b2d8e" } },
               ].map(c => {
                 return (
-                  <button key={c.id} data-nofem="" onClick={() => runHeavy(c.id === "wta" ? "Préparation du circuit féminin…" : "Préparation du circuit masculin…", () => pick(c.id))} style={{
+                  <button key={c.id} data-nofem="" {...preHeavy(c.id === "wta" ? "Préparation du circuit féminin…" : "Préparation du circuit masculin…")} onClick={() => runHeavy(c.id === "wta" ? "Préparation du circuit féminin…" : "Préparation du circuit masculin…", () => pick(c.id))} style={{
                     display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
                     background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, borderLeft: "10px solid " + c.accent, boxShadow: "4px 4px 0 " + T.ink, borderRadius: 0,
                     padding: 14, cursor: "pointer", fontFamily: T.body,
