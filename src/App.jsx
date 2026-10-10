@@ -1,5 +1,6 @@
 // Composant principal : état de la partie, semaine, tournois, sauvegarde.
 import { useState, useEffect, useMemo, useRef } from "react";
+import { flushSync } from "react-dom";
 import {
   Plus,
 } from "lucide-react";
@@ -12,7 +13,7 @@ import { ALL_TOURNAMENTS, getEntryStatus, getPointSplits, getSeedCount, getTourn
 import { pickComment, pickDebrief, setCloseHow, formRemarks } from "./engine/commentary.js";
 import { generateAtpDatabase, getPlayerProfile, getRating, pickOpponentForMatch } from "./engine/database.js";
 import { MATCH_FIX_DILEMMA, resolveDilemmaOption } from "./engine/dilemmas.js";
-import { feminizeText } from "./engine/feminize.js";
+import { feminizeText, warmFeminize } from "./engine/feminize.js";
 import { elide, firstSentence } from "./engine/text.js";
 import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/history.js";
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
@@ -95,14 +96,14 @@ export default function TennisManager() {
   // sont laissées au navigateur pour peindre l'écran avant de lancer le calcul.
   // Construit directement dans le DOM (hors React) pour s'afficher quel que
   // soit l'écran en cours et retirer l'écran dès que React a fini.
-  // L'écran n'est retiré qu'une fois le nouvel écran React rendu et peint :
-  // le setTimeout passe après la tâche de rendu planifiée par React, puis deux
-  // images d'animation laissent le navigateur l'afficher.
+  // flushSync rend le nouvel écran et exécute ses effets (accent du circuit,
+  // mise au féminin) avant de rendre la main : tout le travail se fait
+  // derrière l'écran de chargement, qui n'est retiré qu'ensuite, une fois la
+  // nouvelle page peinte (deux images d'animation).
   const runHeavy = (msg, fn) => {
     const el = showLoadingScreen(msg);
-    const done = () => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => el.remove())), 0);
     requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => {
-      try { fn(); } finally { done(); }
+      try { flushSync(fn); } finally { requestAnimationFrame(() => requestAnimationFrame(() => el.remove())); }
     }, 0)));
   }; // ville pré-remplie dans Voyages (fenêtre de forfait)
   const [rallyAnim, setRallyAnim] = useState(null); // { points, contextLabel, isTiebreak, commit } during point-by-point animation
@@ -225,6 +226,12 @@ export default function TennisManager() {
     // Ancien réglage du mode sombre (supprimé) : on nettoie.
     try { localStorage.removeItem("tm-theme"); } catch (e) {}
   }, [activeCircuit]);
+
+  // Règles du féminin précompilées peu après le démarrage, hors interaction.
+  useEffect(() => {
+    const t = setTimeout(() => warmFeminize(), 1500);
+    return () => clearTimeout(t);
+  }, []);
 
   // Changement de page ou de menu : on repart toujours du haut. Les étapes
   // de création et les phases du match (avant-match → direct → résultat)
