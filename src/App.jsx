@@ -1682,7 +1682,7 @@ export default function TennisManager() {
     const firstKey = { hold_easy: "first_hold", hold_tough: "first_hold", break_clean: "first_break", break_grind: "first_break", lose_serve: "first_lose_serve", opp_hold: "first_opp_hold" }[result.gameType];
     const commentKey = isFirstGameOfMatch && firstKey ? firstKey : (result.commentType || result.gameType);
     // Contexte lu par les commentaires : points du jeu, jeux du set, score en sets.
-    const gameCtx = { ...result, log: m.sets[m.sets.length - 1].gameLog, setNo: m.sets.length, pSets: m.pSets, oSets: m.oSets, bo5: !!m.isGrandSlam, matchComplete: !!m.matchComplete };
+    const gameCtx = { ...result, log: m.sets[m.sets.length - 1].gameLog, setNo: m.sets.length, pSets: m.pSets, oSets: m.oSets, bo5: !!m.isGrandSlam, tb10Decider: !!m.tb10Decider, matchComplete: !!m.matchComplete };
     const gameEvent = { id: Date.now() + random(), type: result.gameType, text: pickComment(commentKey, vars, gameCtx), points: result.points || null, isTiebreak: !!result.isTiebreak, score: { ...result.score, isPlayerServing: result.isPlayerServing, tiebreak: m.sets[m.sets.length - 1].tiebreak } };
     // A game that closes a set is NOT commented on its own: the set comment
     // below says how the set was closed (hold, break, tie-break) instead.
@@ -1927,10 +1927,16 @@ export default function TennisManager() {
     // Le score s'affiche tout de suite : jeu gagné, retour à égalité, ou
     // nouveau score du tie-break.
     const pgNow = matchState && matchState.matchData && matchState.matchData.pendingGame;
+    // Serveur tiré du jeu interrompu (et non d'un défaut « joueur ») : sans
+    // cela, après une balle de break manquée, la balle de service passait
+    // du côté du joueur au retour sur le match en direct.
     if (pgNow && pgNow.isTiebreak) {
-      setLivePoint(lp => ({ p: String(pgNow.pPts + (win ? 1 : 0)), o: String(pgNow.oPts + (win ? 0 : 1)), server: lp ? lp.server : true }));
+      // Tie-break : 1 point puis 2 chacun ; le point suivant est le n° seq + 1.
+      const next = (pgNow.seq || []).length + 1;
+      const server = ((Math.floor((next + 1) / 2) % 2) === 0) === !!pgNow.isPlayerServing;
+      setLivePoint({ p: String(pgNow.pPts + (win ? 1 : 0)), o: String(pgNow.oPts + (win ? 0 : 1)), server });
     } else {
-      setLivePoint(lp => ({ p: win ? "JEU" : "40", o: "40", server: lp ? lp.server : true }));
+      setLivePoint(lp => ({ p: win ? "JEU" : "40", o: "40", server: pgNow ? !!pgNow.isPlayerServing : (lp ? lp.server : true) }));
     }
     if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
     // Jeu gagné : le tableau se met à jour aussitôt. Égalité : courte pause
@@ -4522,7 +4528,15 @@ export default function TennisManager() {
                           <span style={{ background: T.ink, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3, padding: "1px 6px", textTransform: "uppercase", maxWidth: "58%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Contre {ms.opponent.name}</span>
                         </div>
                         {hasCoach && <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                          <div className="tm-lettering" style={{ flex: 1, background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, borderRadius: "50% / 40%", padding: "9px 14px", fontSize: 15, textAlign: "center" }}>« {advice.text} »</div>
+                          {/* Bulle BD rectangulaire, pointe vers l'étiquette du coach ;
+                              la pointe blanche recouvre le trait de la bulle à la jonction. */}
+                          <div style={{ flex: 1, position: "relative", marginRight: 12 }}>
+                            <div className="tm-lettering" style={{ background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, borderRadius: 3, boxShadow: "3px 3px 0 " + T.ink, padding: "8px 12px", fontSize: 15, lineHeight: 1.25, textAlign: "center" }}>« {advice.text} »</div>
+                            <svg width="16" height="20" viewBox="0 0 16 20" aria-hidden="true" style={{ position: "absolute", right: -13, top: "50%", marginTop: -10, overflow: "visible" }}>
+                              <path d="M0 2 L15 10 L0 18" fill="#ffffff" stroke={T.ink} strokeWidth="2.5" strokeLinejoin="round" />
+                              <path d="M-3 4.5 L0.5 4.5 L0.5 15.5 L-3 15.5 Z" fill="#ffffff" />
+                            </svg>
+                          </div>
                           <div style={{ alignSelf: "center", background: T.ink, color: "#d6ef3c", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3, textTransform: "uppercase", textAlign: "center", padding: "3px 6px", transform: "rotate(-4deg)" }}>Votre<br />coach</div>
                         </div>}
                         {TACTIC_DEFS.map(d => (
@@ -4542,7 +4556,7 @@ export default function TennisManager() {
                                     fontFamily: T.body, fontWeight: 800, fontSize: 11.5, position: "relative",
                                   }}>
                                     {label}
-                                    {suggested && !on && <span style={{ position: "absolute", top: 1, right: 3, fontSize: 13, lineHeight: 1, color: T.magenta, WebkitTextStroke: "0.5px " + T.ink }}>★</span>}
+                                    {suggested && <span style={{ position: "absolute", top: 1, right: 3, fontSize: 13, lineHeight: 1, color: T.magenta, WebkitTextStroke: "0.5px " + T.ink }}>★</span>}
                                   </button>
                                 );
                               })}
