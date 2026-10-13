@@ -89,6 +89,7 @@ export const CHALLENGES = [
     context: "Il y a deux ans, vous étiez n°1 mondial. Une blessure au genou vous a tenu loin des courts pendant quatorze mois. À 32 ans, vous repartez du 150e rang. Personne ne vous attend… sauf le public.",
     objectiveLabel: "Revenir dans le top 10",
     deadlineLabel: "Avant la fin de la saison 2027",
+    objectiveText: "Revenir dans le top 10 mondial avant la fin de la saison 2027, en profitant de votre classement protégé (8 tournois joués comme un n°8) sans trop solliciter un genou encore fragile.",
     perks: [
       "Classement protégé : vous entrez comme un n°8 sur 8 tournois",
       "L'argent et la popularité d'une ancienne star",
@@ -117,6 +118,7 @@ export const CHALLENGES = [
     context: "Quatre finales de Majeur, quatre défaites. À 35 ans, vous êtes la doyenne du top 20 et vous avez annoncé que cette saison serait la dernière. Il reste une saison, une seule, pour aller chercher le titre qui manque à votre carrière.",
     objectiveLabel: "Gagner un Majeur",
     deadlineLabel: "Avant la fin de la saison 2026",
+    objectiveText: "Gagner l'un des quatre Majeurs (Open d'Australie, Internationaux de Paris, Tournoi de Londres ou Open des États-Unis) avant la fin de la saison 2026, la dernière de votre carrière, avec une récupération plus lente (−8 d'énergie par semaine).",
     perks: [
       "Mental d'expérience, mais récupération plus lente (−8 énergie par semaine)",
       "Tournée d'adieu : un moment fort avant chaque Majeur",
@@ -144,6 +146,7 @@ export const CHALLENGES = [
     context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes 150e mondiale, vous devez 50\u202f000\u00a0€ et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
     objectiveLabel: "Rembourser 50\u202f000\u00a0€",
     deadlineLabel: "Avant la fin de la saison 2026",
+    objectiveText: "Rembourser les 50\u202f000\u00a0€ de dettes avant la fin de la saison 2026, en versant au moins 2\u202f500\u00a0€ toutes les 4 semaines (sinon la dette augmente de 10 %), sans aucun sponsor au départ.",
     perks: [
       "Remboursez quand vous voulez depuis l'accueil",
       "Échéance obligatoire de 2\u202f500\u00a0€ toutes les 4 semaines, sinon +10 % de pénalité",
@@ -173,6 +176,7 @@ export const CHALLENGES = [
     context: "Championne du monde junior, vous passez pro à 17 ans. La presse vous compare déjà aux plus grandes. Il faut transformer l'essai : entrer dans le top 100 en deux saisons.",
     objectiveLabel: "Entrer dans le top 100",
     deadlineLabel: "Avant la fin de la saison 2027",
+    objectiveText: "Entrer dans le top 100 mondial avant la fin de la saison 2027, en partant du 900e rang à 17 ans, avec une progression à l'entraînement multipliée par 1,3.",
     perks: [
       "Âge d'or : progression ×1,3 à l'entraînement",
       "Une popularité qui attire les wildcards",
@@ -198,6 +202,7 @@ export const CHALLENGES = [
     context: "Open d'Australie, Internationaux de Paris, Open des États-Unis : vous les avez tous gagnés. Il ne manque que le gazon londonien pour entrer dans l'histoire. Vous y arrivez cette semaine avec un jeu taillé pour l'ocre. Si ça ne passe pas, vous aurez un an pour transformer votre tennis.",
     objectiveLabel: "Gagner le Tournoi de Londres",
     deadlineLabel: "En 2026 ou en 2027",
+    objectiveText: "Gagner le Tournoi de Londres, sur gazon, cette année ou au plus tard à l'édition 2027, avec un jeu taillé pour la terre battue qu'il faudra faire évoluer (service et filet en retrait).",
     perks: [
       "Déjà à Londres, tableau principal la semaine prochaine",
       "Jeu de terrien : service et filet en retrait",
@@ -235,6 +240,7 @@ export const CHALLENGES = [
     context: "Pas de coach, pas de préparateur, pas d'agent. Vous gérez tout vous-même, du cordage aux billets d'avion. Objectif : le top 100 en trois saisons, sans jamais engager personne.",
     objectiveLabel: "Entrer dans le top 100",
     deadlineLabel: "Avant la fin de la saison 2028",
+    objectiveText: "Entrer dans le top 100 mondial avant la fin de la saison 2028 sans jamais engager de staff : ni coach, ni préparateur, ni agent, du premier au dernier jour.",
     perks: [
       "Impossible d'engager du staff",
       "Voyages low-cost : −25 % sur les billets",
@@ -257,6 +263,7 @@ export const CHALLENGES = [
     context: "L'Open des États-Unis vient de se terminer. Vous pointez juste derrière le top 8 de la Race, à environ 650 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année.",
     objectiveLabel: "Être dans le top 8 de la Race",
     deadlineLabel: "Au début du Masters de fin d'année",
+    objectiveText: "Figurer dans le top 8 de la Race au début du Masters de fin d'année pour décrocher l'un des huit billets, en partant à environ 650 points de la 8e place, avec seulement la tournée asiatique et la saison en salle pour les rattraper.",
     perks: [
       "Suivi de la Race en direct sur l'accueil",
       "Wildcard possible pour un tournoi asiatique",
@@ -293,6 +300,7 @@ export const CHALLENGES = [
     context: "Révélation de l'an dernier, vous êtes 28e mondiale à 19 ans. Les médias vous présentent comme la future n°1 et chaque défaite fait la une. Remportez un Grand 1000 cette saison sans craquer.",
     objectiveLabel: "Gagner un Grand 1000",
     deadlineLabel: "Avant la fin de la saison 2026",
+    objectiveText: "Gagner un Grand 1000 avant la fin de la saison 2026 sans sacrifier votre bonheur personnel (le bonheur doit rester supérieur à 30), alors que chaque défaite coûte deux fois plus cher et vaut une conférence de presse.",
     perks: [
       "Chaque défaite coûte deux fois plus de bonheur",
       "Conférence de presse imposée après chaque défaite",

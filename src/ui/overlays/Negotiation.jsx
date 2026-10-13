@@ -32,6 +32,7 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
   const results = data.results || [];
   const phaseLabel = data.phase === "intro" ? "Premier sponsor"
     : data.phase === "mid" ? "Mi-saison " + data.year
+    : data.phase === "start" ? "Saison " + data.year
     : "Fin de saison " + data.year;
 
   const tierLabel = { premium: "Premium", high: "Élite", mid: "Confirmé", low: "Régional", entry: "Local" };

@@ -1,5 +1,6 @@
 // Composant principal : état de la partie, semaine, tournois, sauvegarde.
 import { useState, useEffect, useMemo, useRef } from "react";
+import { flushSync } from "react-dom";
 import {
   Plus,
 } from "lucide-react";
@@ -12,7 +13,7 @@ import { ALL_TOURNAMENTS, getEntryStatus, getPointSplits, getSeedCount, getTourn
 import { pickComment, pickDebrief, setCloseHow, formRemarks } from "./engine/commentary.js";
 import { generateAtpDatabase, getPlayerProfile, getRating, pickOpponentForMatch } from "./engine/database.js";
 import { MATCH_FIX_DILEMMA, resolveDilemmaOption } from "./engine/dilemmas.js";
-import { feminizeText } from "./engine/feminize.js";
+import { feminizeText, warmFeminize } from "./engine/feminize.js";
 import { elide, firstSentence } from "./engine/text.js";
 import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/history.js";
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
@@ -67,6 +68,38 @@ import { MatchMiniGame, TrainingCards } from "./ui/overlays/MiniGames.jsx";
 import { DIFFICULTY_LEVELS, GAME_OPTIONS, formatMultiplier, hasGameOption, injuryRiskMul, scoreMultiplier } from "./engine/difficulty.js";
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+// Offres de sponsors pour une table de négociation (4 à 9 selon le
+// classement et l'image) : sessions de mi et fin de saison, début de défi.
+function buildSponsorSlate(p, rankingNow, perfBonus, year, week) {
+  const imageMul = (p.image ?? 60) < 20 ? 0 : (p.image ?? 60) < 40 ? 0.6 : 1.0;
+  const slate = [];
+  if (imageMul > 0) {
+    const existingBrands = [...(p.sponsors || []).map(s => s.brand)];
+    const tierNow = getSponsorTierForRanking(rankingNow, perfBonus, p.image);
+    const poolBrands = (SPONSOR_BRANDS[tierNow] || SPONSOR_BRANDS.entry).filter(b => !existingBrands.includes(b.name));
+    const poolHasEquip = poolBrands.some(b => b.cat === "equipment");
+    const poolHasOther = poolBrands.some(b => b.cat === "other");
+    const rankBonus = rankingNow <= 30 ? 3 : rankingNow <= 100 ? 2 : rankingNow <= 300 ? 1 : 0;
+    const wanted = Math.min(9, 4 + rankBonus + (random() < 0.5 ? 1 : 0));
+    const count = Math.min(wanted, poolBrands.length);
+    for (let i = 0; i < count; i++) {
+      const engagedCats = (p.sponsors || []).reduce((acc, s) => { acc[s.cat] = (acc[s.cat] || 0) + 1; return acc; }, {});
+      // Force-balance: if late in the loop the slate is missing one cat
+      // (and the pool can supply it), bias the next pick toward that cat.
+      const slateEquip = slate.filter(o => o.cat === "equipment").length;
+      const slateOther = slate.filter(o => o.cat === "other").length;
+      const remaining = count - i;
+      let forceCat = null;
+      if (poolHasEquip && slateEquip === 0 && remaining <= 1 + Math.max(0, slateOther - 1)) forceCat = "equipment";
+      else if (poolHasOther && slateOther === 0 && remaining <= 1 + Math.max(0, slateEquip - 1)) forceCat = "other";
+      const tierBoost = Math.max(0, sumStaffEffect(p.staff, "sponsorTierBoost"));
+      const offer = generateSponsorOffer(rankingNow, perfBonus, [...existingBrands, ...slate.map(o => o.brand)], p.image, engagedCats, year, p.startDifficulty, forceCat, tierBoost);
+      if (offer) slate.push({ ...offer, week: week, year: year });
+    }
+  }
+  return slate;
+}
+
 export default function TennisManager() {
   const [screen, setScreen] = useState("menu");
   const [player, setPlayer] = useState(null);
@@ -95,16 +128,39 @@ export default function TennisManager() {
   // sont laissées au navigateur pour peindre l'écran avant de lancer le calcul.
   // Construit directement dans le DOM (hors React) pour s'afficher quel que
   // soit l'écran en cours et retirer l'écran dès que React a fini.
-  // L'écran n'est retiré qu'une fois le nouvel écran React rendu et peint :
-  // le setTimeout passe après la tâche de rendu planifiée par React, puis deux
-  // images d'animation laissent le navigateur l'afficher.
+  // flushSync rend le nouvel écran et exécute ses effets (accent du circuit,
+  // mise au féminin) avant de rendre la main : tout le travail se fait
+  // derrière l'écran de chargement, qui n'est retiré qu'ensuite, une fois la
+  // nouvelle page peinte (deux images d'animation).
+  // Le recalcul de style et la mise en page sont forcés (offsetHeight) avant
+  // le retrait, sinon ils tombaient sur l'image suivante, écran déjà retiré.
+  const preLoader = useRef(null);
   const runHeavy = (msg, fn) => {
-    const el = showLoadingScreen(msg);
-    const done = () => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => el.remove())), 0);
+    const el = preLoader.current || showLoadingScreen(msg);
+    preLoader.current = null;
+    el.style.pointerEvents = "";
+    // Délai réel (150 ms) en plus des images d'animation : sur iPhone,
+    // l'affichage d'une image peut être différé ; l'écran doit être à l'écran
+    // avant que le calcul ne bloque la page.
     requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => {
-      try { fn(); } finally { done(); }
-    }, 0)));
-  }; // ville pré-remplie dans Voyages (fenêtre de forfait)
+      try { flushSync(fn); void document.body.offsetHeight; } finally { requestAnimationFrame(() => setTimeout(() => el.remove(), 120)); }
+    }, 150)));
+  };
+  // Écran affiché dès le contact du doigt : il a le temps d'être peint
+  // avant le clic. Retiré si le geste est annulé (défilement).
+  const preHeavy = (msg) => ({
+    onPointerDown: () => {
+      if (preLoader.current) return;
+      const el = showLoadingScreen(msg);
+      // pointer-events: none laisse le relâchement et le clic atteindre le bouton.
+      el.style.pointerEvents = "none";
+      preLoader.current = el;
+      // Geste annulé ou doigt relâché hors du bouton : pas de clic, on retire l'écran.
+      const end = () => setTimeout(() => { if (preLoader.current === el) { el.remove(); preLoader.current = null; } }, 400);
+      document.addEventListener("pointerup", end, { once: true });
+      document.addEventListener("pointercancel", end, { once: true });
+    },
+  });
   const [rallyAnim, setRallyAnim] = useState(null); // { points, contextLabel, isTiebreak, commit } during point-by-point animation
   // Match mode: "manual" = one game per click; "auto" = games chain with a
   // short pause, stopping on any event (dilemma, match-fix proposal).
@@ -225,6 +281,12 @@ export default function TennisManager() {
     // Ancien réglage du mode sombre (supprimé) : on nettoie.
     try { localStorage.removeItem("tm-theme"); } catch (e) {}
   }, [activeCircuit]);
+
+  // Règles du féminin précompilées peu après le démarrage, hors interaction.
+  useEffect(() => {
+    const t = setTimeout(() => warmFeminize(), 1500);
+    return () => clearTimeout(t);
+  }, []);
 
   // Changement de page ou de menu : on repart toujours du haut. Les étapes
   // de création et les phases du match (avant-match → direct → résultat)
@@ -469,7 +531,7 @@ export default function TennisManager() {
     setSeed(newSeed());
     setCircuit(form.circuit);
     const female = form.circuit === "wta";
-    const avatar = { ...avatarInput, female, hairStyle: female ? "queue" : "court" };
+    const avatar = form.avatar ? { ...form.avatar, female } : { ...avatarInput, female, hairStyle: female ? "queue" : "court" };
     const p = createInitialPlayer(form.name, def.style, def.city, form.nationality, avatar, 3);
     p.circuit = form.circuit;
     let db = generateAtpDatabase();
@@ -496,6 +558,18 @@ export default function TennisManager() {
     const already = checkTrophies(p, new Set()).map(t => t.id);
     p.trophies = already;
     p.claimedTrophies = already;
+    // Sponsors : une table de négociation ordinaire s'ouvre après la
+    // présentation du défi (pas la scène « premier sponsor » d'une carrière).
+    // Fauché commence sans sponsor : c'est la règle du défi.
+    if (def.id !== "fauche") {
+      const pts = totalAtpPoints(p.atpPointsLog);
+      const rk = pts > 0 ? getPlayerRanking(pts, db) : 1201;
+      const slate = buildSponsorSlate(p, rk, getRecentPerfBonus(p.matchHistory), 2026, def.startWeek);
+      if (slate.length) {
+        p.sponsorOffers = slate;
+        p.challengeStartNegotiation = { phase: "start", year: 2026, ranking: rk, results: [], objMoney: 0 };
+      }
+    }
     try { localStorage.removeItem(saveKeyFor(CHALLENGE_SLOT)); } catch (e) {}
     setSlot(CHALLENGE_SLOT);
     slotRef.current = CHALLENGE_SLOT;
@@ -691,34 +765,8 @@ export default function TennisManager() {
         else p.totalSpent = (p.totalSpent || 0) - objMoney;
       }
 
-      // (2) Generate a slate of offers (4-9) for the negotiation table. More
-      // offers when ranking/image are higher.
-      const imageMul = (p.image ?? 60) < 20 ? 0 : (p.image ?? 60) < 40 ? 0.6 : 1.0;
-      const slate = [];
-      if (imageMul > 0) {
-        const existingBrands = [...(p.sponsors || []).map(s => s.brand)];
-        const tierNow = getSponsorTierForRanking(rankingNow, perfBonus, p.image);
-        const poolBrands = (SPONSOR_BRANDS[tierNow] || SPONSOR_BRANDS.entry).filter(b => !existingBrands.includes(b.name));
-        const poolHasEquip = poolBrands.some(b => b.cat === "equipment");
-        const poolHasOther = poolBrands.some(b => b.cat === "other");
-        const rankBonus = rankingNow <= 30 ? 3 : rankingNow <= 100 ? 2 : rankingNow <= 300 ? 1 : 0;
-        const wanted = Math.min(9, 4 + rankBonus + (random() < 0.5 ? 1 : 0));
-        const count = Math.min(wanted, poolBrands.length);
-        for (let i = 0; i < count; i++) {
-          const engagedCats = (p.sponsors || []).reduce((acc, s) => { acc[s.cat] = (acc[s.cat] || 0) + 1; return acc; }, {});
-          // Force-balance: if late in the loop the slate is missing one cat
-          // (and the pool can supply it), bias the next pick toward that cat.
-          const slateEquip = slate.filter(o => o.cat === "equipment").length;
-          const slateOther = slate.filter(o => o.cat === "other").length;
-          const remaining = count - i;
-          let forceCat = null;
-          if (poolHasEquip && slateEquip === 0 && remaining <= 1 + Math.max(0, slateOther - 1)) forceCat = "equipment";
-          else if (poolHasOther && slateOther === 0 && remaining <= 1 + Math.max(0, slateEquip - 1)) forceCat = "other";
-          const tierBoost = Math.max(0, sumStaffEffect(p.staff, "sponsorTierBoost"));
-          const offer = generateSponsorOffer(rankingNow, perfBonus, [...existingBrands, ...slate.map(o => o.brand)], p.image, engagedCats, newYear, p.startDifficulty, forceCat, tierBoost);
-          if (offer) slate.push({ ...offer, week: newWeek, year: newYear });
-        }
-      }
+      // (2) Generate a slate of offers (4-9) for the negotiation table.
+      const slate = buildSponsorSlate(p, rankingNow, perfBonus, newYear, newWeek);
       // Stash the negotiation data to open the overlay after state commit —
       // but only if there is something to show (offers to negotiate and/or
       // objective outcomes to report). Avoids an empty "no sponsors" screen.
@@ -2724,7 +2772,9 @@ export default function TennisManager() {
       {deleteSaveDialog}
       <ChallengesScreen
         onBack={() => { refreshSlots(); setScreen("menu"); }}
-        onStart={startChallenge}
+        onStart={(def, form) => runHeavy("Préparation du défi…", () => startChallenge(def, form))}
+        avatar={avatarInput}
+        setAvatar={setAvatarInput}
         onResume={() => runHeavy("Reprise du défi…", () => loadSave(CHALLENGE_SLOT))}
         onAbandon={() => deleteSave(CHALLENGE_SLOT)}
         current={challengeMeta}
@@ -2824,7 +2874,6 @@ export default function TennisManager() {
             <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setMenuShop(true)}>
               <Icon name="bag" size={16} color={T.amber} /> Boutique
             </button>
-            <p style={{ display: "inline-block", background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, fontSize: 11, marginTop: 22, marginBottom: 0, padding: "0 6px", fontWeight: 800 }}>v3.0</p>
           </div>
         </div>
       </div>
@@ -2865,7 +2914,7 @@ export default function TennisManager() {
                 { id: "wta", label: "Circuit féminin", sub: "Carrière d'une joueuse", accent: "#5b2d8e", sample: { female: true, hairStyle: "queue", accessory: "visiere", shirt: "#5b2d8e" } },
               ].map(c => {
                 return (
-                  <button key={c.id} data-nofem="" onClick={() => runHeavy(c.id === "wta" ? "Préparation du circuit féminin…" : "Préparation du circuit masculin…", () => pick(c.id))} style={{
+                  <button key={c.id} data-nofem="" {...preHeavy(c.id === "wta" ? "Préparation du circuit féminin…" : "Préparation du circuit masculin…")} onClick={() => runHeavy(c.id === "wta" ? "Préparation du circuit féminin…" : "Préparation du circuit masculin…", () => pick(c.id))} style={{
                     display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
                     background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, borderLeft: "10px solid " + c.accent, boxShadow: "4px 4px 0 " + T.ink, borderRadius: 0,
                     padding: 14, cursor: "pointer", fontFamily: T.body,
@@ -3954,20 +4003,46 @@ export default function TennisManager() {
                     </div>
                   </div>
                   {scoutLevel > 0 && (
-                    <div style={{ border: "2.5px solid " + ink, background: T.lilac, color: "#141414", padding: "6px 8px" }}>
-                      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Rapport de l'analyste vidéo</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "3px 10px" }}>
-                        {[["serve", "Service"], ["forehand", "Coup droit"], ["backhand", "Revers"], ["stamina", "Endurance"], ["mental", "Mental"], ["net", "Filet"]].map(([k, l]) => (
-                          <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 4, fontSize: 12, fontWeight: 700 }}>
-                            <span>{l}</span><span className="tm-num" style={{ fontWeight: 800 }}>{Math.round(ms.opponent.stats[k] ?? 0)}</span>
-                          </div>
-                        ))}
+                    // Rapport de l'analyste : case BD tramée, une jauge par statistique
+                    // (rouge si l'adversaire vous dépasse, vert sinon), forme du jour
+                    // dans une bulle.
+                    <div style={{ border: "2.5px solid " + ink, boxShadow: "3px 3px 0 " + ink, background: "#ffffff", color: "#141414" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, background: ink, color: "#ffffff", padding: "4px 8px" }}>
+                        <span style={{ width: 22, height: 22, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", border: "2px solid #ffffff", transform: "rotate(-5deg)" }}><Icon name="tv" size={13} color="#141414" /></span>
+                        <span className="tm-display" style={{ fontSize: 14, lineHeight: 1.1 }}>Rapport de l'analyste vidéo</span>
                       </div>
-                      {scoutLevel >= 2 && (
-                        <div style={{ marginTop: 5, fontSize: 12, fontWeight: 800 }}>
-                          Forme du jour : {(m.oppForm || 0) >= 4 ? "en grande forme" : (m.oppForm || 0) <= -4 ? "en difficulté" : "habituelle"}
-                        </div>
-                      )}
+                      <div className="tm-halftone-lilac" style={{ padding: "8px 8px 6px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "6px 8px" }}>
+                        {[["serve", "Service"], ["forehand", "Coup droit"], ["backhand", "Revers"], ["stamina", "Endurance"], ["mental", "Mental"], ["net", "Filet"]].map(([k, l]) => {
+                          const v = Math.round(ms.opponent.stats[k] ?? 0);
+                          const mine = Math.round(player.stats?.[k] ?? 0);
+                          const col = v > mine ? "#c4302b" : "#1f7a45";
+                          return (
+                            <div key={k} style={{ background: "#ffffff", border: "2px solid " + ink, padding: "3px 6px 4px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 4 }}>
+                                <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.4 }}>{l}</span>
+                                <span className="tm-display" style={{ fontSize: 15, color: col }}>{v}</span>
+                              </div>
+                              <div style={{ height: 6, background: "#ebe8da", border: "1.5px solid " + ink, marginTop: 2 }}>
+                                <div style={{ width: Math.max(0, Math.min(100, v)) + "%", height: "100%", background: col }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {scoutLevel >= 2 && (() => {
+                        const f = m.oppForm || 0;
+                        const txt = f >= 4 ? "Adversaire en grande forme aujourd'hui : méfiance !" : f <= -4 ? "Adversaire en difficulté aujourd'hui : à vous d'en profiter." : "Forme habituelle, rien à signaler.";
+                        return (
+                          <div style={{ padding: "0 8px 8px", background: "transparent" }}>
+                            <div className="tm-lettering" style={{ position: "relative", background: f >= 4 ? "#ffd9d6" : f <= -4 ? "#d6ef3c" : "#ffffff", border: "2px solid " + ink, boxShadow: "2px 2px 0 " + ink, padding: "4px 8px", fontSize: 15, lineHeight: 1.2, transform: "rotate(-0.6deg)" }}>
+                              {txt}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      <div style={{ fontSize: 10.5, fontWeight: 700, padding: "0 8px 6px" }}>
+                        <span style={{ color: "#c4302b" }}>■</span> au-dessus de vous · <span style={{ color: "#1f7a45" }}>■</span> à votre portée
+                      </div>
                     </div>
                   )}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -4881,14 +4956,18 @@ export default function TennisManager() {
               <div className="tm-lettering" style={{ fontSize: 16, lineHeight: 1.3, marginBottom: 12 }}>{def.context}</div>
               <div className="tm-halftone-yellow" style={{ border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "10px 12px", marginBottom: 12 }}>
                 <div className="tm-display" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}><Icon name="target" size={16} color="#141414" /> {def.objectiveLabel}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4, marginLeft: 24 }}>{def.deadlineLabel}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45, marginTop: 6 }}>{def.objectiveText}</div>
               </div>
               {def.perks.map((pk, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, fontSize: 13, fontWeight: 600, lineHeight: 1.45, marginBottom: 6 }}>
                   <span style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#c9b6ea", border: "2px solid " + T.ink }}><Icon name="chevronRight" size={10} color="#141414" /></span> <span>{pk}</span>
                 </div>
               ))}
-              <button style={{ ...styles.btnPrimary, marginTop: 10 }} onClick={() => setPlayer(p => ({ ...p, challenge: { ...p.challenge, introSeen: true } }))}>C'est parti</button>
+              <button style={{ ...styles.btnPrimary, marginTop: 10 }} onClick={() => {
+                const neg = player.challengeStartNegotiation;
+                setPlayer(p => { const np = { ...p, challenge: { ...p.challenge, introSeen: true } }; delete np.challengeStartNegotiation; return np; });
+                if (neg) setSponsorNegotiation(neg);
+              }}>C'est parti</button>
               </div>
             </div>
           </div>
