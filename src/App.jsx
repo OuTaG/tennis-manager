@@ -107,9 +107,12 @@ export default function TennisManager() {
     const el = preLoader.current || showLoadingScreen(msg);
     preLoader.current = null;
     el.style.pointerEvents = "";
+    // Délai réel (150 ms) en plus des images d'animation : sur iPhone,
+    // l'affichage d'une image peut être différé ; l'écran doit être à l'écran
+    // avant que le calcul ne bloque la page.
     requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => {
-      try { flushSync(fn); void document.body.offsetHeight; } finally { requestAnimationFrame(() => requestAnimationFrame(() => el.remove())); }
-    }, 0)));
+      try { flushSync(fn); void document.body.offsetHeight; } finally { requestAnimationFrame(() => setTimeout(() => el.remove(), 120)); }
+    }, 150)));
   };
   // Écran affiché dès le contact du doigt : il a le temps d'être peint
   // avant le clic. Retiré si le geste est annulé (défilement).

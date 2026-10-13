@@ -22,8 +22,9 @@ export function showLoadingScreen(message = "Chargement…") {
   const el = document.createElement("div");
   el.setAttribute("role", "status");
   el.setAttribute("aria-live", "polite");
-  el.className = "tm-paper";
-  el.style.cssText = "position:fixed;inset:0;z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;color:#141414;padding:24px;";
+  // Fond uni (pas de trame de points) : rien de coûteux à dessiner, l'écran
+  // doit pouvoir s'afficher en une image même sur un vieil iPhone.
+  el.style.cssText = "position:fixed;inset:0;z-index:3000;background:#f4f2e9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;color:#141414;padding:24px;";
   el.innerHTML = `
     <div style="position:relative;width:110px;height:110px;display:flex;align-items:flex-end;justify-content:center">
       <div style="width:64px;height:64px;border-radius:50%;background:#d6ef3c;border:5px solid #141414;box-shadow:4px 4px 0 #5b2d8e;position:relative;overflow:hidden;animation:tm-load-bounce .9s ease-in-out infinite">
