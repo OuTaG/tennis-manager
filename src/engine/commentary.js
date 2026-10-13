@@ -230,7 +230,10 @@ function withSetOpening(txt, ctx, vars, r) {
 function withScore(txt, ctx, vars, r) {
   const sp = ctx.score.p, so = ctx.score.o;
   if (sp === 6 && so === 6) {
-    return txt + (/[!?.…]$/.test(txt) ? "" : ".") + " Six partout : place au tie-break.";
+    // Set décisif d'un Grand Chelem : jeu décisif en 10 points.
+    const decider = (ctx.setNo || 1) === (ctx.bo5 ? 5 : 3);
+    const superTb = decider && (ctx.bo5 || ctx.tb10Decider);
+    return txt + (/[!?.…]$/.test(txt) ? "" : ".") + (superTb ? " Six partout : place au super tie-break, en 10 points." : " Six partout : place au tie-break.");
   }
   if (r >= 0.35 || /[!?.…]$/.test(txt) || txt.includes(",") || /^(Début|Dernière|Tout se joue|On repart|\S+ set, premier)/.test(txt)) return txt;
   const log = ctx.log || [];

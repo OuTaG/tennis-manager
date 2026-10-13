@@ -70,14 +70,14 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
             : <Icon name="racquet" size={120} color={T.ink} strokeWidth={1.4} />}
         </div>
         <div className="tm-lettering" style={{ position: "absolute", left: 10, top: 10, maxWidth: 220, background: T.gold, color: "#161616", border: "2.5px solid " + T.ink, padding: "3px 8px", fontSize: 15 }}>{story.caption}</div>
-        {/* Bulle : la pointe est attachée à la bulle et vise la bouche du
+        {/* Bulle rectangulaire : la pointe est attachée à la bulle et vise la bouche du
             joueur ; une deuxième pointe blanche, sans trait, efface le
             contour de la bulle à la jonction pour que le tout soit d'un seul tenant. */}
         <div style={{ position: "absolute", left: 12, top: 52, width: 172 }}>
           <svg width="48" height="40" viewBox="0 0 48 40" aria-hidden="true" style={{ position: "absolute", right: -40, top: "48%", zIndex: 0, overflow: "visible" }}>
             <path d="M0 4 C14 14 26 30 38 56 C24 40 14 30 2 22" fill="#ffffff" stroke="#161616" strokeWidth="3" strokeLinejoin="round" />
           </svg>
-          <div className="tm-lettering" style={{ position: "relative", zIndex: 1, background: "#ffffff", color: "#161616", border: "3px solid " + T.ink, borderRadius: "50% / 46%", padding: "16px 16px", fontSize: 16, lineHeight: 1.15, textAlign: "center" }}>« {story.quote} »</div>
+          <div className="tm-lettering" style={{ position: "relative", zIndex: 1, background: "#ffffff", color: "#161616", border: "3px solid " + T.ink, borderRadius: 3, boxShadow: "3px 3px 0 " + T.ink, padding: "10px 12px", fontSize: 16, lineHeight: 1.15, textAlign: "center" }}>« {story.quote} »</div>
           <svg width="48" height="40" viewBox="0 0 48 40" aria-hidden="true" style={{ position: "absolute", right: -40, top: "48%", zIndex: 2, overflow: "visible" }}>
             <path d="M-6 6.5 C9 15 19 27 28 42 C17 32 8 28 -6 19.5 Z" fill="#ffffff" />
           </svg>
