@@ -99,7 +99,7 @@ export const CHALLENGES = [
     style: "allcourt", city: "Paris",
     setup(p, db) {
       p.age = 32;
-      p.stats = challengeStats({ serve: 80, forehand: 82, backhand: 78, stamina: 66, mental: 86, net: 72 }, 77.5);
+      p.stats = challengeStats({ serve: 80, forehand: 82, backhand: 78, stamina: 66, mental: 86, net: 72 }, 75.5);
       p.money = 350000; p.popularity = 75; p.image = 72; p.happiness = 60;
       p.titlesWon = 31; p.titlesByTier = { GrandSlam: 3, Masters1000: 7, ATP500: 8, ATP250: 13 };
       p.careerWins = 412; p.careerLosses = 118;
@@ -128,7 +128,7 @@ export const CHALLENGES = [
     style: "allcourt", city: "Melbourne",
     setup(p, db) {
       p.age = 35;
-      p.stats = challengeStats({ serve: 84, forehand: 80, backhand: 77, stamina: 58, mental: 90, net: 80 }, 79.5);
+      p.stats = challengeStats({ serve: 84, forehand: 80, backhand: 77, stamina: 58, mental: 90, net: 80 }, 82.5);
       p.money = 900000; p.popularity = 88; p.image = 80; p.happiness = 70;
       p.titlesWon = 38; p.titlesByTier = { Masters1000: 5, ATP500: 11, ATP250: 22 };
       p.careerWins = 560; p.careerLosses = 230;
@@ -186,7 +186,7 @@ export const CHALLENGES = [
     style: "allcourt", city: "Paris",
     setup(p, db) {
       p.age = 17;
-      p.stats = challengeStats({ serve: 54, forehand: 58, backhand: 55, stamina: 55, mental: 50, net: 52 }, 55);
+      p.stats = challengeStats({ serve: 54, forehand: 58, backhand: 55, stamina: 55, mental: 50, net: 52 }, 52);
       p.money = 12000; p.popularity = 48; p.image = 66; p.happiness = 75;
       challengeSeedPoints(p, challengeRankPoints(db, 900), 0, 1, 2026);
       p.challenge.capBonus = 20; // prodige médiatisé
@@ -237,17 +237,17 @@ export const CHALLENGES = [
   {
     id: "seul", circuit: "atp", name: "Seul au monde", difficulty: 4,
     tagline: "Aucun staff, jamais",
-    context: "Pas de coach, pas de préparateur, pas d'agent. Vous gérez tout vous-même, du cordage aux billets d'avion. Objectif : le top 100 en trois saisons, sans jamais engager personne.",
+    context: "Pas de coach, pas de préparateur, pas d'agent. Vous gérez tout vous-même, du cordage aux billets d'avion. Objectif : le top 100 avant la mi-saison 2027, sans jamais engager personne.",
     objectiveLabel: "Entrer dans le top 100",
-    deadlineLabel: "Avant la fin de la saison 2028",
-    objectiveText: "Entrer dans le top 100 mondial avant la fin de la saison 2028 sans jamais engager de staff : ni coach, ni préparateur, ni agent, du premier au dernier jour.",
+    deadlineLabel: "Avant la mi-saison 2027",
+    objectiveText: "Entrer dans le top 100 mondial avant la mi-saison 2027 (semaine 26) sans jamais engager de staff : ni coach, ni préparateur, ni agent, du premier au dernier jour.",
     perks: [
       "Impossible d'engager du staff",
       "Voyages low-cost : −25 % sur les billets",
       "Autodidacte : chaque victoire fait un peu progresser une statistique",
       "Des tentations vont se présenter",
     ],
-    startWeek: 1, deadline: { year: 2028, week: 52 },
+    startWeek: 1, deadline: { year: 2027, week: 26 },
     style: "allcourt", city: "Paris",
     setup(p) {
       p.money = 9000;
@@ -260,10 +260,10 @@ export const CHALLENGES = [
   {
     id: "course", circuit: "atp", name: "Course au Masters", difficulty: 3,
     tagline: "Hors du top 8 de la Race, dix semaines pour y entrer",
-    context: "L'Open des États-Unis vient de se terminer. Vous pointez juste derrière le top 8 de la Race, à environ 650 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année.",
+    context: "L'Open des États-Unis vient de se terminer. Vous pointez derrière le top 8 de la Race, à environ 1\u202f000 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année.",
     objectiveLabel: "Être dans le top 8 de la Race",
     deadlineLabel: "Au début du Masters de fin d'année",
-    objectiveText: "Figurer dans le top 8 de la Race au début du Masters de fin d'année pour décrocher l'un des huit billets, en partant à environ 650 points de la 8e place, avec seulement la tournée asiatique et la saison en salle pour les rattraper.",
+    objectiveText: "Figurer dans le top 8 de la Race au début du Masters de fin d'année pour décrocher l'un des huit billets, en partant à environ 1\u202f000 points de la 8e place, avec seulement la tournée asiatique et la saison en salle pour les rattraper.",
     perks: [
       "Suivi de la Race en direct sur l'accueil",
       "Wildcard possible pour un tournoi asiatique",
@@ -277,9 +277,9 @@ export const CHALLENGES = [
       p.money = 600000; p.popularity = 60; p.image = 65; p.happiness = 65;
       p.titlesWon = 9; p.titlesByTier = { Masters1000: 1, ATP500: 3, ATP250: 5 };
       p.careerWins = 210; p.careerLosses = 110;
-      // Juste hors du top 8 : environ 650 points de retard sur la 8e place.
+      // Hors du top 8 : environ 1 000 points de retard sur la 8e place.
       const race = raceStandings(db, 2026);
-      const racePts = Math.max(race[16]?.pts || 0, (race[7]?.pts || 0) - 650);
+      const racePts = Math.max(race[16]?.pts || 0, (race[7]?.pts || 0) - 1000);
       const total = Math.max(challengeRankPoints(db, 13), racePts + 250);
       challengeSeedPoints(p, total, racePts, 36, 2026);
     },

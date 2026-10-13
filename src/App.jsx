@@ -1338,7 +1338,10 @@ export default function TennisManager() {
     const invest = option.investment
       ? { amount: option.investment.amount, plan: option.investment.plan, dueAbsWeek: absNow + option.investment.weeks }
       : null;
-    const restUntil = option.restWeeks ? absNow + option.restWeeks : null;
+    // Repos : l'événement arrive une fois le tournoi de la semaine joué ; le
+    // repos couvre donc la fin de cette semaine (entraînement) et les
+    // `restWeeks` semaines suivantes (tournois compris).
+    const restUntil = option.restWeeks ? absNow + 1 + option.restWeeks : null;
     let newInjury = null;
     if (option.injuryRisk && random() < option.injuryRisk * injuryRiskMul(player)) {
       newInjury = rollInjury();
