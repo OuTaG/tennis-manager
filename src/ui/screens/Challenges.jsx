@@ -1,9 +1,10 @@
 // Écrans des défis.
 import { useState, useMemo } from "react";
 import { CITIES } from "../../data/geo.js";
-import { CHALLENGES, MEDAL_INFO, challengeContext, computeChallengeScore, getChallengeDef, loadChallengeResults } from "../../engine/challenges.js";
+import { CHALLENGES, MEDAL_INFO, challengeContext, getChallengeDef, loadChallengeResults } from "../../engine/challenges.js";
 import { randomFullName } from "../../engine/names.js";
 import { FlagFromEmoji, Icon } from "../icons.jsx";
+import { AvatarBuilder } from "../avatar.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 import { fmtMoney, fmtNum } from "../format.js";
@@ -35,8 +36,9 @@ export function MedalBadge({ medal, weeks }) {
   );
 }
 
-export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current, owned, goShop }) {
+export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current, owned, goShop, avatar, setAvatar }) {
   const [selected, setSelectedRaw] = useState(null);
+  const [avatarStep, setAvatarStep] = useState(false);
   const [nat, setNat] = useState("France");
   const [name, setName] = useState("");
   const results = loadChallengeResults();
@@ -46,6 +48,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
   const circuit = def ? def.circuit : "atp";
   const setSelected = (id) => {
     setSelectedRaw(id);
+    setAvatarStep(false);
     const d = id ? getChallengeDef(id) : null;
     if (d) setName(randomFullName(nat, d.circuit === "wta"));
   };
@@ -54,6 +57,27 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
       {c === "wta" ? "Circuit féminin" : "Circuit masculin"}
     </span>
   );
+
+  // Étape avatar : comme en début de carrière, avant de lancer le défi.
+  if (def && avatarStep) {
+    return (
+      <div style={styles.root}>
+        <div style={{ padding: "16px 16px 110px" }}>
+          <button style={backBtn} onClick={() => setAvatarStep(false)}>
+            <Icon name="arrowLeft" size={14} /> {def.name}
+          </button>
+          <div style={{ ...panel, padding: 16 }}>
+            <h2 className="tm-display" style={{ display: "block", width: "fit-content", margin: "0 auto 14px", background: INK, color: "#d6ef3c", fontSize: 21, fontWeight: 400, lineHeight: 1.1, padding: "5px 14px", textAlign: "center", transform: "rotate(-1.5deg)", boxShadow: "3px 3px 0 #c9b6ea" }}>Votre avatar</h2>
+            <AvatarBuilder config={avatar} onChange={setAvatar} />
+            <button style={{ ...styles.btnPrimary, marginTop: 6 }}
+              onClick={() => onStart(def, { name: name.trim(), nationality: nat, circuit, avatar })}>
+              Commencer le défi
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (def) {
     return (
@@ -77,7 +101,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
                 <div className="tm-display" style={{ display: "flex", alignItems: "center", gap: 8, color: "#141414", fontSize: 15 }}>
                   <Icon name="target" size={16} color="#1f7a45" /> {def.objectiveLabel}
                 </div>
-                <div style={{ color: "#141414", fontSize: 12, fontWeight: 700, marginTop: 4, marginLeft: 24 }}>{def.deadlineLabel}</div>
+                <div style={{ color: "#141414", fontSize: 13, fontWeight: 600, lineHeight: 1.45, marginTop: 6 }}>{def.objectiveText}</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <span className="tm-display" style={{ ...chip(INK, "#ffffff"), fontWeight: 400, fontSize: 12, padding: "1px 8px" }}>Règles du défi</span>
@@ -119,7 +143,12 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
             )}
             {owned ? (
               <button style={styles.btnPrimary} disabled={name.trim().length < 2}
-                onClick={() => onStart(def, { name: name.trim(), nationality: nat, circuit })}>
+                onClick={() => {
+                  // Avatar accordé au circuit du défi.
+                  const fem = circuit === "wta";
+                  if (!!(avatar && avatar.female) !== fem) setAvatar({ ...(avatar || {}), female: fem, hairStyle: fem ? "queue" : "court", facial: "aucun" });
+                  setAvatarStep(true);
+                }}>
                 Lancer le défi
               </button>
             ) : (
@@ -210,12 +239,13 @@ export function ChallengePanel({ player, atpDb, repayDebt }) {
         </div>
         <div style={{ padding: 14 }}>
         <div className="tm-display" style={{ color: "#141414", fontSize: 16, lineHeight: 1.15 }}>{def.objectiveLabel}</div>
+        <div style={{ color: "#141414", fontSize: 12, fontWeight: 600, lineHeight: 1.4, marginTop: 3 }}>{def.objectiveText}</div>
         <div style={{ color: "#141414", fontSize: 12.5, fontWeight: 700, marginTop: 3 }}>{obj.progress}</div>
-        <div className="tm-lettering" style={{ color: "#141414", fontSize: 13.5, marginTop: 4 }}>
-          {finished
-            ? "Score du défi : " + fmtNum(c.result?.score || 0) + "\u00a0pts"
-            : "Score provisoire : " + fmtNum(computeChallengeScore(player, atpDb, null).score) + "\u00a0pts (hors objectif)"}
-        </div>
+        {finished && (
+          <div className="tm-lettering" style={{ color: "#141414", fontSize: 13.5, marginTop: 4 }}>
+            {"Score du défi : " + fmtNum(c.result?.score || 0) + "\u00a0pts"}
+          </div>
+        )}
 
         {!finished && c.id === "fauche" && (c.debt || 0) > 0 && (
           <div style={{ marginTop: 10 }}>

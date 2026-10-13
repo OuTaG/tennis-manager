@@ -1,6 +1,8 @@
 // Avatar de BD du joueur / de la joueuse et son éditeur.
 import { useId } from "react";
 import { isWTA } from "../engine/circuit.js";
+import { random } from "../engine/rng.js";
+import { Icon } from "./icons.jsx";
 import { T } from "./theme.js";
 
 // ─── AVATAR SYSTEM ─────────────────────────────────────────────────────────────
@@ -236,6 +238,23 @@ export function Avatar({ config, size = 96, style, bare = false }) {
 
 // stickyTop : bord où l'aperçu se colle. Par défaut sous la barre d'état
 // (la page défile) ; 0 dans une fiche plein écran qui défile elle-même.
+// Avatar tiré au hasard (le sexe est conservé). Coiffures plus fréquentes
+// selon le circuit, barbe une fois sur trois chez les hommes.
+const AV_PICK = (arr) => arr[Math.floor(random() * arr.length)];
+export function randomAvatar(female) {
+  return {
+    female: !!female,
+    skin: AV_PICK(AVATAR_OPTIONS.skin),
+    hair: AV_PICK(AVATAR_OPTIONS.hair),
+    hairStyle: AV_PICK(female ? ["long", "queue", "chignon", "carre", "boucles", "court", "meche"] : ["court", "pics", "boucles", "meche", "rase", "chauve", "long", "queue"]),
+    accessory: AV_PICK(AVATAR_OPTIONS.accessory),
+    accessoryColor: AV_PICK(AVATAR_OPTIONS.accessoryColor),
+    shirt: AV_PICK(AVATAR_OPTIONS.shirt),
+    facial: female || random() < 0.67 ? "aucun" : AV_PICK(AVATAR_OPTIONS.facial.filter(f => f !== "aucun")),
+    mood: AV_PICK(AVATAR_OPTIONS.mood),
+  };
+}
+
 export function AvatarBuilder({ config, onChange, stickyTop = "env(safe-area-inset-top, 0px)" }) {
   const cfg = config || {};
   const a = normalizeAvatar(cfg);
@@ -303,6 +322,15 @@ export function AvatarBuilder({ config, onChange, stickyTop = "env(safe-area-ins
         <Avatar config={a} size={170} bare />
         <div className="tm-lettering" style={{ position: "absolute", left: 8, top: 8, background: T.gold, border: "2.5px solid " + T.ink, padding: "2px 8px", fontSize: 15, color: "#141414" }}>Le futur n° 1 ?</div>
       </div>
+
+      <button type="button" onClick={() => onChange({ ...cfg, ...randomAvatar(a.female) })} style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", marginBottom: 16,
+        background: "#d6ef3c", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0,
+        padding: "9px 12px", cursor: "pointer", fontFamily: T.display, fontSize: 16,
+      }}>
+        <Icon name="dice" size={20} color="#141414" />
+        Aléatoire
+      </button>
 
       {swatchRow("Peau", AVATAR_OPTIONS.skin, a.skin, "skin")}
       {pickRow("Coiffure", AVATAR_OPTIONS.hairStyle, a.hairStyle, "hairStyle")}
