@@ -4003,7 +4003,7 @@ export default function TennisManager() {
                     </div>
                   </div>
                   {scoutLevel > 0 && (
-                    // Rapport de l'analyste : case BD tramée, une jauge par statistique
+                    // Rapport de l'analyste : case BD, une jauge par statistique
                     // (rouge si l'adversaire vous dépasse, vert sinon), forme du jour
                     // dans une bulle.
                     <div style={{ border: "2.5px solid " + ink, boxShadow: "3px 3px 0 " + ink, background: "#ffffff", color: "#141414" }}>
@@ -4011,7 +4011,7 @@ export default function TennisManager() {
                         <span style={{ width: 22, height: 22, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", border: "2px solid #ffffff", transform: "rotate(-5deg)" }}><Icon name="tv" size={13} color="#141414" /></span>
                         <span className="tm-display" style={{ fontSize: 14, lineHeight: 1.1 }}>Rapport de l'analyste vidéo</span>
                       </div>
-                      <div className="tm-halftone-lilac" style={{ padding: "8px 8px 6px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "6px 8px" }}>
+                      <div style={{ padding: "8px 8px 6px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "6px 8px" }}>
                         {[["serve", "Service"], ["forehand", "Coup droit"], ["backhand", "Revers"], ["stamina", "Endurance"], ["mental", "Mental"], ["net", "Filet"]].map(([k, l]) => {
                           const v = Math.round(ms.opponent.stats[k] ?? 0);
                           const mine = Math.round(player.stats?.[k] ?? 0);
