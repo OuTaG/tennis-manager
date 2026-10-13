@@ -124,6 +124,7 @@ export const SPONSOR_BRANDS = {
     { name: "Crocodile", cat: "equipment" },
     { name: "Chronos",   cat: "other" },
     { name: "Sterling Motors", cat: "other" },
+    { name: "Orbis Air",       cat: "other" },
   ],
   high: [
     { name: "Volt",        cat: "equipment" },
@@ -131,6 +132,7 @@ export const SPONSOR_BRANDS = {
     { name: "Vanguard",    cat: "equipment" },
     { name: "Méridien Banque", cat: "other" },
     { name: "Lion Auto",   cat: "other" },
+    { name: "Atlas Assurances", cat: "other" },
   ],
   mid: [
     { name: "Kinetic",        cat: "equipment" },
@@ -138,6 +140,8 @@ export const SPONSOR_BRANDS = {
     { name: "Fibrenet",       cat: "equipment" },
     { name: "Galo Sport",     cat: "equipment" },
     { name: "Losange Auto",   cat: "other" },
+    { name: "Hôtels Riviera", cat: "other" },
+    { name: "Nova Télécom",   cat: "other" },
   ],
   low: [
     { name: "Bound",      cat: "equipment" },
@@ -145,6 +149,9 @@ export const SPONSOR_BRANDS = {
     { name: "Pentathlon", cat: "equipment" },
     { name: "Sorteo",     cat: "equipment" },
     { name: "Jomar",      cat: "equipment" },
+    { name: "Banque Régionale", cat: "other" },
+    { name: "Eau des Cimes",    cat: "other" },
+    { name: "Ligne Verte Voyages", cat: "other" },
   ],
   entry: [
     { name: "Sponsor local",     cat: "other" },

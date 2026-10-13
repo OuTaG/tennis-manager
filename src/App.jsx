@@ -412,8 +412,10 @@ export default function TennisManager() {
   }, [player, atpDb, screen]);
 
   // Trophy detection: check on relevant player changes; record new unlocks.
+  // Pas de trophées (ni de primes) pendant un défi : le Hall of Fame est
+  // réservé aux carrières.
   useEffect(() => {
-    if (!player) return;
+    if (!player || player.challenge) return;
     const prev = new Set(player.trophies || []);
     const newly = checkTrophies(player, prev);
     if (newly.length > 0) {
@@ -4650,7 +4652,7 @@ export default function TennisManager() {
                   if ((player.unseenTrophies || 0) > 0) setPlayer(p => ({ ...p, unseenTrophies: 0 }));
                 }, icon: "trophy", bg: T.gold, badge: player.unseenTrophies || 0 },
                 { key: "settings", label: "Réglages", onClick: () => setScreen("settings"), icon: "cog", bg: T.bg1 },
-              ].map(b => (
+              ].filter(b => !(b.key === "trophies" && player.challenge)).map(b => (
                 <button key={b.key} onClick={b.onClick} aria-label={b.label} title={b.label} style={{
                   width: 42, height: 42, position: "relative", cursor: "pointer",
                   background: b.bg, border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0,
