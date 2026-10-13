@@ -41,6 +41,7 @@ const LIVE_SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, aiAvatar, femaleHairStyle } from "./ui/avatar.jsx";
 import { fmtMoney, fmtNum, fmtKm, fmtStatDelta, rankingName } from "./ui/format.js";
 import { showLoadingScreen } from "./ui/loading.js";
+import { isNativeStore, syncEntitlements } from "./engine/iap.js";
 import { BangBadge, FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
@@ -282,6 +283,15 @@ export default function TennisManager() {
     try { localStorage.removeItem("tm-theme"); } catch (e) {}
   }, [activeCircuit]);
 
+  // App iOS : les achats de la boutique sont ceux du compte App Store
+  // (achats remboursés retirés, achats d'un autre appareil récupérés).
+  const [, setPurchaseTick] = useState(0);
+  const refreshPurchases = () => setPurchaseTick(t => t + 1);
+  useEffect(() => {
+    if (!isNativeStore()) return;
+    syncEntitlements(false).then(refreshPurchases).catch(() => {});
+  }, []);
+
   // Règles du féminin précompilées peu après le démarrage, hors interaction.
   useEffect(() => {
     const t = setTimeout(() => warmFeminize(), 1500);
@@ -412,8 +422,10 @@ export default function TennisManager() {
   }, [player, atpDb, screen]);
 
   // Trophy detection: check on relevant player changes; record new unlocks.
+  // Pas de trophées (ni de primes) pendant un défi : le Hall of Fame est
+  // réservé aux carrières.
   useEffect(() => {
-    if (!player) return;
+    if (!player || player.challenge) return;
     const prev = new Set(player.trophies || []);
     const newly = checkTrophies(player, prev);
     if (newly.length > 0) {
@@ -1326,7 +1338,10 @@ export default function TennisManager() {
     const invest = option.investment
       ? { amount: option.investment.amount, plan: option.investment.plan, dueAbsWeek: absNow + option.investment.weeks }
       : null;
-    const restUntil = option.restWeeks ? absNow + option.restWeeks : null;
+    // Repos : l'événement arrive une fois le tournoi de la semaine joué ; le
+    // repos couvre donc la fin de cette semaine (entraînement) et les
+    // `restWeeks` semaines suivantes (tournois compris).
+    const restUntil = option.restWeeks ? absNow + 1 + option.restWeeks : null;
     let newInjury = null;
     if (option.injuryRisk && random() < option.injuryRisk * injuryRiskMul(player)) {
       newInjury = rollInjury();
@@ -2796,7 +2811,7 @@ export default function TennisManager() {
           <Icon name="arrowLeft" size={14} /> Menu principal
         </button>
       </div>
-      <ShopScreen />
+      <ShopScreen onPurchasesChanged={refreshPurchases} />
     </div>
   );
 
@@ -4650,7 +4665,7 @@ export default function TennisManager() {
                   if ((player.unseenTrophies || 0) > 0) setPlayer(p => ({ ...p, unseenTrophies: 0 }));
                 }, icon: "trophy", bg: T.gold, badge: player.unseenTrophies || 0 },
                 { key: "settings", label: "Réglages", onClick: () => setScreen("settings"), icon: "cog", bg: T.bg1 },
-              ].map(b => (
+              ].filter(b => !(b.key === "trophies" && player.challenge)).map(b => (
                 <button key={b.key} onClick={b.onClick} aria-label={b.label} title={b.label} style={{
                   width: 42, height: 42, position: "relative", cursor: "pointer",
                   background: b.bg, border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, borderRadius: 0,
@@ -4823,7 +4838,7 @@ export default function TennisManager() {
             }
           }} />}
           {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} markSponsorOfferSeen={markSponsorOfferSeen} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
-          {activeTab === "shop" && <ShopScreen />}
+          {activeTab === "shop" && <ShopScreen onPurchasesChanged={refreshPurchases} />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>
         {!flightAnim && !sponsorNegotiation && (

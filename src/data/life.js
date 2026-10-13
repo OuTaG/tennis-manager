@@ -166,6 +166,8 @@ export const LIFE_EVENTS = [
     options: [
       { label: "Payer sans rien dire", effects: { money: -3000, happiness: -3 } },
       { label: "Contester publiquement", effects: { money: -3000, popularity: 2, image: -5, happiness: -2 } },
+      // Option sans frais : l'amende ne doit pas pouvoir ruiner un joueur.
+      { label: "Animer un stage jeunes de la fédération à la place", effects: { energy: -12, happiness: -3, image: 2 } },
     ],
   },
   {
@@ -174,8 +176,8 @@ export const LIFE_EVENTS = [
     body: "Votre domicile a été cambriolé pendant votre absence. Vol important.",
     minSeason: 2,
     options: [
-      { label: "Subir la perte", effects: { money: -8000, happiness: -6 } },
-      { label: "Renforcer la sécurité après coup", effects: { money: -12000, happiness: -4, image: 1 } },
+      { label: "Faire jouer l'assurance (franchise)", effects: { money: -1000, happiness: -6 } },
+      { label: "Assurance et alarme neuve", effects: { money: -3500, happiness: -3 } },
     ],
   },
   {
