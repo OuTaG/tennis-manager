@@ -41,6 +41,7 @@ const LIVE_SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, aiAvatar, femaleHairStyle } from "./ui/avatar.jsx";
 import { fmtMoney, fmtNum, fmtKm, fmtStatDelta, rankingName } from "./ui/format.js";
 import { showLoadingScreen } from "./ui/loading.js";
+import { isNativeStore, syncEntitlements } from "./engine/iap.js";
 import { BangBadge, FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
@@ -281,6 +282,15 @@ export default function TennisManager() {
     // Ancien réglage du mode sombre (supprimé) : on nettoie.
     try { localStorage.removeItem("tm-theme"); } catch (e) {}
   }, [activeCircuit]);
+
+  // App iOS : les achats de la boutique sont ceux du compte App Store
+  // (achats remboursés retirés, achats d'un autre appareil récupérés).
+  const [, setPurchaseTick] = useState(0);
+  const refreshPurchases = () => setPurchaseTick(t => t + 1);
+  useEffect(() => {
+    if (!isNativeStore()) return;
+    syncEntitlements(false).then(refreshPurchases).catch(() => {});
+  }, []);
 
   // Règles du féminin précompilées peu après le démarrage, hors interaction.
   useEffect(() => {
@@ -2798,7 +2808,7 @@ export default function TennisManager() {
           <Icon name="arrowLeft" size={14} /> Menu principal
         </button>
       </div>
-      <ShopScreen />
+      <ShopScreen onPurchasesChanged={refreshPurchases} />
     </div>
   );
 
@@ -4825,7 +4835,7 @@ export default function TennisManager() {
             }
           }} />}
           {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} markSponsorOfferSeen={markSponsorOfferSeen} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
-          {activeTab === "shop" && <ShopScreen />}
+          {activeTab === "shop" && <ShopScreen onPurchasesChanged={refreshPurchases} />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>
         {!flightAnim && !sponsorNegotiation && (
