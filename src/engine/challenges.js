@@ -84,7 +84,7 @@ export const tName = (id) => (ALL_TOURNAMENTS.find(t => t.id === id) || {}).name
 
 export const CHALLENGES = [
   {
-    id: "retour", circuit: "atp", name: "Le Retour", difficulty: 4,
+    id: "retour", circuit: "atp", name: "Le Retour", difficulty: 2,
     tagline: "Ancien n°1 mondial, de retour au 150e rang",
     context: "Il y a deux ans, vous étiez n°1 mondial. Une blessure au genou vous a tenu loin des courts pendant quatorze mois. À 32 ans, vous repartez du 150e rang. Personne ne vous attend… sauf le public.",
     objectiveLabel: "Revenir dans le top 10",
@@ -113,7 +113,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "derniere_danse", circuit: "wta", name: "Dernière danse", difficulty: 4,
+    id: "derniere_danse", circuit: "wta", name: "Dernière danse", difficulty: 2,
     tagline: "35 ans, dernière saison, un Majeur à gagner",
     context: "Quatre finales de Majeur, quatre défaites. À 35 ans, vous êtes la doyenne du top 20 et vous avez annoncé que cette saison serait la dernière. Il reste une saison, une seule, pour aller chercher le titre qui manque à votre carrière.",
     objectiveLabel: "Gagner un Majeur",
@@ -141,7 +141,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "fauche", circuit: "wta", name: "Fauché", difficulty: 3,
+    id: "fauche", circuit: "wta", name: "Fauché", difficulty: 1,
     tagline: "45\u202f000\u00a0€ de dettes, aucun sponsor",
     context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes 150e mondiale, vous devez 45\u202f000\u00a0€ et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
     objectiveLabel: "Rembourser 45\u202f000\u00a0€",
@@ -171,7 +171,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "prodige", circuit: "wta", name: "Le Prodige", difficulty: 3,
+    id: "prodige", circuit: "wta", name: "Le Prodige", difficulty: 1,
     tagline: "17 ans, 900e mondiale, tout le monde vous attend",
     context: "Championne du monde junior, vous passez pro à 17 ans. La presse vous compare déjà aux plus grandes. Il faut transformer l'essai : entrer dans le top 100 en deux saisons.",
     objectiveLabel: "Entrer dans le top 100",
@@ -197,7 +197,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "terrien", circuit: "atp", name: "Le Terrien", difficulty: 5,
+    id: "terrien", circuit: "atp", name: "Le Terrien", difficulty: 2,
     tagline: "Il ne manque que le Tournoi de Londres",
     context: "Open d'Australie, Internationaux de Paris, Open des États-Unis : vous les avez tous gagnés. Il ne manque que le gazon londonien pour entrer dans l'histoire. Vous y arrivez cette semaine avec un jeu taillé pour l'ocre. Si ça ne passe pas, vous aurez un an pour transformer votre tennis.",
     objectiveLabel: "Gagner le Tournoi de Londres",
@@ -235,7 +235,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "seul", circuit: "atp", name: "Seul au monde", difficulty: 4,
+    id: "seul", circuit: "atp", name: "Seul au monde", difficulty: 1,
     tagline: "Aucun staff, jamais",
     context: "Pas de coach, pas de préparateur, pas d'agent. Vous gérez tout vous-même, du cordage aux billets d'avion. Objectif : le top 100 avant la mi-saison 2027, sans jamais engager personne.",
     objectiveLabel: "Entrer dans le top 100",
@@ -258,7 +258,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "course", circuit: "atp", name: "Course au Masters", difficulty: 3,
+    id: "course", circuit: "atp", name: "Course au Masters", difficulty: 2,
     tagline: "Hors du top 8 de la Race, dix semaines pour y entrer",
     context: "L'Open des États-Unis vient de se terminer. Vous pointez derrière le top 8 de la Race, à environ 700 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année.",
     objectiveLabel: "Être dans le top 8 de la Race",
@@ -295,7 +295,7 @@ export const CHALLENGES = [
     medal(p, ctx) { return ctx.raceRank <= 2 ? "gold" : ctx.raceRank <= 5 ? "silver" : "bronze"; },
   },
   {
-    id: "pression", circuit: "wta", name: "Sous pression", difficulty: 4,
+    id: "pression", circuit: "wta", name: "Sous pression", difficulty: 2,
     tagline: "19 ans, top 30, les médias ne lâchent rien",
     context: "Révélation de l'an dernier, vous êtes 28e mondiale à 19 ans. Les médias vous présentent comme la future n°1 et chaque défaite fait la une. Remportez un Grand 1000 cette saison sans craquer.",
     objectiveLabel: "Gagner un Grand 1000",
