@@ -84,9 +84,9 @@ export function getEntryStatus(tournament, ranking, raw) {
       : { status: "blocked", reason: "Réservé aux 8 premiers de la Race" };
   }
   // Les meilleurs ne jouent plus les petits tournois : Challenger interdits
-  // au top 100, ITF au top 300 (carrières et défis).
+  // au top 100, ITF au top 150 (carrières et défis).
   if (tournament.tier === "Challenger" && ranking <= 100) return { status: "blocked", reason: "Interdit au top 100 mondial" };
-  if (tournament.tier === "ITF" && ranking <= 300) return { status: "blocked", reason: "Interdit au top 300 mondial" };
+  if (tournament.tier === "ITF" && ranking <= 150) return { status: "blocked", reason: "Interdit au top 150 mondial" };
   // Défi « Le Retour » : classement protégé pour un nombre limité d'entrées.
   const pc = ACTIVE_CHALLENGE;
   if (!raw && challengeActive() && pc.protectedRank && (pc.protectedUses || 0) > 0 && pc.protectedRank < ranking) {

@@ -99,7 +99,7 @@ export const CHALLENGES = [
     style: "allcourt", city: "Paris",
     setup(p, db) {
       p.age = 32;
-      p.stats = challengeStats({ serve: 80, forehand: 82, backhand: 78, stamina: 66, mental: 86, net: 72 }, 75.5);
+      p.stats = challengeStats({ serve: 80, forehand: 82, backhand: 78, stamina: 66, mental: 86, net: 72 }, 77);
       p.money = 350000; p.popularity = 75; p.image = 72; p.happiness = 60;
       p.titlesWon = 31; p.titlesByTier = { GrandSlam: 3, Masters1000: 7, ATP500: 8, ATP250: 13 };
       p.careerWins = 412; p.careerLosses = 118;
@@ -128,7 +128,7 @@ export const CHALLENGES = [
     style: "allcourt", city: "Melbourne",
     setup(p, db) {
       p.age = 35;
-      p.stats = challengeStats({ serve: 84, forehand: 80, backhand: 77, stamina: 58, mental: 90, net: 80 }, 82.5);
+      p.stats = challengeStats({ serve: 84, forehand: 80, backhand: 77, stamina: 58, mental: 90, net: 80 }, 86.5);
       p.money = 900000; p.popularity = 88; p.image = 80; p.happiness = 70;
       p.titlesWon = 38; p.titlesByTier = { Masters1000: 5, ATP500: 11, ATP250: 22 };
       p.careerWins = 560; p.careerLosses = 230;
@@ -142,11 +142,11 @@ export const CHALLENGES = [
   },
   {
     id: "fauche", circuit: "wta", name: "Fauché", difficulty: 3,
-    tagline: "50\u202f000\u00a0€ de dettes, aucun sponsor",
-    context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes 150e mondiale, vous devez 50\u202f000\u00a0€ et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
-    objectiveLabel: "Rembourser 50\u202f000\u00a0€",
+    tagline: "45\u202f000\u00a0€ de dettes, aucun sponsor",
+    context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes 150e mondiale, vous devez 45\u202f000\u00a0€ et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
+    objectiveLabel: "Rembourser 45\u202f000\u00a0€",
     deadlineLabel: "Avant la fin de la saison 2026",
-    objectiveText: "Rembourser les 50\u202f000\u00a0€ de dettes avant la fin de la saison 2026, en versant au moins 2\u202f500\u00a0€ toutes les 4 semaines (sinon la dette augmente de 10 %), sans aucun sponsor au départ.",
+    objectiveText: "Rembourser les 45\u202f000\u00a0€ de dettes avant la fin de la saison 2026, en versant au moins 2\u202f500\u00a0€ toutes les 4 semaines (sinon la dette augmente de 10 %), sans aucun sponsor au départ.",
     perks: [
       "Remboursez quand vous voulez depuis l'accueil",
       "Échéance obligatoire de 2\u202f500\u00a0€ toutes les 4 semaines, sinon +10 % de pénalité",
@@ -162,7 +162,7 @@ export const CHALLENGES = [
       p.titlesWon = 4; p.titlesByTier = { Challenger: 3, ITF: 1 };
       p.careerWins = 96; p.careerLosses = 70;
       challengeSeedPoints(p, challengeRankPoints(db, 150), 0, 1, 2026);
-      p.challenge.debt = 50000;
+      p.challenge.debt = 45000;
       p.challenge.nextDueAbs = challengeAbs(p) + 4;
     },
     objective(p) {
@@ -260,10 +260,10 @@ export const CHALLENGES = [
   {
     id: "course", circuit: "atp", name: "Course au Masters", difficulty: 3,
     tagline: "Hors du top 8 de la Race, dix semaines pour y entrer",
-    context: "L'Open des États-Unis vient de se terminer. Vous pointez derrière le top 8 de la Race, à environ 1\u202f000 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année.",
+    context: "L'Open des États-Unis vient de se terminer. Vous pointez derrière le top 8 de la Race, à environ 700 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année.",
     objectiveLabel: "Être dans le top 8 de la Race",
     deadlineLabel: "Au début du Masters de fin d'année",
-    objectiveText: "Figurer dans le top 8 de la Race au début du Masters de fin d'année pour décrocher l'un des huit billets, en partant à environ 1\u202f000 points de la 8e place, avec seulement la tournée asiatique et la saison en salle pour les rattraper.",
+    objectiveText: "Figurer dans le top 8 de la Race au début du Masters de fin d'année pour décrocher l'un des huit billets, en partant à environ 700 points de la 8e place, avec seulement la tournée asiatique et la saison en salle pour les rattraper.",
     perks: [
       "Suivi de la Race en direct sur l'accueil",
       "Wildcard possible pour un tournoi asiatique",
@@ -277,9 +277,9 @@ export const CHALLENGES = [
       p.money = 600000; p.popularity = 60; p.image = 65; p.happiness = 65;
       p.titlesWon = 9; p.titlesByTier = { Masters1000: 1, ATP500: 3, ATP250: 5 };
       p.careerWins = 210; p.careerLosses = 110;
-      // Hors du top 8 : environ 1 000 points de retard sur la 8e place.
+      // Hors du top 8 : environ 700 points de retard sur la 8e place.
       const race = raceStandings(db, 2026);
-      const racePts = Math.max(race[16]?.pts || 0, (race[7]?.pts || 0) - 1000);
+      const racePts = Math.max(race[16]?.pts || 0, (race[7]?.pts || 0) - 700);
       const total = Math.max(challengeRankPoints(db, 13), racePts + 250);
       challengeSeedPoints(p, total, racePts, 36, 2026);
     },
@@ -420,7 +420,7 @@ export function computeChallengeScore(p, db, status, weeksUsed) {
   else if (c.id === "derniere_danse") { const d = tally.best.GrandSlam || 0; prog = d / 8; progDetail = "Meilleur Majeur : " + depthLabel(d); }
   else if (c.id === "pression") { const d = tally.best.Masters1000 || 0; prog = d / 8; progDetail = "Meilleur Grand 1000 : " + depthLabel(d); }
   else if (c.id === "terrien") { const d = tally.best.wimbledon || 0; prog = d / 8; progDetail = "Tournoi de Londres : " + depthLabel(d); }
-  else if (c.id === "fauche") { const repaid = clamp01((50000 - (c.debt || 0)) / 50000); prog = repaid; progDetail = Math.round(repaid * 100) + " % de la dette remboursée"; }
+  else if (c.id === "fauche") { const repaid = clamp01((45000 - (c.debt || 0)) / 45000); prog = repaid; progDetail = Math.round(repaid * 100) + " % de la dette remboursée"; }
   else if (c.id === "course") { const br = Math.min(ctx.raceRank, c.bestRace || 9999); prog = clamp01((16 - br) / 8); progDetail = "Meilleure place à la Race : #" + br; }
   rows.push({ label: "Progression", detail: progDetail, pts: Math.round(1500 * prog) });
   rows.push({ label: "Victoires", detail: tally.w + " × 10", pts: tally.w * 10 });

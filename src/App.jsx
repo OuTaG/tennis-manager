@@ -1319,6 +1319,9 @@ export default function TennisManager() {
   const resolveLifeEvent = (option) => {
     // Uncertain options: roll one outcome and merge its effects.
     let e = { ...(option.effects || {}) };
+    // Perte plafonnée à une part de l'argent disponible (maxMoneyShare) :
+    // un événement ne doit pas pouvoir ruiner le joueur.
+    if (option.maxMoneyShare && (e.money || 0) < 0) e.money = -Math.min(-e.money, Math.floor(Math.max(0, player.money || 0) * option.maxMoneyShare));
     if (option.outcomes && option.outcomes.length > 0) {
       let r = random();
       let picked = option.outcomes[option.outcomes.length - 1];
@@ -5076,7 +5079,8 @@ export default function TennisManager() {
                 {typeof ev.body === "function" ? ev.body(player) : ev.body}
               </div>
               {ev.options.map((opt, i) => {
-                const eff = opt.effects || {};
+                const eff = { ...(opt.effects || {}) };
+                if (opt.maxMoneyShare && (eff.money || 0) < 0) eff.money = -Math.min(-eff.money, Math.floor(Math.max(0, player.money || 0) * opt.maxMoneyShare));
                 const chips = [];
                 if (eff.money) chips.push({ label: fmtMoney(eff.money, { sign: true }), color: eff.money > 0 ? T.green : T.red });
                 if (eff.energy) chips.push({ label: (eff.energy > 0 ? "+" : "") + eff.energy, color: eff.energy > 0 ? T.green : T.red, icon: "energy" });
