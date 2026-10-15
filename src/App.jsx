@@ -462,6 +462,8 @@ export default function TennisManager() {
       setAtpDb(data.atpDb);
       // Premier sponsor obligatoire : la négociation d'accueil revient si la
       // page a été rechargée avant qu'elle soit conclue.
+      // Sauvegardes déjà touchées par l'ancien bug : un sponsor signé clôt l'intro.
+      if (data.player.introSponsorPending && (data.player.sponsors || []).length > 0) data.player.introSponsorPending = false;
       if (data.player.introSponsorPending && (data.player.sponsorOffers || []).length > 0) {
         setSponsorNegotiation({ phase: "intro", year: data.player.year || 2026, ranking: 1100, results: [], objMoney: 0 });
       }
@@ -767,8 +769,12 @@ export default function TennisManager() {
         }
       }
       p.sponsors = keptSponsors;
+      // Contrats arrivés à terme dans la semaine (déjà crédités) : affichés et
+      // comptés dans le total du bilan.
+      let endedMoney = 0;
       if (p._endedSponsorResults && p._endedSponsorResults.length > 0) {
         negotiationResults.unshift(...p._endedSponsorResults);
+        endedMoney = p._endedSponsorResults.reduce((a, r) => a + (r.amount || 0), 0);
       }
       delete p._endedSponsorResults;
       if (objMoney !== 0) {
@@ -789,7 +795,7 @@ export default function TennisManager() {
           year: newYear,
           ranking: rankingNow,
           results: negotiationResults,
-          objMoney,
+          objMoney: objMoney + endedMoney,
         };
       }
     } else {
@@ -867,6 +873,8 @@ export default function TennisManager() {
               // No WC when the player already has direct main-draw entry.
               // A WC is only offered to skip qualifying (or to get in at all).
               if (entry.status === "direct") continue;
+              // Tournoi interdit à ce classement (Challenger top 100, ITF top 150) : pas d'invitation.
+              if (entry.banned) continue;
               if (t.tier === "Finals" || !wcEligible(t.tier)) continue;
               // Already offered?
               if ((p.wildcardOffers || []).some(o => o.tournamentId === t.id && o.tournamentYear === targetYear)) continue;
@@ -1177,7 +1185,11 @@ export default function TennisManager() {
         && random() < 0.22
         && (p.lastLifeEventWeek === undefined || ((newYear - (p.lastLifeEventYear || newYear)) * 52 + (newWeek - p.lastLifeEventWeek)) >= 2)) {
       const currentSeason = (p.careerSeasons?.length || 0) + 1;
-      const eligible = LIFE_EVENTS.filter(e => !e.minSeason || currentSeason >= e.minSeason);
+      const tripPlanned = (() => {
+        const t = p.enrollment && ALL_TOURNAMENTS.find(x => x.id === p.enrollment.tournamentId);
+        return !!t && t.city !== p.location;
+      })();
+      const eligible = LIFE_EVENTS.filter(e => (!e.minSeason || currentSeason >= e.minSeason) && (!e.requiresTrip || tripPlanned));
       if (eligible.length > 0) {
         const ev = eligible[Math.floor(random() * eligible.length)];
         p.pendingLifeEvent = ev.id;
@@ -1319,6 +1331,9 @@ export default function TennisManager() {
   const resolveLifeEvent = (option) => {
     // Uncertain options: roll one outcome and merge its effects.
     let e = { ...(option.effects || {}) };
+    // Perte plafonnée à une part de l'argent disponible (maxMoneyShare) :
+    // un événement ne doit pas pouvoir ruiner le joueur.
+    if (option.maxMoneyShare && (e.money || 0) < 0) e.money = -Math.min(-e.money, Math.floor(Math.max(0, player.money || 0) * option.maxMoneyShare));
     if (option.outcomes && option.outcomes.length > 0) {
       let r = random();
       let picked = option.outcomes[option.outcomes.length - 1];
@@ -2605,7 +2620,8 @@ export default function TennisManager() {
     setPlayer(p => {
       const offers = (p.sponsorOffers || []).filter(o => o.id !== offer.id);
       const sponsors = [...(p.sponsors || []), buildContractFromOffer(p, offer, terms)];
-      return { ...p, sponsorOffers: offers, sponsors };
+      // Premier sponsor signé : la scène d'introduction ne doit plus se rouvrir.
+      return { ...p, sponsorOffers: offers, sponsors, introSponsorPending: false };
     });
 
   };
@@ -3313,7 +3329,7 @@ export default function TennisManager() {
     const isForcedRetirement = (player.age || 0) >= RETIREMENT_AGE;
     const isVoluntaryRetirement = !!player._voluntaryRetirement;
     const isRetirement = isForcedRetirement || isVoluntaryRetirement;
-    const summary = computeCareerSummary(player);
+    const summary = computeCareerSummary(player, totalPts > 0 ? ranking : null);
     const legacy = computeLegacyScore(player, summary);
     const breakdown = computeLegacyBreakdown(player, summary);
     const tier = legacyTier(legacy);
@@ -4692,7 +4708,7 @@ export default function TennisManager() {
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <span style={{ flex: 1, minWidth: 0, fontWeight: 800, fontSize: 14, lineHeight: 1.15, textTransform: "uppercase", overflowWrap: "anywhere" }}>{player.name}</span>
-                <span className="tm-num" style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: "#ffffff", background: T.blue, border: "2px solid " + T.ink, padding: "0 5px" }}>#{ranking}</span>
+                <span className="tm-num" style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: "#ffffff", background: T.blue, border: "2px solid " + T.ink, padding: "0 5px" }}>{ranking > 1000 ? "NC" : "#" + ranking}</span>
               </div>
               <div className="tm-num" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap", minWidth: 0 }}>
                 <span>Sem. {player.week} · {player.year}</span>
@@ -5053,7 +5069,9 @@ export default function TennisManager() {
           </div>
         );
       })()}
-      {player.pendingLifeEvent && (() => {
+      {/* L'événement attend la fin des négociations de sponsors (sinon il
+          recouvre le bilan des contrats). */}
+      {player.pendingLifeEvent && !sponsorNegotiation && (() => {
         const ev = getEventById(player.pendingLifeEvent);
         if (!ev) return null;
         const evDef = ev.challenge ? getChallengeDef(ev.challenge) : null;
@@ -5076,7 +5094,8 @@ export default function TennisManager() {
                 {typeof ev.body === "function" ? ev.body(player) : ev.body}
               </div>
               {ev.options.map((opt, i) => {
-                const eff = opt.effects || {};
+                const eff = { ...(opt.effects || {}) };
+                if (opt.maxMoneyShare && (eff.money || 0) < 0) eff.money = -Math.min(-eff.money, Math.floor(Math.max(0, player.money || 0) * opt.maxMoneyShare));
                 const chips = [];
                 if (eff.money) chips.push({ label: fmtMoney(eff.money, { sign: true }), color: eff.money > 0 ? T.green : T.red });
                 if (eff.energy) chips.push({ label: (eff.energy > 0 ? "+" : "") + eff.energy, color: eff.energy > 0 ? T.green : T.red, icon: "energy" });
@@ -5084,7 +5103,7 @@ export default function TennisManager() {
                 if (eff.popularity) chips.push({ label: (eff.popularity > 0 ? "+" : "") + eff.popularity, color: eff.popularity > 0 ? T.green : T.red, icon: "sparkles" });
                 if (eff.image) chips.push({ label: (eff.image > 0 ? "+" : "") + eff.image, color: eff.image > 0 ? "var(--tm-blue)" : T.red, icon: "users" });
                 if (opt.investment) chips.push({ label: "Résultat dans " + opt.investment.weeks + " sem. · gros gain possible", color: T.amber });
-                if (opt.restWeeks) chips.push({ label: "Ni entraînement ni tournoi · " + opt.restWeeks + " sem.", color: T.amber });
+                if (opt.restWeeks) chips.push({ label: "Ni entraînement ni tournoi : cette semaine + " + opt.restWeeks + " sem.", color: T.amber });
                 if (opt.injuryRisk) chips.push({ label: "Risque de blessure " + Math.round(opt.injuryRisk * 100) + "%", color: T.red });
                 if (opt.statGain) chips.push({ label: "Stats + (léger)", color: T.green });
                 if (opt.trainBoost) chips.push({ label: "Entraînement +" + Math.round((opt.trainBoost.mul - 1) * 100) + "% · " + opt.trainBoost.weeks + " sem.", color: T.green });
@@ -5406,7 +5425,7 @@ export default function TennisManager() {
                       <span style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>#{ranking}</span>
                       {entry.status === "direct" && <span style={{ background: "#1f7a45", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>✓ Entrée directe{entry.protected ? " (classement protégé)" : ""}</span>}
                       {entry.status === "qualifying" && <span style={{ background: "#e0a21b", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>Qualifs requises</span>}
-                      {entry.status === "blocked" && <span style={{ background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>Classement insuffisant</span>}
+                      {entry.status === "blocked" && <span style={{ background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>{entry.banned ? entry.reason : "Classement insuffisant"}</span>}
                       {playerIsSeed && <span style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>Tête de série · exempté au 1er tour</span>}
                     </div>
                     <div>Distance : {fmtKm(dist)} ({fmtMoney(travelCost)} de voyage)</div>
@@ -5449,7 +5468,7 @@ export default function TennisManager() {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
                 <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
-                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Points ATP</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Points</div>
                   <div style={{ color: "#5b2d8e", fontFamily: T.display, fontSize: 18 }}>{fmtNum(p.points)}</div>
                 </div>
                 <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>

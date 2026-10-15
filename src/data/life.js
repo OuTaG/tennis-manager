@@ -176,8 +176,9 @@ export const LIFE_EVENTS = [
     body: "Votre domicile a été cambriolé pendant votre absence. Vol important.",
     minSeason: 2,
     options: [
-      { label: "Faire jouer l'assurance (franchise)", effects: { money: -1000, happiness: -6 } },
-      { label: "Assurance et alarme neuve", effects: { money: -3500, happiness: -3 } },
+      // Pertes plafonnées à une part de l'argent disponible (jamais ruineuses).
+      { label: "Faire jouer l'assurance (franchise)", effects: { money: -1000, happiness: -6 }, maxMoneyShare: 0.10 },
+      { label: "Assurance et alarme neuve", effects: { money: -3500, happiness: -3 }, maxMoneyShare: 0.35 },
     ],
   },
   {
@@ -425,6 +426,7 @@ export const LIFE_EVENTS = [
   {
     id: "retard_avion",
     title: "Vol annulé",
+    requiresTrip: true, // seulement si un tournoi est prévu dans une autre ville
     body: "Votre vol pour le prochain tournoi est annulé. Solution de dernière minute coûteuse.",
     options: [
       { label: "Réserver un vol privé (8\u202f000\u00a0€)", effects: { money: -8000, energy: -2 } },

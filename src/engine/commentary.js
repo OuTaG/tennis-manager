@@ -192,7 +192,7 @@ export function pickComment(type, vars = {}, ctx = null) {
   }
   if (ctx && isSet && ctx.log && !ctx.matchComplete && !/^bagel_/.test(type)) {
     const extra = setFact(ctx, allVars, rSuffix);
-    if (extra) txt = txt + ". " + extra;
+    if (extra) txt = txt + (/[.!?…]$/.test(txt) ? " " : ". ") + extra;
   }
   return txt;
 }
@@ -299,7 +299,8 @@ function setFact(ctx, vars, r) {
     opts.push("Il a tout de même fallu " + count(wSetPts, "balle de set", "balles de set") + " à " + W + " pour conclure");
   }
   if (!opts.length) return null;
-  return pickFresh(opts, "setfact") + ".";
+  const fact = pickFresh(opts, "setfact");
+  return /[.!?…]$/.test(fact) ? fact : fact + ".";
 }
 
 // Comment le set a été conclu, du point de vue de son vainqueur

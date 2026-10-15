@@ -2,6 +2,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import TennisManager from "./App.jsx";
+import { installNativeBackup, restoreNativeBackup } from "./engine/nativeBackup.js";
 // Polices de la gazette BD, embarquées avec le jeu (fonctionnent hors ligne).
 import "@fontsource/archivo-black/400.css";
 import "@fontsource/archivo/400.css";
@@ -18,8 +19,13 @@ const noZoom = (e) => e.preventDefault();
 ["gesturestart", "gesturechange", "gestureend"].forEach(t => document.addEventListener(t, noZoom, { passive: false }));
 document.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
-createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <TennisManager />
-  </React.StrictMode>,
-);
+// App iOS : restaure les sauvegardes depuis leur copie de secours (si le
+// stockage web a été vidé), puis recopie chaque nouvelle sauvegarde.
+restoreNativeBackup().finally(() => {
+  installNativeBackup();
+  createRoot(document.getElementById("root")).render(
+    <React.StrictMode>
+      <TennisManager />
+    </React.StrictMode>,
+  );
+});

@@ -26,10 +26,14 @@ export function challengeActive(id) {
 // Points à détenir pour occuper le rang `rank` dans la base IA.
 export function challengeRankPoints(db, rank) {
   if (!db || !db.length) return 0;
-  if (rank <= 1) return (db[0].points || 0) + 250;
-  const hi = db[Math.min(rank - 2, db.length - 1)].points || 0;
-  const lo = db[Math.min(rank - 1, db.length - 1)].points || 0;
-  return Math.max(1, Math.round((hi + lo) / 2));
+  // La base n'est pas forcément triée : on trie les points.
+  const pts = db.map(x => x.points || 0).sort((a, b) => b - a);
+  if (rank <= 1) return pts[0] + 250;
+  const hi = pts[Math.min(rank - 2, pts.length - 1)];
+  const lo = pts[Math.min(rank - 1, pts.length - 1)];
+  // Égalité de points autour du rang visé : un point de plus pour passer
+  // devant le groupe (sinon le rang réel tombe bien plus bas).
+  return Math.max(1, hi === lo ? lo + 1 : Math.round((hi + lo) / 2));
 }
 // Répartit `total` points sur les 52 dernières semaines : `racePts` sur l'année
 // en cours (semaines déjà jouées), le reste sur la fin de l'année précédente.
@@ -84,9 +88,9 @@ export const tName = (id) => (ALL_TOURNAMENTS.find(t => t.id === id) || {}).name
 
 export const CHALLENGES = [
   {
-    id: "retour", circuit: "atp", name: "Le Retour", difficulty: 4,
-    tagline: "Ancien n°1 mondial, de retour au 150e rang",
-    context: "Il y a deux ans, vous étiez n°1 mondial. Une blessure au genou vous a tenu loin des courts pendant quatorze mois. À 32 ans, vous repartez du 150e rang. Personne ne vous attend… sauf le public.",
+    id: "retour", circuit: "atp", name: "Le Retour", difficulty: 2,
+    tagline: "Ancien n°1 mondial, de retour vers le 150e rang",
+    context: "Il y a deux ans, vous étiez n°1 mondial. Une blessure au genou vous a tenu loin des courts pendant quatorze mois. À 32 ans, vous repartez aux alentours du 150e rang. Personne ne vous attend… sauf le public.",
     objectiveLabel: "Revenir dans le top 10",
     deadlineLabel: "Avant la fin de la saison 2027",
     objectiveText: "Revenir dans le top 10 mondial avant la fin de la saison 2027, en profitant de votre classement protégé (8 tournois joués comme un n°8) sans trop solliciter un genou encore fragile.",
@@ -99,7 +103,7 @@ export const CHALLENGES = [
     style: "allcourt", city: "Paris",
     setup(p, db) {
       p.age = 32;
-      p.stats = challengeStats({ serve: 80, forehand: 82, backhand: 78, stamina: 66, mental: 86, net: 72 }, 75.5);
+      p.stats = challengeStats({ serve: 80, forehand: 82, backhand: 78, stamina: 66, mental: 86, net: 72 }, 77);
       p.money = 350000; p.popularity = 75; p.image = 72; p.happiness = 60;
       p.titlesWon = 31; p.titlesByTier = { GrandSlam: 3, Masters1000: 7, ATP500: 8, ATP250: 13 };
       p.careerWins = 412; p.careerLosses = 118;
@@ -113,7 +117,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "derniere_danse", circuit: "wta", name: "Dernière danse", difficulty: 4,
+    id: "derniere_danse", circuit: "wta", name: "Dernière danse", difficulty: 2,
     tagline: "35 ans, dernière saison, un Majeur à gagner",
     context: "Quatre finales de Majeur, quatre défaites. À 35 ans, vous êtes la doyenne du top 20 et vous avez annoncé que cette saison serait la dernière. Il reste une saison, une seule, pour aller chercher le titre qui manque à votre carrière.",
     objectiveLabel: "Gagner un Majeur",
@@ -128,7 +132,7 @@ export const CHALLENGES = [
     style: "allcourt", city: "Melbourne",
     setup(p, db) {
       p.age = 35;
-      p.stats = challengeStats({ serve: 84, forehand: 80, backhand: 77, stamina: 58, mental: 90, net: 80 }, 82.5);
+      p.stats = challengeStats({ serve: 84, forehand: 80, backhand: 77, stamina: 58, mental: 90, net: 80 }, 86.5);
       p.money = 900000; p.popularity = 88; p.image = 80; p.happiness = 70;
       p.titlesWon = 38; p.titlesByTier = { Masters1000: 5, ATP500: 11, ATP250: 22 };
       p.careerWins = 560; p.careerLosses = 230;
@@ -141,12 +145,12 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "fauche", circuit: "wta", name: "Fauché", difficulty: 3,
-    tagline: "50\u202f000\u00a0€ de dettes, aucun sponsor",
-    context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes 150e mondiale, vous devez 50\u202f000\u00a0€ et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
-    objectiveLabel: "Rembourser 50\u202f000\u00a0€",
+    id: "fauche", circuit: "wta", name: "Fauché", difficulty: 1,
+    tagline: "45\u202f000\u00a0€ de dettes, aucun sponsor",
+    context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes autour de la 150e place mondiale, vous devez 45\u202f000\u00a0€ et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
+    objectiveLabel: "Rembourser 45\u202f000\u00a0€",
     deadlineLabel: "Avant la fin de la saison 2026",
-    objectiveText: "Rembourser les 50\u202f000\u00a0€ de dettes avant la fin de la saison 2026, en versant au moins 2\u202f500\u00a0€ toutes les 4 semaines (sinon la dette augmente de 10 %), sans aucun sponsor au départ.",
+    objectiveText: "Rembourser les 45\u202f000\u00a0€ de dettes avant la fin de la saison 2026, en versant au moins 2\u202f500\u00a0€ toutes les 4 semaines (sinon la dette augmente de 10 %), sans aucun sponsor au départ.",
     perks: [
       "Remboursez quand vous voulez depuis l'accueil",
       "Échéance obligatoire de 2\u202f500\u00a0€ toutes les 4 semaines, sinon +10 % de pénalité",
@@ -162,7 +166,7 @@ export const CHALLENGES = [
       p.titlesWon = 4; p.titlesByTier = { Challenger: 3, ITF: 1 };
       p.careerWins = 96; p.careerLosses = 70;
       challengeSeedPoints(p, challengeRankPoints(db, 150), 0, 1, 2026);
-      p.challenge.debt = 50000;
+      p.challenge.debt = 45000;
       p.challenge.nextDueAbs = challengeAbs(p) + 4;
     },
     objective(p) {
@@ -171,7 +175,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "prodige", circuit: "wta", name: "Le Prodige", difficulty: 3,
+    id: "prodige", circuit: "wta", name: "Le Prodige", difficulty: 1,
     tagline: "17 ans, 900e mondiale, tout le monde vous attend",
     context: "Championne du monde junior, vous passez pro à 17 ans. La presse vous compare déjà aux plus grandes. Il faut transformer l'essai : entrer dans le top 100 en deux saisons.",
     objectiveLabel: "Entrer dans le top 100",
@@ -197,7 +201,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "terrien", circuit: "atp", name: "Le Terrien", difficulty: 5,
+    id: "terrien", circuit: "atp", name: "Le Terrien", difficulty: 2,
     tagline: "Il ne manque que le Tournoi de Londres",
     context: "Open d'Australie, Internationaux de Paris, Open des États-Unis : vous les avez tous gagnés. Il ne manque que le gazon londonien pour entrer dans l'histoire. Vous y arrivez cette semaine avec un jeu taillé pour l'ocre. Si ça ne passe pas, vous aurez un an pour transformer votre tennis.",
     objectiveLabel: "Gagner le Tournoi de Londres",
@@ -207,7 +211,7 @@ export const CHALLENGES = [
       "Déjà à Londres, tableau principal la semaine prochaine",
       "Jeu de terrien : service et filet en retrait",
       "Stage sur gazon, mentor et refonte du jeu au fil de l'année",
-      "Le Grand Chelem en carrière est au bout",
+      "Les quatre Majeurs en carrière sont au bout",
     ],
     startWeek: 26, deadline: { year: 2027, week: 27 },
     style: "baseliner", city: "Londres",
@@ -235,7 +239,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "seul", circuit: "atp", name: "Seul au monde", difficulty: 4,
+    id: "seul", circuit: "atp", name: "Seul au monde", difficulty: 1,
     tagline: "Aucun staff, jamais",
     context: "Pas de coach, pas de préparateur, pas d'agent. Vous gérez tout vous-même, du cordage aux billets d'avion. Objectif : le top 100 avant la mi-saison 2027, sans jamais engager personne.",
     objectiveLabel: "Entrer dans le top 100",
@@ -258,12 +262,12 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "course", circuit: "atp", name: "Course au Masters", difficulty: 3,
+    id: "course", circuit: "atp", name: "Course au Masters", difficulty: 2,
     tagline: "Hors du top 8 de la Race, dix semaines pour y entrer",
-    context: "L'Open des États-Unis vient de se terminer. Vous pointez derrière le top 8 de la Race, à environ 1\u202f000 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année.",
+    context: "L'Open des États-Unis vient de se terminer. Vous pointez derrière le top 8 de la Race, à environ 700 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année.",
     objectiveLabel: "Être dans le top 8 de la Race",
     deadlineLabel: "Au début du Masters de fin d'année",
-    objectiveText: "Figurer dans le top 8 de la Race au début du Masters de fin d'année pour décrocher l'un des huit billets, en partant à environ 1\u202f000 points de la 8e place, avec seulement la tournée asiatique et la saison en salle pour les rattraper.",
+    objectiveText: "Figurer dans le top 8 de la Race au début du Masters de fin d'année pour décrocher l'un des huit billets, en partant à environ 700 points de la 8e place, avec seulement la tournée asiatique et la saison en salle pour les rattraper.",
     perks: [
       "Suivi de la Race en direct sur l'accueil",
       "Wildcard possible pour un tournoi asiatique",
@@ -277,9 +281,9 @@ export const CHALLENGES = [
       p.money = 600000; p.popularity = 60; p.image = 65; p.happiness = 65;
       p.titlesWon = 9; p.titlesByTier = { Masters1000: 1, ATP500: 3, ATP250: 5 };
       p.careerWins = 210; p.careerLosses = 110;
-      // Hors du top 8 : environ 1 000 points de retard sur la 8e place.
+      // Hors du top 8 : environ 700 points de retard sur la 8e place.
       const race = raceStandings(db, 2026);
-      const racePts = Math.max(race[16]?.pts || 0, (race[7]?.pts || 0) - 1000);
+      const racePts = Math.max(race[16]?.pts || 0, (race[7]?.pts || 0) - 700);
       const total = Math.max(challengeRankPoints(db, 13), racePts + 250);
       challengeSeedPoints(p, total, racePts, 36, 2026);
     },
@@ -295,7 +299,7 @@ export const CHALLENGES = [
     medal(p, ctx) { return ctx.raceRank <= 2 ? "gold" : ctx.raceRank <= 5 ? "silver" : "bronze"; },
   },
   {
-    id: "pression", circuit: "wta", name: "Sous pression", difficulty: 4,
+    id: "pression", circuit: "wta", name: "Sous pression", difficulty: 2,
     tagline: "19 ans, top 30, les médias ne lâchent rien",
     context: "Révélation de l'an dernier, vous êtes 28e mondiale à 19 ans. Les médias vous présentent comme la future n°1 et chaque défaite fait la une. Remportez un Grand 1000 cette saison sans craquer.",
     objectiveLabel: "Gagner un Grand 1000",
@@ -420,7 +424,7 @@ export function computeChallengeScore(p, db, status, weeksUsed) {
   else if (c.id === "derniere_danse") { const d = tally.best.GrandSlam || 0; prog = d / 8; progDetail = "Meilleur Majeur : " + depthLabel(d); }
   else if (c.id === "pression") { const d = tally.best.Masters1000 || 0; prog = d / 8; progDetail = "Meilleur Grand 1000 : " + depthLabel(d); }
   else if (c.id === "terrien") { const d = tally.best.wimbledon || 0; prog = d / 8; progDetail = "Tournoi de Londres : " + depthLabel(d); }
-  else if (c.id === "fauche") { const repaid = clamp01((50000 - (c.debt || 0)) / 50000); prog = repaid; progDetail = Math.round(repaid * 100) + " % de la dette remboursée"; }
+  else if (c.id === "fauche") { const repaid = clamp01((45000 - (c.debt || 0)) / 45000); prog = repaid; progDetail = Math.round(repaid * 100) + " % de la dette remboursée"; }
   else if (c.id === "course") { const br = Math.min(ctx.raceRank, c.bestRace || 9999); prog = clamp01((16 - br) / 8); progDetail = "Meilleure place à la Race : #" + br; }
   rows.push({ label: "Progression", detail: progDetail, pts: Math.round(1500 * prog) });
   rows.push({ label: "Victoires", detail: tally.w + " × 10", pts: tally.w * 10 });

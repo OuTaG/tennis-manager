@@ -5,9 +5,12 @@ import { fmtMoney } from "./text.js";
 // ─── HALL OF FAME / TROPHIES ─────────────────────────────────────────────────
 // Career summary + "legacy score" shown on the end-of-career screen. Gives a
 // single comparable number to chase across runs, plus headline records.
-export function computeCareerSummary(player) {
-  const hist = player.history || [];
-  const bestRank = hist.length ? Math.min(...hist.map(h => h.ranking || 9999)) : 9999;
+// currentRank (facultatif) : rang du moment, pris en compte pour le meilleur
+// rang (l'historique n'est relevé qu'à intervalles).
+export function computeCareerSummary(player, currentRank) {
+  const hist = (player.history || []).filter(h => (h.points || 0) > 0);
+  const histBest = hist.length ? Math.min(...hist.map(h => h.ranking || 9999)) : 9999;
+  const bestRank = Math.min(histBest, currentRank && currentRank <= 1200 ? currentRank : 9999);
   const weeksNo1 = hist.filter(h => (h.ranking || 9999) === 1).length;
   const weeksTop10 = hist.filter(h => (h.ranking || 9999) <= 10).length;
   // Longest win streak from the (recent) match history we keep.
@@ -27,7 +30,11 @@ export function computeCareerSummary(player) {
     if (games < 2) continue;
     if (!bestRivalry || games > ((bestRivalry.wins || 0) + (bestRivalry.losses || 0))) bestRivalry = r;
   }
-  const seasons = (player.careerSeasons || []).length;
+  // Saisons jouées : saisons archivées + la saison en cours si elle n'a pas
+  // encore été archivée (même compte partout : fin de carrière, stats, records).
+  const cs = player.careerSeasons || [];
+  const lastArchived = cs.length ? cs[cs.length - 1].year : null;
+  const seasons = cs.length + (lastArchived === player.year ? 0 : 1);
   return { bestRank, weeksNo1, weeksTop10, bestStreak, gsTitles, bestRivalry, seasons };
 }
 
@@ -44,13 +51,14 @@ export const LEGACY_TITLE_POINTS = {
   ITF:            8,
 };
 export const LEGACY_TITLE_TIER_LABEL = {
-  GrandSlam:   "Titres Grand Chelem",
-  Finals:      "Titres Masters",
-  Masters1000: "Titres Masters 1000",
-  ATP500:      "Titres ATP 500",
-  ATP250:      "Titres ATP 250",
-  Challenger:  "Titres Challenger",
-  ITF:         "Titres ITF",
+  // Mêmes noms de catégories que dans le reste du jeu (tierLabel).
+  GrandSlam:   "Titres en Majeur",
+  Finals:      "Titres au Masters",
+  Masters1000: "Titres en Grand 1000",
+  ATP500:      "Titres en Tour 500",
+  ATP250:      "Titres en Tour 250",
+  Challenger:  "Titres en Circuit Pro",
+  ITF:         "Titres en Circuit Open",
 };
 
 // Resolve a per-tier titles map for the player. Uses the live counter when

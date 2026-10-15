@@ -53,11 +53,11 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
 
       {/* Stats de carrière */}
       {(() => {
-        const summary = computeCareerSummary(player);
+        const summary = computeCareerSummary(player, (totalPts || 0) > 0 ? ranking : null);
         const played = player.careerWins + player.careerLosses;
         const money = player.totalEarnings || 0;
         const moneyShort = fmtMoneyShort(money);
-        const seasons = (player.careerSeasons || []).length + 1;
+        const seasons = summary.seasons;
         const items = [
           { icon: "trophy", v: player.titlesWon, l: "Titres", color: "#e0a21b" },
           { icon: "star", v: player.careerBigWins || 0, l: "Vict. top 50", color: "#c4572b" },
@@ -114,9 +114,9 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
       <div style={{ marginBottom: 4 }}>
         {rule("Progression")}
         <MiniLineChart data={pointsSeries} label="Points" color={T.green}
-          info="Total de vos points ATP sur les 52 dernières semaines. Chaque tournoi rapporte des points selon le tour atteint ; ils expirent un an plus tard." />
+          info="Total de vos points au classement sur les 52 dernières semaines. Chaque tournoi rapporte des points selon le tour atteint ; ils expirent un an plus tard." />
         <MiniLineChart data={rankingSeries} label="Classement" color={T.ball} invertY
-          info="Votre rang mondial parmi les 1 200 joueurs du circuit, établi d'après vos points ATP. Plus le chiffre est bas, meilleur vous êtes. Il décide de votre accès aux tournois et de la valeur de vos sponsors." />
+          info="Votre rang mondial parmi les 1 200 joueurs du circuit, établi d'après vos points. Plus le chiffre est bas, meilleur vous êtes. Il décide de votre accès aux tournois et de la valeur de vos sponsors." />
         <MiniLineChart data={moneySeries} label="Trésorerie" color={T.green} suffix={NBSP + "€"}
           info="L'argent dont vous disposez : gains en tournoi, sponsors et primes, moins les dépenses (staff, voyages, entraînements, frais fixes). Sous zéro, c'est la faillite." />
         <MiniLineChart data={ratingSeries} label="Cote moyenne" color={T.green}

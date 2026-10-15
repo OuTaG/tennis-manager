@@ -1,6 +1,6 @@
 // La une du journal d'accueil : l'article principal et les dépêches.
 // Fonctions pures : elles lisent l'état du joueur et le fil d'actualité.
-import { elide } from "./text.js";
+import { deCity, elide } from "./text.js";
 import { tierLabel } from "./circuit.js";
 
 // Tour joué → complément correct : « au premier tour », « en quarts de finale »…
@@ -123,18 +123,29 @@ function frontStory({ player, ranking, enrolled }) {
     return {
       kicker: tierLabel(enrolled.tier) + " · " + enrolled.surface,
       title: "Cap sur " + enrolled.city,
-      deck: name + " est inscrit au " + enrolled.name + ", semaine " + enrolled.week + "." + status,
+      deck: name + " est inscrit " + elide("au " + enrolled.name) + ", semaine " + enrolled.week + "." + status,
       tone: "blue",
       caption: "Direction " + enrolled.city + "…",
       quotes: ["Cette semaine, je veux aller loin.", "Un tableau à ma portée. Allons-y."],
     };
   }
 
+  const played = (player.matchHistory || []).length > 0 || (player.careerWins || 0) + (player.careerLosses || 0) > 0;
+  if ((!ranking || ranking > 1000) && played) {
+    return {
+      kicker: "Portrait",
+      title: "Aux portes du classement",
+      deck: name + ", " + player.age + " ans, ne figure pas encore dans le top 1000 mondial. Quelques bons résultats et son nom y apparaîtra.",
+      tone: "blue",
+      caption: player.location + ", entre deux tournois…",
+      quotes: ["Chaque point compte.", "Le classement, je vais aller le chercher."],
+    };
+  }
   if (!ranking || ranking > 1000) {
     return {
       kicker: "Portrait",
       title: "Tout commence ici",
-      deck: name + ", " + player.age + " ans, part de " + player.location + " sans le moindre point. Premier objectif : un tournoi à sa portée.",
+      deck: name + ", " + player.age + " ans, part " + deCity(player.location) + " sans le moindre point. Premier objectif : un tournoi à sa portée.",
       tone: "blue",
       caption: player.location + ", premier jour…",
       quotes: ["Un jour, je serai n° 1.", "Tout commence maintenant."],

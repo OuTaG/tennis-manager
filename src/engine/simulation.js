@@ -16,6 +16,9 @@ import { elide, fmtMoney, fmtNum } from "./text.js";
 // 1000e), tableaux formés par niveau (rang ± m15LowSpread / 2). Sans eux, les
 // derniers mondiaux (note ~40) tombaient au 1er tour face aux 600e-900e (note
 // ~50-55) et ne marquaient que 7 à 14 points par an.
+// « la terre battue », « le gazon », « l'indoor »…
+const surfArt = (surface) => { const x = String(surface || "").toLowerCase(); return (/^terre/.test(x) ? "la " : /^[aeiouhé]/.test(x) ? "l'" : "le ") + x; };
+
 export const VIRTUAL_CIRCUIT = { challengerFrom: 175, challengerProb: 0.34, m25Prob: 0.55, m15Prob: 0.8, m15LowFrom: 1000, m15LowProb: 0.8, m15LowSpread: 80 };
 // Circuit WTA : moins de WTA 250 et de WTA 125 que de tournois équivalents
 // côté ATP (le vrai circuit féminin compte beaucoup de W75/W100 non listés).
@@ -699,8 +702,8 @@ export function simulateAtpWeek(atpDb, currentWeek, currentYear, skipTournamentI
   // reste proche de celui du départ (≈ réel), au bruit près.
   {
     const VIRTUAL_EVENTS = [
-      { tournament: "Challenger (hors calendrier)", tier: "Challenger", from: isWTA() ? WTA_SIM.challengerFrom : VIRTUAL_CIRCUIT.challengerFrom, to: 520,  prob: isWTA() ? WTA_SIM.challengerProb : VIRTUAL_CIRCUIT.challengerProb, points: [0, 6, 12, 22, 44, 75] },   // Challenger 75
-      { tournament: "Open M25 (hors calendrier)",   tier: "ITF",        from: 280, to: 650,  prob: VIRTUAL_CIRCUIT.m25Prob,        points: [0, 1, 3, 8, 16, 25] },    // ITF M25
+      { tournament: "Circuit Pro (hors calendrier)", tier: "Challenger", from: isWTA() ? WTA_SIM.challengerFrom : VIRTUAL_CIRCUIT.challengerFrom, to: 520,  prob: isWTA() ? WTA_SIM.challengerProb : VIRTUAL_CIRCUIT.challengerProb, points: [0, 6, 12, 22, 44, 75] },   // Challenger 75
+      { tournament: "Circuit Open (hors calendrier)",   tier: "ITF",        from: 280, to: 650,  prob: VIRTUAL_CIRCUIT.m25Prob,        points: [0, 1, 3, 8, 16, 25] },    // ITF M25
       // Joué en premier : ses joueurs ne sont plus dans le pool du Futures général.
       { tournament: "Futures (régional)",           tier: "Futures",    from: VIRTUAL_CIRCUIT.m15LowFrom, to: 99999, prob: VIRTUAL_CIRCUIT.m15LowProb, points: [0, 1, 2, 4, 8, 15], spread: VIRTUAL_CIRCUIT.m15LowSpread },
       { tournament: "Futures",                      tier: "Futures",    from: 600, to: 99999, prob: VIRTUAL_CIRCUIT.m15Prob,       points: [0, 1, 2, 4, 8, 15] },     // ITF M15
@@ -988,8 +991,8 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
 
   if (angle === "technical") {
     const techIntros = [
-      "Une finale d'un excellent niveau au " + tname + ", marquée par des échanges intenses sur " + surface + ".",
-      "Sur la surface " + surface + " de " + city + ", " + w + " a déployé un jeu remarquable.",
+      "Une finale d'un excellent niveau au " + tname + ", marquée par des échanges intenses sur " + surfArt(surface) + ".",
+      "Sur " + surfArt(surface) + " de " + city + ", " + w + " a déployé un jeu remarquable.",
       "Le " + tier + " de " + city + " a tenu toutes ses promesses techniques.",
       "Magnifique tennis pratiqué cette semaine au " + tname + " par " + w + ".",
     ];
@@ -1013,9 +1016,9 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
   } else if (angle === "context") {
     const contextIntros = [
       "Dans une ambiance survoltée à " + city + ", " + w + " a fini par s'imposer.",
-      "Sur le " + surface + " du " + tname + ", " + w + " a su s'adapter aux conditions particulières.",
+      "Sur " + surfArt(surface) + " de " + city + ", " + w + " a su s'adapter aux conditions particulières.",
       "Le public de " + city + " a assisté à un beau spectacle, conclu par la victoire de " + w + ".",
-      "La " + tier + " de " + city + " a couronné " + w + " au terme d'une finale disputée.",
+      "Le tournoi de " + city + " a couronné " + w + " au terme d'une finale disputée.",
     ];
     body = contextIntros[Math.floor(random() * contextIntros.length)];
   } else {
@@ -1065,9 +1068,9 @@ export function generateTournamentArticle(tourn, winner, runnerUp, semifinalists
   // Closing - prize and points (sometimes omitted)
   if (random() < 0.6) {
     const closings = [
-      " " + w + " empoche " + prize + " et " + points + " points ATP.",
+      " " + w + " empoche " + prize + " et " + points + " points au classement.",
       " À la clé : " + prize + " et " + points + " points pour le vainqueur.",
-      " Le sacre rapporte à " + w + " la somme de " + prize + " et " + points + " points ATP.",
+      " Le sacre rapporte à " + w + " la somme de " + prize + " et " + points + " points au classement.",
     ];
     body += closings[Math.floor(random() * closings.length)];
   }
