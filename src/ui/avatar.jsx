@@ -29,6 +29,9 @@ export const AVATAR_OPTIONS = {
   eyes:    ["#3f6f8f"],
 };
 
+// Libellés accordés pour un avatar féminin.
+const FEM_LABELS = { determine: "Déterminée", concentre: "Concentrée" };
+
 export const AVATAR_LABELS = {
   court: "Court", pics: "Pics", boucles: "Boucles", meche: "Mèche", rase: "Rasé", chauve: "Chauve",
   long: "Long", queue: "Queue", chignon: "Chignon", carre: "Carré",
@@ -255,7 +258,9 @@ export function randomAvatar(female) {
   };
 }
 
-export function AvatarBuilder({ config, onChange, stickyTop = "env(safe-area-inset-top, 0px)" }) {
+// caption : bulle sur l'aperçu (par défaut « Le futur / La future n° 1 ? »,
+// null pour la masquer).
+export function AvatarBuilder({ config, onChange, stickyTop = "env(safe-area-inset-top, 0px)", caption }) {
   const cfg = config || {};
   const a = normalizeAvatar(cfg);
   const update = (key, value) => onChange({ ...cfg, ...a, [key]: value });
@@ -306,7 +311,7 @@ export function AvatarBuilder({ config, onChange, stickyTop = "env(safe-area-ins
               }}
             >
               <Avatar config={{ ...a, [key]: opt }} size={44} bare />
-              <span style={{ lineHeight: 1.1, maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap", color: on ? "#141414" : T.fg }}>{AVATAR_LABELS[opt] || opt}</span>
+              <span style={{ lineHeight: 1.1, maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap", color: on ? "#141414" : T.fg }}>{(a.female && FEM_LABELS[opt]) || AVATAR_LABELS[opt] || opt}</span>
             </button>
           );
         })}
@@ -320,7 +325,7 @@ export function AvatarBuilder({ config, onChange, stickyTop = "env(safe-area-ins
       {/* Collé en haut de l'écran : la tête reste visible pendant qu'on choisit les dernières options. */}
       <div className="tm-halftone-lilac" style={{ position: "sticky", top: stickyTop, zIndex: 2, display: "flex", justifyContent: "center", alignItems: "flex-end", height: 170, marginBottom: 16, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, overflow: "hidden" }}>
         <Avatar config={a} size={170} bare />
-        <div className="tm-lettering" style={{ position: "absolute", left: 8, top: 8, background: T.gold, border: "2.5px solid " + T.ink, padding: "2px 8px", fontSize: 15, color: "#141414" }}>Le futur n° 1 ?</div>
+        {caption !== null && <div className="tm-lettering" data-nofem="" style={{ position: "absolute", left: 8, top: 8, background: T.gold, border: "2.5px solid " + T.ink, padding: "2px 8px", fontSize: 15, color: "#141414" }}>{caption || (a.female ? "La future n° 1 ?" : "Le futur n° 1 ?")}</div>}
       </div>
 
       <button type="button" onClick={() => onChange({ ...cfg, ...randomAvatar(a.female) })} style={{

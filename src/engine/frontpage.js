@@ -130,11 +130,23 @@ function frontStory({ player, ranking, enrolled }) {
     };
   }
 
+  const played = (player.matchHistory || []).length > 0 || (player.careerWins || 0) + (player.careerLosses || 0) > 0;
+  const deCity = (c) => (/^[AEIOUYÉÈÂÎÔH]/i.test(c || "") ? "d'" : "de ") + c;
+  if ((!ranking || ranking > 1000) && played) {
+    return {
+      kicker: "Portrait",
+      title: "Aux portes du classement",
+      deck: name + ", " + player.age + " ans, ne figure pas encore dans le top 1000 mondial. Quelques bons résultats et son nom y apparaîtra.",
+      tone: "blue",
+      caption: player.location + ", entre deux tournois…",
+      quotes: ["Chaque point compte.", "Le classement, je vais aller le chercher."],
+    };
+  }
   if (!ranking || ranking > 1000) {
     return {
       kicker: "Portrait",
       title: "Tout commence ici",
-      deck: name + ", " + player.age + " ans, part de " + player.location + " sans le moindre point. Premier objectif : un tournoi à sa portée.",
+      deck: name + ", " + player.age + " ans, part " + deCity(player.location) + " sans le moindre point. Premier objectif : un tournoi à sa portée.",
       tone: "blue",
       caption: player.location + ", premier jour…",
       quotes: ["Un jour, je serai n° 1.", "Tout commence maintenant."],

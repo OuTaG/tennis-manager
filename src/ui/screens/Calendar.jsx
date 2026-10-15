@@ -1,7 +1,7 @@
 // Écran Circuit › Tournois.
 import { useState, useEffect, useMemo, useRef } from "react";
 import { CITIES, SURFACES } from "../../data/geo.js";
-import { ALL_TOURNAMENTS, getEntryStatus, getTournamentFormat, playerHasBye, tierColor, tierLabel } from "../../engine/circuit.js";
+import { ALL_TOURNAMENTS, getEntryStatus, getTournamentFormat, playerHasBye, tierColor, tierLabel, tournamentAbsWeek } from "../../engine/circuit.js";
 import { distanceKm, travelCostBetween } from "../../engine/travel.js";
 import { FlagFromEmoji, Icon, SurfaceIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
@@ -190,6 +190,8 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
               const anyPlayedThisWeek = isCurrentWeek && (player.playedThisWeek || []).length > 0;
               const blockedByWeekLimit = anyPlayedThisWeek && !alreadyPlayed;
               const seedBye = entry.status === "direct" && playerHasBye(fmt, ranking);
+              // Repos imposé par un événement : ni tournoi ni entraînement.
+              const restBlocked = !!player.restUntilAbsWeek && tournamentAbsWeek(t, player) < player.restUntilAbsWeek;
 
               return (
                 <div key={t.id} className="tm-card" style={{
@@ -256,10 +258,11 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                   )}
                   {entry.status === "blocked" && (
                     <div style={{ display: "inline-block", background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, marginBottom: 10, fontWeight: 800, padding: "1px 6px" }}>
-                      <Icon name="x" size={11} color="#ffffff" /> Classement insuffisant
+                      <Icon name="x" size={11} color="#ffffff" /> {entry.banned ? entry.reason : "Classement insuffisant"}
                     </div>
                   )}
                   {isCurrentWeek && !onSite && <div style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content", background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px", marginBottom: 10 }}><Icon name="x" size={11} color="#ffffff" /> Vous devez être à {t.city}</div>}
+                  {restBlocked && !isEnrolledTo && <div style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content", background: "#e0a21b", color: "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px", marginBottom: 10 }}><Icon name="warning" size={11} color="#141414" /> Au repos cette semaine-là</div>}
                   {blockedByOther && <div style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content", background: "#e0a21b", color: "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px", marginBottom: 10 }}><Icon name="warning" size={11} color="#141414" /> Déjà inscrit ailleurs</div>}
                   {alreadyPlayed && <div style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content", background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px", marginBottom: 10 }}><Icon name="check" size={11} color="#1f7a45" /> Disputé cette semaine</div>}
 
@@ -274,12 +277,12 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                       style={{
                         ...styles.btnSmall,
                         width: "100%",
-                        background: (canE && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? "#1f7a45" : "#ffffff",
-                        color: (canE && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? "#ffffff" : "#141414",
+                        background: (canE && !restBlocked && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? "#1f7a45" : "#ffffff",
+                        color: (canE && !restBlocked && !blockedByOther && !alreadyPlayed && !blockedByWeekLimit && !(isCurrentWeek && !onSite)) ? "#ffffff" : "#141414",
                         border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontFamily: T.display, fontSize: 14,
-                        opacity: (!canE || blockedByOther || alreadyPlayed || blockedByWeekLimit || (isCurrentWeek && !onSite)) ? 0.5 : 1,
+                        opacity: (!canE || restBlocked || blockedByOther || alreadyPlayed || blockedByWeekLimit || (isCurrentWeek && !onSite)) ? 0.5 : 1,
                       }}
-                      disabled={!canE || blockedByOther || alreadyPlayed || blockedByWeekLimit || (isCurrentWeek && !onSite)}
+                      disabled={!canE || restBlocked || blockedByOther || alreadyPlayed || blockedByWeekLimit || (isCurrentWeek && !onSite)}
                       onClick={() => enrollTournament(t)}
                     >
                       {blockedByWeekLimit ? "Tournoi déjà joué cette sem."

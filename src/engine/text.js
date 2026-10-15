@@ -38,7 +38,8 @@ const clean = (s) => s.replace(/[\u00a0\u202f ]/g, NNBSP);
 
 function signed(abs, neg, sign) {
   if (neg) return MINUS + abs;
-  return (sign ? "+" : "") + abs;
+  // Pas de « + » devant zéro (« +0 € »).
+  return (sign && /[1-9]/.test(abs) ? "+" : "") + abs;
 }
 
 // Entier arrondi : 12345 → « 12 345 ». { sign: true } → « +12 345 » / « −282 ».

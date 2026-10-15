@@ -141,7 +141,7 @@ export function CustomizeScreen({ onBack }) {
           <BoxShade boxRef={sheetRef} side="top" />
           <div style={{ maxWidth: 420, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "3px solid " + INK, paddingBottom: 4 }}>
-              <span className="tm-display" style={{ fontSize: 22 }}>Joueur #{editing.index + 1}</span>
+              <span className="tm-display" data-nofem="" style={{ fontSize: 22 }}>{female ? "Joueuse" : "Joueur"} #{editing.index + 1}</span>
               <span style={{ background: INK, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3, textTransform: "uppercase", padding: "1px 6px", whiteSpace: "nowrap" }}>{female ? "Circuit féminin" : "Circuit masculin"}</span>
             </div>
             <div>
@@ -155,7 +155,7 @@ export function CustomizeScreen({ onBack }) {
               </select>
             </div>
             <div style={{ background: "#ffffff", border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK, padding: 12 }}>
-              <AvatarBuilder config={{ ...editing.avatar, female }} onChange={(a) => setEditing({ ...editing, avatar: a })} stickyTop={0} />
+              <AvatarBuilder config={{ ...editing.avatar, female }} onChange={(a) => setEditing({ ...editing, avatar: a })} stickyTop={0} caption={null} />
             </div>
             <button style={styles.btnPrimary} onClick={saveEditor}>Enregistrer</button>
             {editing.edited && <button style={styles.btnSecondary} onClick={resetPlayer}>Rétablir le joueur d'origine</button>}

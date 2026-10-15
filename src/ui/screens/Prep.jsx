@@ -58,7 +58,8 @@ export function TrainingScreen({ player, doTraining }) {
         // Same energy cost as doTraining: stamina reduction, then staff surcharge.
         const baseEnergyCost = Math.round(mod.energyCost * Math.max(0.6, 1 - (player.stats.stamina - 50) / 100));
         const staffEnergyExtra = staffTrainEnergyExtra(player.staff);
-        const canDo = player.money >= mod.cost && player.energy >= baseEnergyCost + staffEnergyExtra + 3;
+        const resting = !!player.restUntilAbsWeek && (player.year || 0) * 52 + (player.week || 0) < player.restUntilAbsWeek;
+        const canDo = !resting && player.money >= mod.cost && player.energy >= baseEnergyCost + staffEnergyExtra + 3;
         // Même calcul que la séance réelle (programme de routine).
         const expGainRaw = trainingBaseGain(player, mod);
         const expGain = fmtDec(expGainRaw, 2);
@@ -118,7 +119,7 @@ export function TrainingScreen({ player, doTraining }) {
               }}
               disabled={!canDo}
               onClick={() => doTraining(mod)}
-            >S'entraîner</button>
+            >{resting ? "Au repos cette semaine" : "S'entraîner"}</button>
           </div>
         );
       })}

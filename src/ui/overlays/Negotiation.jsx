@@ -157,7 +157,9 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
           <div className="tm-lettering" style={{ ...bdPanel(4), padding: "22px 16px", textAlign: "center", fontSize: 17, marginBottom: 20 }}>
             {player.image < 20
               ? "Votre image est trop dégradée : aucun sponsor ne se présente."
-              : "Aucune offre cette fois. Améliorez votre classement et votre image pour attirer les marques."}
+              : (player.sponsors || []).length > 0 && data.phase === "intro"
+                ? "Contrat signé ! Votre premier sponsor vous accompagne désormais."
+                : "Aucune offre cette fois. Améliorez votre classement et votre image pour attirer les marques."}
           </div>
         ) : (
           offers.map((o, oi) => {

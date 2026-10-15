@@ -68,7 +68,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
           </button>
           <div style={{ ...panel, padding: 16 }}>
             <h2 className="tm-display" style={{ display: "block", width: "fit-content", margin: "0 auto 14px", background: INK, color: "#d6ef3c", fontSize: 21, fontWeight: 400, lineHeight: 1.1, padding: "5px 14px", textAlign: "center", transform: "rotate(-1.5deg)", boxShadow: "3px 3px 0 #c9b6ea" }}>Votre avatar</h2>
-            <AvatarBuilder config={avatar} onChange={setAvatar} />
+            <AvatarBuilder config={avatar} onChange={setAvatar} caption={def.id === "retour" ? "De retour au sommet ?" : undefined} />
             <button style={{ ...styles.btnPrimary, marginTop: 6 }}
               onClick={() => onStart(def, { name: name.trim(), nationality: nat, circuit, avatar })}>
               Commencer le défi
