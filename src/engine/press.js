@@ -1,5 +1,6 @@
 // Conférences de presse.
 import { random } from "./rng.js";
+import { elide } from "./text.js";
 
 // ─── PRESS CONFERENCE ─────────────────────────────────────────────────────────
 // Generates a list of contextual questions about the WHOLE tournament run.
@@ -40,7 +41,7 @@ export function buildPressConference(player, tourn, won, isTitleWin, opponent, o
   if (isTitleWin && allStraightSets && matchesPlayed >= 3) {
     q1Pool = [
       {
-        text: "Vous avez remporté " + tourn.name + " sans concéder un seul set. Comment expliquez-vous une telle domination ?",
+        text: "Vous avez remporté " + elide("le " + tourn.name) + " sans concéder un seul set. Comment expliquez-vous une telle domination ?",
         options: [
           { label: "Tout simplement le travail. Des semaines d'entraînement payent enfin." },
           { label: "J'étais dans une zone particulière. Difficile à reproduire." },
@@ -88,7 +89,7 @@ export function buildPressConference(player, tourn, won, isTitleWin, opponent, o
     if (matchesPlayed >= 3) {
       q1Pool = [
         {
-          text: "Vous sortez de " + tourn.name + " après un beau parcours. Quel sentiment domine ?",
+          text: "Vous sortez " + elide("du " + tourn.name) + " après un beau parcours. Quel sentiment domine ?",
           options: [
             { label: "La fierté du parcours, malgré la déception finale." },
             { label: "Frustration. J'avais le sentiment de pouvoir aller plus loin." },

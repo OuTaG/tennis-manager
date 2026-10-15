@@ -8,6 +8,7 @@ import { distanceKm } from "../../engine/travel.js";
 import { FlagFromEmoji } from "../icons.jsx";
 import { T } from "../theme.js";
 import { fmtKm } from "../format.js";
+import { deCity } from "../../engine/text.js";
 
 // ─── FLIGHT ANIMATION OVERLAY ───────────────────────────────────────────────
 // Case de BD : carte du monde (côtes Natural Earth) dessinée à l'encre sur
@@ -153,7 +154,7 @@ export function FlightOverlay({ from, to, onDone }) {
           </svg>
           {/* Récitatif de départ */}
           <div className="tm-lettering" style={{ position: "absolute", left: 0, top: 0, background: "#d6ef3c", color: INK, borderRight: "2.5px solid " + INK, borderBottom: "2.5px solid " + INK, padding: "2px 8px", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
-            {a.flag && <FlagFromEmoji emoji={a.flag} size={12} />}Départ de {from}…
+            {a.flag && <FlagFromEmoji emoji={a.flag} size={12} />}Départ {deCity(from)}…
           </div>
         </div>
 

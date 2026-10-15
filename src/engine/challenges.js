@@ -26,10 +26,14 @@ export function challengeActive(id) {
 // Points à détenir pour occuper le rang `rank` dans la base IA.
 export function challengeRankPoints(db, rank) {
   if (!db || !db.length) return 0;
-  if (rank <= 1) return (db[0].points || 0) + 250;
-  const hi = db[Math.min(rank - 2, db.length - 1)].points || 0;
-  const lo = db[Math.min(rank - 1, db.length - 1)].points || 0;
-  return Math.max(1, Math.round((hi + lo) / 2));
+  // La base n'est pas forcément triée : on trie les points.
+  const pts = db.map(x => x.points || 0).sort((a, b) => b - a);
+  if (rank <= 1) return pts[0] + 250;
+  const hi = pts[Math.min(rank - 2, pts.length - 1)];
+  const lo = pts[Math.min(rank - 1, pts.length - 1)];
+  // Égalité de points autour du rang visé : un point de plus pour passer
+  // devant le groupe (sinon le rang réel tombe bien plus bas).
+  return Math.max(1, hi === lo ? lo + 1 : Math.round((hi + lo) / 2));
 }
 // Répartit `total` points sur les 52 dernières semaines : `racePts` sur l'année
 // en cours (semaines déjà jouées), le reste sur la fin de l'année précédente.
@@ -85,8 +89,8 @@ export const tName = (id) => (ALL_TOURNAMENTS.find(t => t.id === id) || {}).name
 export const CHALLENGES = [
   {
     id: "retour", circuit: "atp", name: "Le Retour", difficulty: 2,
-    tagline: "Ancien n°1 mondial, de retour au 150e rang",
-    context: "Il y a deux ans, vous étiez n°1 mondial. Une blessure au genou vous a tenu loin des courts pendant quatorze mois. À 32 ans, vous repartez du 150e rang. Personne ne vous attend… sauf le public.",
+    tagline: "Ancien n°1 mondial, de retour vers le 150e rang",
+    context: "Il y a deux ans, vous étiez n°1 mondial. Une blessure au genou vous a tenu loin des courts pendant quatorze mois. À 32 ans, vous repartez aux alentours du 150e rang. Personne ne vous attend… sauf le public.",
     objectiveLabel: "Revenir dans le top 10",
     deadlineLabel: "Avant la fin de la saison 2027",
     objectiveText: "Revenir dans le top 10 mondial avant la fin de la saison 2027, en profitant de votre classement protégé (8 tournois joués comme un n°8) sans trop solliciter un genou encore fragile.",
@@ -143,7 +147,7 @@ export const CHALLENGES = [
   {
     id: "fauche", circuit: "wta", name: "Fauché", difficulty: 1,
     tagline: "45\u202f000\u00a0€ de dettes, aucun sponsor",
-    context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes 150e mondiale, vous devez 45\u202f000\u00a0€ et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
+    context: "Un agent peu scrupuleux a vidé vos comptes et signé des prêts à votre nom. Vous êtes autour de la 150e place mondiale, vous devez 45\u202f000\u00a0€ et plus aucune marque ne veut associer son nom au vôtre. Tout doit être remboursé avant la fin de la saison.",
     objectiveLabel: "Rembourser 45\u202f000\u00a0€",
     deadlineLabel: "Avant la fin de la saison 2026",
     objectiveText: "Rembourser les 45\u202f000\u00a0€ de dettes avant la fin de la saison 2026, en versant au moins 2\u202f500\u00a0€ toutes les 4 semaines (sinon la dette augmente de 10 %), sans aucun sponsor au départ.",
@@ -207,7 +211,7 @@ export const CHALLENGES = [
       "Déjà à Londres, tableau principal la semaine prochaine",
       "Jeu de terrien : service et filet en retrait",
       "Stage sur gazon, mentor et refonte du jeu au fil de l'année",
-      "Le Grand Chelem en carrière est au bout",
+      "Les quatre Majeurs en carrière sont au bout",
     ],
     startWeek: 26, deadline: { year: 2027, week: 27 },
     style: "baseliner", city: "Londres",

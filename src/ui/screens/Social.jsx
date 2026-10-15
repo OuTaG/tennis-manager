@@ -117,7 +117,7 @@ export function SocialScreen({ player, posts, setNews, setPlayer, adjustLife }) 
             background: "#ffffff", borderLeft: "2.5px solid " + INK, borderTop: "2.5px solid " + INK,
             transform: "rotate(45deg) skew(8deg, 8deg)",
           }} />
-          {withBdEmoji(elide(p.content), 17)}
+          {withBdEmoji(elide(String(p.content || "").replace(/ {2,}/g, " ").trim()), 17)}
         </div>
 
         {/* Tournament chips if any */}

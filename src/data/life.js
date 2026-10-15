@@ -426,6 +426,7 @@ export const LIFE_EVENTS = [
   {
     id: "retard_avion",
     title: "Vol annulé",
+    requiresTrip: true, // seulement si un tournoi est prévu dans une autre ville
     body: "Votre vol pour le prochain tournoi est annulé. Solution de dernière minute coûteuse.",
     options: [
       { label: "Réserver un vol privé (8\u202f000\u00a0€)", effects: { money: -8000, energy: -2 } },

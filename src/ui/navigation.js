@@ -57,7 +57,7 @@ export const PAGE_HELP = {
     ["Historique", "Vos derniers tournois, match par match, avec les gains et les points obtenus."],
   ] },
   atp: { title: "Top 100", items: [
-    ["Classement mondial", "Les meilleurs joueurs du circuit, classés par points ATP sur 52 semaines."],
+    ["Classement mondial", "Les meilleurs joueurs du circuit, classés par leurs points sur 52 semaines."],
     ["Race", "Second onglet : seuls les points gagnés depuis le 1er janvier comptent. Les 8 premiers en fin de saison disputent le Masters de fin d'année."],
     ["Profils", "Touchez un joueur pour voir son profil, son style et ses résultats récents."],
   ] },

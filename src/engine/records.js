@@ -2,6 +2,7 @@
 import { computeCareerSummary, computeLegacyScore, getTitlesByTier } from "./legacy.js";
 import { getPlayerRanking, totalAtpPoints } from "./player.js";
 import { fmtMoneyShort, fmtNum } from "./text.js";
+import { tournamentEarningsFromHistory } from "./history.js";
 
 // ─── RECORDS (toutes carrières) ──────────────────────────────────────────
 // Un résumé de chaque carrière est gardé à part (localStorage « tm-records »),
@@ -39,7 +40,7 @@ export function updateCareerRecords(player, atpDb) {
       flag: player.nationalityFlag || "",
       startYear: prev.startYear || (player.year - (player.careerSeasons || []).length),
       lastYear: player.year, lastWeek: player.week,
-      seasons: (player.careerSeasons || []).length + 1,
+      seasons: summary.seasons,
       bestRank,
       bestRankWhen: bestRankImproved ? { week: player.week, year: player.year } : (prev.bestRankWhen || null),
       maxPoints: Math.max(prev.maxPoints || 0, pts),
@@ -50,7 +51,8 @@ export function updateCareerRecords(player, atpDb) {
       matches: played,
       winRate: played >= 20 ? Math.round((player.careerWins || 0) / played * 100) : null,
       bigWins: player.careerBigWins || 0,
-      earnings: player.totalEarnings || 0,
+      // Gains en tournoi seulement (primes de match), sans les sponsors.
+      earnings: (player.tournamentEarnings || tournamentEarningsFromHistory(player.matchHistory)).reduce((a, e) => a + (e.prize || 0), 0),
       weeksNo1: Math.max(prev.weeksNo1 || 0, summary.weeksNo1 || 0),
       weeksTop10: Math.max(prev.weeksTop10 || 0, summary.weeksTop10 || 0),
       bestStreak: Math.max(prev.bestStreak || 0, summary.bestStreak || 0),
@@ -67,11 +69,11 @@ export const RECORD_DEFS = [
     when: c => c.bestRankWhen ? "S" + c.bestRankWhen.week + " · " + c.bestRankWhen.year : null },
   { key: "legacy", label: "Score de légende", icon: "award", fmt: v => fmtNum(v) },
   { key: "titles", label: "Titres", icon: "trophy", fmt: v => v },
-  { key: "gsTitles", label: "Titres du Grand Chelem", icon: "star", fmt: v => v },
-  { key: "mastersTitles", label: "Titres Grand 1000", icon: "star", fmt: v => v },
+  { key: "gsTitles", label: "Titres en Majeur", icon: "star", fmt: v => v },
+  { key: "mastersTitles", label: "Titres en Grand 1000", icon: "star", fmt: v => v },
   { key: "weeksNo1", label: "Semaines n°1 mondial", icon: "trophy", fmt: v => v },
   { key: "weeksTop10", label: "Semaines dans le top 10", icon: "chart", fmt: v => v },
-  { key: "maxPoints", label: "Points ATP (maximum)", icon: "chart", fmt: v => fmtNum(v) },
+  { key: "maxPoints", label: "Points au classement (maximum)", icon: "chart", fmt: v => fmtNum(v) },
   { key: "wins", label: "Victoires", icon: "success", fmt: v => v },
   { key: "winRate", label: "Pourcentage de victoires (20 matchs min.)", icon: "activity", fmt: v => v + " %", valid: v => v !== null && v !== undefined },
   { key: "bestStreak", label: "Série de victoires", icon: "fire", fmt: v => v },

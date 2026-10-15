@@ -79,7 +79,7 @@ export const WTA_TEXT_RULES = [
   _fr("On l'a cru", "On l'a crue"),
   _fr("il monte il monte", "elle monte elle monte"),
   _fr("Demi-finalistes éliminés", "Demi-finalistes éliminées"),
-  _fr("Gagner un match en 5 sets", "Gagner un match de Grand Chelem en 3 sets"),
+  _fr("Gagner un match en 5 sets", "Gagner un match de Majeur en 3 sets"),
   _fr("Les matchs en 5 sets, c'est ça le vrai tennis", "Les matchs en 3 sets, c'est ça le vrai tennis"),
   _fr("Il quitte le circuit", "Elle quitte le circuit"),
   [new RegExp("(\\d+)e mondial\\)", "gu"), "$1e mondiale)"],
@@ -290,7 +290,6 @@ export const WTA_TEXT_RULES = [
   _fr("inscrit", "inscrite"),
   _fr("blessé", "blessée"),
   // Circuit et catégories ITF
-  _fr("Challenger \\(hors calendrier\\)", "WTA 125 (hors calendrier)"),
   _fr("ATP", "WTA"),
   _fr("M25", "W35"),
   _fr("M15", "W15"),

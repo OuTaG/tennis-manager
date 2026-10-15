@@ -88,8 +88,19 @@ const VOWEL = "AEIOUYÉÈÊÂÎÔÛ";
 export function elide(text) {
   if (!text) return text;
   const v = "(?=[" + VOWEL + "])";
+  // Noms au pluriel (« Internationaux de Paris ») : les / des / aux.
+  const pl = "(?=Internationaux\\b)";
   return text
+    .replace(new RegExp("\\b([Ll])e " + pl, "gu"), "$1es ")
+    .replace(new RegExp("\\b([Dd])u " + pl, "gu"), "$1es ")
+    .replace(new RegExp("\\b([Aa])u " + pl, "gu"), "$1ux ")
     .replace(new RegExp("\\b([Ll])e " + v, "gu"), "$1'")
     .replace(new RegExp("\\b([Dd])u " + v, "gu"), (_, d) => d + "e l'")
     .replace(new RegExp("\\b([Aa])u " + v, "gu"), (_, a) => (a === "A" ? "À" : "à") + " l'");
+}
+
+// « de Paris », « d'Amsterdam ».
+export function deCity(city) {
+  if (!city) return "";
+  return (new RegExp("^[" + VOWEL + "]", "u").test(city) ? "d'" : "de ") + city;
 }

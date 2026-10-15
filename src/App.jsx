@@ -1185,7 +1185,11 @@ export default function TennisManager() {
         && random() < 0.22
         && (p.lastLifeEventWeek === undefined || ((newYear - (p.lastLifeEventYear || newYear)) * 52 + (newWeek - p.lastLifeEventWeek)) >= 2)) {
       const currentSeason = (p.careerSeasons?.length || 0) + 1;
-      const eligible = LIFE_EVENTS.filter(e => !e.minSeason || currentSeason >= e.minSeason);
+      const tripPlanned = (() => {
+        const t = p.enrollment && ALL_TOURNAMENTS.find(x => x.id === p.enrollment.tournamentId);
+        return !!t && t.city !== p.location;
+      })();
+      const eligible = LIFE_EVENTS.filter(e => (!e.minSeason || currentSeason >= e.minSeason) && (!e.requiresTrip || tripPlanned));
       if (eligible.length > 0) {
         const ev = eligible[Math.floor(random() * eligible.length)];
         p.pendingLifeEvent = ev.id;
@@ -3325,7 +3329,7 @@ export default function TennisManager() {
     const isForcedRetirement = (player.age || 0) >= RETIREMENT_AGE;
     const isVoluntaryRetirement = !!player._voluntaryRetirement;
     const isRetirement = isForcedRetirement || isVoluntaryRetirement;
-    const summary = computeCareerSummary(player);
+    const summary = computeCareerSummary(player, totalPts > 0 ? ranking : null);
     const legacy = computeLegacyScore(player, summary);
     const breakdown = computeLegacyBreakdown(player, summary);
     const tier = legacyTier(legacy);
@@ -5464,7 +5468,7 @@ export default function TennisManager() {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
                 <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
-                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Points ATP</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Points</div>
                   <div style={{ color: "#5b2d8e", fontFamily: T.display, fontSize: 18 }}>{fmtNum(p.points)}</div>
                 </div>
                 <div style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "6px 8px" }}>
