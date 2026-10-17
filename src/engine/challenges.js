@@ -262,16 +262,16 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "course", circuit: "atp", name: "Course au Masters", difficulty: 2,
-    tagline: "Hors du top 8 de la Race, dix semaines pour y entrer",
-    context: "L'Open des États-Unis vient de se terminer. Vous pointez derrière le top 8 de la Race, à environ 700 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année.",
-    objectiveLabel: "Être dans le top 8 de la Race",
-    deadlineLabel: "Au début du Masters de fin d'année",
-    objectiveText: "Figurer dans le top 8 de la Race au début du Masters de fin d'année pour décrocher l'un des huit billets, en partant à environ 700 points de la 8e place, avec seulement la tournée asiatique et la saison en salle pour les rattraper.",
+    id: "course", circuit: "atp", name: "Course au Masters", difficulty: 3,
+    tagline: "Entrer dans le top 8 de la Race, puis gagner le Masters",
+    context: "L'Open des États-Unis vient de se terminer. Vous pointez derrière le top 8 de la Race, à environ 700 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année… et une semaine face aux meilleurs pour le remporter.",
+    objectiveLabel: "Se qualifier et gagner le Masters",
+    deadlineLabel: "À la fin du Masters de fin d'année",
+    objectiveText: "Figurer dans le top 8 de la Race au début du Masters de fin d'année, en partant à environ 700 points de la 8e place avec seulement la tournée asiatique et la saison en salle pour les rattraper, puis remporter le Masters : sortir de la poule, gagner la demi-finale et la finale.",
     perks: [
       "Suivi de la Race en direct sur l'accueil",
       "Wildcard possible pour un tournoi asiatique",
-      "Chaque semaine compte : gérez votre énergie",
+      "Chaque semaine compte : arrivez frais au Masters",
     ],
     startWeek: 36, deadline: "finals",
     style: "puncher", city: "New York",
@@ -289,14 +289,24 @@ export const CHALLENGES = [
     },
     objective(p, ctx) {
       const finals = ALL_TOURNAMENTS.find(t => t.tier === "Finals");
+      const name = "le " + (finals ? finals.name : "Masters");
       const reached = finals && ctx.abs >= p.challenge.deadlineAbs;
+      const won = ((p.titlesByTier || {}).Finals || 0) > 0;
       return {
-        done: reached && ctx.raceRank <= 8,
-        failNow: reached && ctx.raceRank > 8 ? "Pas qualifié pour " + (finals ? finals.name : "le Masters") : null,
-        progress: "Race : #" + ctx.raceRank + " · " + (ctx.raceRank <= 8 ? "dans le top 8" : "à " + fmtNum(Math.max(0, ctx.raceGap)) + " pts de la 8e place"),
+        done: won,
+        failNow: reached && !won && ctx.raceRank > 8 ? "Pas qualifié pour " + name
+          : ctx.abs > p.challenge.deadlineAbs && !won ? "L" + name.slice(1) + " vous a échappé" : null,
+        progress: reached && ctx.raceRank <= 8
+          ? "Qualifié : il reste à gagner " + name
+          : "Race : #" + ctx.raceRank + " · " + (ctx.raceRank <= 8 ? "dans le top 8" : "à " + fmtNum(Math.max(0, ctx.raceGap)) + " pts de la 8e place"),
       };
     },
-    medal(p, ctx) { return ctx.raceRank <= 2 ? "gold" : ctx.raceRank <= 5 ? "silver" : "bronze"; },
+    // Médaille selon le parcours au Masters : invaincu = or, une défaite = argent.
+    medal(p) {
+      const finals = ALL_TOURNAMENTS.find(t => t.tier === "Finals");
+      const losses = (p.matchHistory || []).filter(m => !m.seeded && finals && m.tournament === finals.name && m.year === p.year && !m.won).length;
+      return losses === 0 ? "gold" : losses === 1 ? "silver" : "bronze";
+    },
   },
   {
     id: "pression", circuit: "wta", name: "Sous pression", difficulty: 2,
@@ -425,7 +435,13 @@ export function computeChallengeScore(p, db, status, weeksUsed) {
   else if (c.id === "pression") { const d = tally.best.Masters1000 || 0; prog = d / 8; progDetail = "Meilleur Grand 1000 : " + depthLabel(d); }
   else if (c.id === "terrien") { const d = tally.best.wimbledon || 0; prog = d / 8; progDetail = "Tournoi de Londres : " + depthLabel(d); }
   else if (c.id === "fauche") { const repaid = clamp01((45000 - (c.debt || 0)) / 45000); prog = repaid; progDetail = Math.round(repaid * 100) + " % de la dette remboursée"; }
-  else if (c.id === "course") { const br = Math.min(ctx.raceRank, c.bestRace || 9999); prog = clamp01((16 - br) / 8); progDetail = "Meilleure place à la Race : #" + br; }
+  else if (c.id === "course") {
+    // 70 % pour la Race (top 8 atteint), 30 % pour le titre au Masters.
+    const br = Math.min(ctx.raceRank, c.bestRace || 9999);
+    const won = ((p.titlesByTier || {}).Finals || 0) > 0;
+    prog = clamp01((16 - br) / 8) * 0.7 + (won ? 0.3 : 0);
+    progDetail = won ? "Masters remporté" : "Meilleure place à la Race : #" + br;
+  }
   rows.push({ label: "Progression", detail: progDetail, pts: Math.round(1500 * prog) });
   rows.push({ label: "Victoires", detail: tally.w + " × 10", pts: tally.w * 10 });
   const titlePts = Object.entries(tally.titles).reduce((a, [tier, n]) => a + (CHALLENGE_TITLE_PTS[tier] || 0) * n, 0);
