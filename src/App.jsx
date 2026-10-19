@@ -28,7 +28,7 @@ import { FINALS_PRIZE, FINALS_PTS, RR_SCHEDULE, buildFinalsDraw, finalizeHumanTo
 import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, limitPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
 import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor, sponsorObjectiveCounters } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
-import { hasPurchased, liveKeyFor, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
+import { COMING_SOON, hasPurchased, liveKeyFor, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
@@ -234,10 +234,13 @@ export default function TennisManager() {
   const [challengeMeta, setChallengeMeta] = useState(() => loadChallengeMeta());
   const refreshSlots = () => { setSlotMetas(loadSlotMetas()); setChallengeMeta(loadChallengeMeta()); };
   const [menuShop, setMenuShop] = useState(false); // boutique ouverte depuis le menu
+  const [menuCareers, setMenuCareers] = useState(false); // emplacements de carrière ouverts depuis le menu
+  const [soonInfo, setSoonInfo] = useState(null); // mode « bientôt » dont on affiche la présentation
   const [shopFocus, setShopFocus] = useState(null); // article mis en avant à l'ouverture de la boutique
   const openMenuShop = (focus = null) => { setShopFocus(focus); setMenuShop(true); };
   const openShopTab = (focus = null) => { setShopFocus(focus); setActiveTab("shop"); };
   useEffect(() => { if (activeTab !== "shop") setShopFocus(null); }, [activeTab]);
+  useEffect(() => { if (screen !== "menu") setMenuCareers(false); }, [screen]);
   // Encart « boutique » des bilans (fin de saison, fin de carrière).
   const shopPromoCard = (promo, onGo) => promo && (
     <div style={{ background: "#ffffff", color: "#141414", border: "2.5px dashed " + T.ink, padding: "10px 12px", marginBottom: 12, display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -2914,22 +2917,18 @@ export default function TennisManager() {
     </div>
   );
 
-  if (screen === "menu") return (
+  // Carrière : les 3 emplacements de sauvegarde (en cours, libres ou verrouillés).
+  if (screen === "menu" && menuCareers) return (
     <div style={styles.root}>
       {deleteSaveDialog}
       <div style={styles.menuBg} className="tm-grain">
         <WindowShades />
-        <div style={styles.menuCard}>
+        <div style={{ ...styles.menuCard, alignItems: "stretch" }}>
           <div style={{ position: "relative", zIndex: 2, width: "100%", textAlign: "center" }}>
-            {/* Balle de tennis dessinée à l'encre */}
-            <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true" style={{ display: "block", margin: "4px auto 14px", transform: "rotate(-12deg)" }}>
-              <circle cx="36" cy="36" r="31" fill="#d6ef3c" stroke="#161616" strokeWidth="4" />
-              <path d="M12 16 Q30 36 12 58 M60 16 Q42 36 60 58" fill="none" stroke="#161616" strokeWidth="3.5" strokeLinecap="round" />
-              <path d="M22 10 Q28 8 32 9" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-            <h1 style={styles.menuTitle}>Courtside</h1>
-            <div className="tm-lettering" style={{ display: "inline-block", margin: "16px 0 14px", background: T.gold, color: "#161616", border: "2.5px solid " + T.ink, padding: "2px 10px", fontSize: 16 }}>La gazette de votre carrière</div>
-            <p style={styles.menuTagline}>Entraînez-vous, voyagez, signez vos sponsors et grimpez au classement, semaine après semaine.</p>
+            <button style={{ ...styles.btnSmall, display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }} onClick={() => setMenuCareers(false)}>
+              <Icon name="arrowLeft" size={14} /> Menu principal
+            </button>
+            <h2 className="tm-display" style={{ display: "inline-block", background: T.ink, color: "#d6ef3c", fontSize: 22, fontWeight: 400, lineHeight: 1.1, margin: "0 0 16px", padding: "5px 14px", transform: "rotate(-1.5deg)", boxShadow: "3px 3px 0 #c9b6ea" }}>Carrière</h2>
             {[0, 1, 2].map(i => {
               const meta = slotMetas[i];
               const locked = i > 0 && !multiOwned;
@@ -2975,6 +2974,60 @@ export default function TennisManager() {
                 </button>
               );
             })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (screen === "menu") return (
+    <div style={styles.root}>
+      {deleteSaveDialog}
+      {soonInfo && (
+        <div style={{ ...styles.dilemmaOverlay, zIndex: 300 }} onClick={() => setSoonInfo(null)}>
+          <div style={styles.dilemmaCard} onClick={e => e.stopPropagation()}>
+            <div className="tm-halftone-lilac" style={{ margin: "-16px -16px 12px", padding: "10px 16px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 36, height: 36, flexShrink: 0, background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, transform: "rotate(-4deg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name={soonInfo.icon} size={19} color="#141414" />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div className="tm-display" style={{ color: "#141414", fontSize: 20, lineHeight: 1.05 }}>{soonInfo.name}</div>
+                <div className="tm-lettering" style={{ color: "#141414", fontSize: 15 }}>Bientôt disponible</div>
+              </div>
+            </div>
+            <div style={{ color: "#141414", fontSize: 13, fontWeight: 700, lineHeight: 1.45, marginBottom: 12 }}>{soonInfo.desc}</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 14, color: "#141414" }}>
+              <span className="tm-num" style={{ background: "#ffffff", border: "2px solid " + T.ink, fontSize: 14, fontWeight: 800, padding: "1px 8px" }}>{soonInfo.price}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700 }}>{soonInfo.priceNote}</span>
+            </div>
+            <button style={styles.btnSecondary} onClick={() => setSoonInfo(null)}>Compris</button>
+          </div>
+        </div>
+      )}
+      <div style={styles.menuBg} className="tm-grain">
+        <WindowShades />
+        <div style={styles.menuCard}>
+          <div style={{ position: "relative", zIndex: 2, width: "100%", textAlign: "center" }}>
+            {/* Balle de tennis dessinée à l'encre */}
+            <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true" style={{ display: "block", margin: "4px auto 14px", transform: "rotate(-12deg)" }}>
+              <circle cx="36" cy="36" r="31" fill="#d6ef3c" stroke="#161616" strokeWidth="4" />
+              <path d="M12 16 Q30 36 12 58 M60 16 Q42 36 60 58" fill="none" stroke="#161616" strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M22 10 Q28 8 32 9" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            <h1 style={styles.menuTitle}>Courtside</h1>
+            <div className="tm-lettering" style={{ display: "inline-block", margin: "16px 0 14px", background: T.gold, color: "#161616", border: "2.5px solid " + T.ink, padding: "2px 10px", fontSize: 16 }}>La gazette de votre carrière</div>
+            <p style={styles.menuTagline}>Entraînez-vous, voyagez, signez vos sponsors et grimpez au classement, semaine après semaine.</p>
+            <button className="tm-bd-press" style={{ ...styles.btnPrimary, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setMenuCareers(true)}>
+              <Icon name="player" size={17} color={T.onAccent} /> Carrière
+              {slotMetas.some(Boolean) && <span style={{ fontSize: 12, fontWeight: 500 }}>· {slotMetas.filter(Boolean).length} en cours</span>}
+            </button>
+            {COMING_SOON.map(cs => (
+              <button key={cs.id} style={{ ...styles.btnSecondary, marginBottom: 10, display: "flex", alignItems: "center", gap: 10, textAlign: "left", opacity: 0.85 }} onClick={() => setSoonInfo(cs)}>
+                <Icon name={cs.icon} size={16} color={T.amber} />
+                <span style={{ flex: 1 }}>{cs.name}</span>
+                <span className="tm-lettering" style={{ background: "#c9b6ea", color: "#141414", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 14, textTransform: "none", letterSpacing: 0, transform: "rotate(-2deg)" }}>bientôt</span>
+              </button>
+            ))}
             <button style={{
               ...styles.btnPrimary, marginTop: 6, marginBottom: 3,
               background: T.cyan,
