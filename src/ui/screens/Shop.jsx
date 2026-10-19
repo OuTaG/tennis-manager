@@ -82,7 +82,7 @@ export function ShopScreen({ onPurchasesChanged, focusId, onUse }) {
       <div style={styles.sectionTitle}>Boutique</div>
       {items.length > 0 && (
         <div className="tm-lettering" style={{ background: "#ffffff", color: INK, border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK, padding: "8px 11px", marginBottom: 16, fontSize: 15, lineHeight: 1.3, transform: "rotate(-0.4deg)" }}>
-          Courtside ne comporte pas de publicité et est seulement financé par vos achats, merci d'avance :)
+          Courtside ne comporte pas de publicité et est seulement financé par vos achats, alors merci !
         </div>
       )}
 
