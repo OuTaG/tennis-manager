@@ -200,8 +200,11 @@ export function buildDuelSteps(r) {
 
 // kind : "serve_duel" | "return_duel" | "smash"
 // onDone(win, text, zone, label) : appelé quand le joueur clique « Continuer ».
-export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, myMental, onDone }) {
-  const [res, setRes] = useState(null);
+// onDecided(res) : appelé dès que l'issue est connue, avant l'animation
+// (le match l'enregistre pour qu'un rechargement ne permette pas de rejouer).
+export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, myMental, onDone, onDecided }) {
+  const [res, setResState] = useState(null);
+  const setRes = (r) => { setResState(r); if (r && onDecided) onDecided(r); };
   const [phase, setPhase] = useState("pick"); // pick → play → reveal
   const [ball, setBall] = useState(null);     // { x, y, dur }
   const [retX, setRetX] = useState(zoneX(1));

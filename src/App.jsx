@@ -2045,6 +2045,12 @@ export default function TennisManager() {
       if (!matchPausedRef.current && playGameRef.current) playGameRef.current();
     }, (pgNow && pgNow.isTiebreak ? 1400 : win ? 250 : 1600) * speedFactor());
   };
+  // Match repris après un rechargement : un mini-jeu déjà joué n'est pas
+  // rejoué, son issue enregistrée s'applique directement.
+  useEffect(() => {
+    const pd = matchState && matchState.pendingDilemma;
+    if (pd && pd.minigame && pd.decided) resolveMiniGame(pd.minigame, pd.decided.win, pd.decided.text, pd.decided.zone, pd.decided.label);
+  }, [matchState && matchState.pendingDilemma]);
   const resolveDilemma = (option, dilemma) => {
     // ── Special handling: match-fixing proposal ──
     if (dilemma && dilemma.isMatchFix) {
@@ -4527,6 +4533,7 @@ export default function TennisManager() {
                   oppAvatar={aiAvatar(ms.opponent, player.circuit === "wta")}
                   myAvatar={player.avatar}
                   onDone={(win, text, zone, label) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone, label)}
+                  onDecided={(r) => writeLiveMatch({ ...ms, pendingDilemma: { ...ms.pendingDilemma, decided: { win: !!r.win, text: r.text, zone: r.zone ?? null, label: r.label ?? null } } })}
                 />
                 <div style={{ flex: 1 }} />
               </div>
