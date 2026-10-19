@@ -28,7 +28,7 @@ import { FINALS_PRIZE, FINALS_PTS, RR_SCHEDULE, buildFinalsDraw, finalizeHumanTo
 import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, limitPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
 import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor, sponsorObjectiveCounters } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
-import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
+import { hasPurchased, liveKeyFor, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
@@ -100,6 +100,14 @@ function buildSponsorSlate(p, rankingNow, perfBonus, year, week) {
     }
   }
   return slate;
+}
+
+// Identifiant du point de reprise d'un tournoi (avant-match ou entre deux
+// matchs) : change à chaque match joué.
+function resumeKeyOf(snap) {
+  return snap
+    ? (snap.pendingNextMatch ? "next:" : "pre:") + (snap.tournMatchesPlayed || []).length + ":" + (snap.tournament?.id || "")
+    : "none";
 }
 
 export default function TennisManager() {
@@ -372,9 +380,36 @@ export default function TennisManager() {
   if (matchState && (matchState.pendingNextMatch || atPrematch)) lastResumeRef.current = matchState;
   if (!matchState || (matchState.finalResult && !matchState.pendingNextMatch)) lastResumeRef.current = null;
   const resumeSnapshot = lastResumeRef.current;
-  const resumeKey = resumeSnapshot
-    ? (resumeSnapshot.pendingNextMatch ? "next:" : "pre:") + (resumeSnapshot.tournMatchesPlayed || []).length + ":" + (resumeSnapshot.tournament?.id || "")
-    : "none";
+  const resumeKey = resumeKeyOf(resumeSnapshot);
+
+  // Match en cours, sauvegardé à part (quelques Ko) à chaque point pour
+  // reprendre au point près après une fermeture de l'app. Le moteur décide
+  // tous les points d'un jeu d'un coup avant de les animer : l'état écrit
+  // est celui de la fin du jeu affiché, dès que ses points sont connus.
+  // Lié au point de reprise du tournoi (resumeKey) : ignoré s'il ne
+  // correspond plus à la sauvegarde principale.
+  const liveSavedRef = useRef("");
+  const writeLiveMatch = (st) => {
+    try {
+      const raw = JSON.stringify({ key: resumeKeyOf(lastResumeRef.current), state: st });
+      if (raw === liveSavedRef.current) return;
+      localStorage.setItem(liveKeyFor(slotRef.current), raw);
+      liveSavedRef.current = raw;
+    } catch (e) {}
+  };
+  const clearLiveMatch = () => {
+    if (!liveSavedRef.current) return;
+    liveSavedRef.current = "";
+    try { localStorage.removeItem(liveKeyFor(slotRef.current)); } catch (e) {}
+  };
+  useEffect(() => {
+    const ms = matchState;
+    if (!ms) return; // retour au menu : le match reste reprenable
+    if (ms.finalResult || ms.phase !== "live" || !lastResumeRef.current) { clearLiveMatch(); return; }
+    const started = (ms.eventLog || []).length > 0 || ms.matchData.sets.some(st => st.gameLog.length > 0);
+    // Jeu en cours d'animation : son état final est déjà écrit (playGame).
+    if (started && !pendingCommitRef.current) writeLiveMatch(ms);
+  }, [matchState]);
   useEffect(() => {
     if (!player || !atpDb || screen === "menu" || screen === "create") return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -489,7 +524,16 @@ export default function TennisManager() {
       setActiveTab("hub");
       // Resume a tournament that was saved between two matches.
       if (data.resume && (data.resume.pendingNextMatch || data.resume.phase === "prematch")) {
-        setMatchState(data.resume);
+        // Match quitté en cours : reprise au point près (en pause).
+        let live = null;
+        try { live = JSON.parse(localStorage.getItem(liveKeyFor(slotIdx)) || "null"); } catch (e) {}
+        if (live && live.state && live.key === resumeKeyOf(data.resume)) {
+          liveSavedRef.current = JSON.stringify(live);
+          setPausedBoth(true);
+          setMatchState(live.state);
+        } else {
+          setMatchState(data.resume);
+        }
         setScreen("match");
       } else {
         setScreen("hub");
@@ -510,6 +554,7 @@ export default function TennisManager() {
     if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
     try {
       localStorage.removeItem(saveKeyFor(target));
+      localStorage.removeItem(liveKeyFor(target));
       localStorage.removeItem(slotMetaKeyFor(target));
     } catch (e) {}
     // Si c'est la carrière en cours, on revient proprement au menu principal.
@@ -602,7 +647,7 @@ export default function TennisManager() {
         p.challengeStartNegotiation = { phase: "start", year: 2026, ranking: rk, results: [], objMoney: 0 };
       }
     }
-    try { localStorage.removeItem(saveKeyFor(CHALLENGE_SLOT)); } catch (e) {}
+    try { localStorage.removeItem(saveKeyFor(CHALLENGE_SLOT)); localStorage.removeItem(liveKeyFor(CHALLENGE_SLOT)); } catch (e) {}
     setSlot(CHALLENGE_SLOT);
     slotRef.current = CHALLENGE_SLOT;
     setPlayer(p);
@@ -1798,6 +1843,7 @@ export default function TennisManager() {
       fixOffered,
       lastResolveMsg: null,
     };
+    writeLiveMatch(committedState);
 
     // ── Animation context label ──────────────────────────────────────────
     // Score BEFORE this game (games in the current set, set count).
@@ -3465,7 +3511,7 @@ export default function TennisManager() {
 
             {(() => {
               const leaveCareer = () => {
-                try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(slotMetaKeyFor(slot)); } catch (e) {}
+                try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(liveKeyFor(slot)); localStorage.removeItem(slotMetaKeyFor(slot)); } catch (e) {}
                 setPlayer(null);
                 setAtpDb(null);
                 setNews([]);
