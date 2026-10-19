@@ -82,7 +82,7 @@ export function ShopScreen({ onPurchasesChanged, focusId, onUse }) {
       <div style={styles.sectionTitle}>Boutique</div>
       {items.length > 0 && (
         <div className="tm-lettering" style={{ background: "#ffffff", color: INK, border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK, padding: "8px 11px", marginBottom: 16, fontSize: 15, lineHeight: 1.3, transform: "rotate(-0.4deg)" }}>
-          Pas de publicité, pas d'abonnement : chaque extension se paie une seule fois et finance les prochaines mises à jour du jeu.
+          Pas de publicité : chaque extension se paie une seule fois et finance les prochaines mises à jour du jeu.
         </div>
       )}
 
@@ -107,8 +107,7 @@ export function ShopScreen({ onPurchasesChanged, focusId, onUse }) {
             <div style={{ flex: 1, borderTop: "2px dashed " + INK }} />
           </div>
           {items.filter(i => (i.category || "Options") === cat).map(item => {
-            // L'accès complet inclut l'accès Classements.
-            const isOwned = owned.includes(item.id) || (item.id === "online_ranked" && owned.includes("online_full"));
+            const isOwned = owned.includes(item.id);
             const soon = item.status === "soon";
             const focused = item.id === focusId && !isOwned;
             return (

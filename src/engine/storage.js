@@ -17,25 +17,6 @@ import { getPlayerRanking, totalAtpPoints } from "./player.js";
 // le passage de l'un à l'autre coûtant la différence.
 // Prix indicatifs, à ajuster.
 export const SHOP_ITEMS = [
-  {
-    id: "online_ranked", category: "En ligne", type: "once", icon: "trophy",
-    name: "Accès Classements", price: "2,99\u00a0€", status: "soon",
-    desc: "Payé une fois. Vos carrières comptent dans les classements en ligne. Aucun avantage en jeu.",
-    perks: [
-      { label: "Défis hebdomadaires", ready: false },
-      { label: "Classement mondial de carrière (masculin, féminin, par style)", ready: false },
-    ],
-  },
-  {
-    id: "online_full", category: "En ligne", type: "once", icon: "users",
-    name: "Accès En ligne complet", price: "4,99\u00a0€", status: "soon",
-    desc: "Payé une fois. Tout l'accès Classements, plus les carrières coop. Déjà l'accès Classements ? Le passage coûte la différence (2,00\u00a0€).",
-    perks: [
-      { label: "Défis hebdomadaires", ready: false },
-      { label: "Classement mondial de carrière (masculin, féminin, par style)", ready: false },
-      { label: "Carrières coop", ready: false },
-    ],
-  },
   { id: "dlc_challenges", category: "Modes de jeu", type: "dlc", icon: "target", name: "Défis scénarisés", price: "2,99\u00a0€", status: "available",
     desc: "Des situations imposées à renverser : blessure, dette, remontée au classement…" },
   {
@@ -50,6 +31,14 @@ export const SHOP_ITEMS = [
   },
   { id: "multi_careers", category: "Options", type: "once", icon: "history", name: "Carrières multiples", price: "1,99\u00a0€", status: "available",
     desc: "Deux emplacements de sauvegarde en plus, pour mener jusqu'à 3 carrières en parallèle." },
+];
+// Modes annoncés dans le menu principal, pas encore en vente (absents de la
+// boutique tant qu'ils ne sont pas prêts).
+export const COMING_SOON = [
+  { id: "coop", icon: "users", name: "Carrière coop", price: "4,99\u00a0€", priceNote: "achat unique",
+    desc: "Menez une carrière à plusieurs : chacun son joueur, le même circuit, les mêmes tournois. Payé une seule fois." },
+  { id: "weekly", icon: "trophy", name: "Défi hebdomadaire", price: "1,99\u00a0€", priceNote: "abonnement mensuel",
+    desc: "Chaque semaine, un nouveau défi joué par tous les abonnés et un classement mondial. Les meilleurs du classement gagnent des cadeaux." },
 ];
 export const SHOP_STORAGE_KEY = "tm-purchases";
 
