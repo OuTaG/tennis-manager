@@ -262,7 +262,7 @@ export const CHALLENGES = [
     },
   },
   {
-    id: "course", circuit: "atp", name: "Course au Masters", difficulty: 3,
+    id: "course", circuit: "atp", name: "Course au Masters", difficulty: 4,
     tagline: "Entrer dans le top 8 de la Race, puis gagner le Masters",
     context: "L'Open des États-Unis vient de se terminer. Vous pointez derrière le top 8 de la Race, à environ 700 points de la dernière place qualificative. Il reste la tournée asiatique et la saison en salle pour décrocher l'un des huit billets pour le Masters de fin d'année… et une semaine face aux meilleurs pour le remporter.",
     objectiveLabel: "Se qualifier et gagner le Masters",
