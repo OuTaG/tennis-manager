@@ -239,7 +239,7 @@ export default function TennisManager() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="tm-display" style={{ fontSize: 14, lineHeight: 1.15 }}>{promo.title}</div>
         <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4, marginTop: 3 }}>{promo.text}</div>
-        <button className="tm-display" style={{ marginTop: 8, background: "#1f7a45", color: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "4px 10px", fontSize: 12, cursor: "pointer" }} onClick={onGo}>{promo.cta} →</button>
+        <button className="tm-display" style={{ marginTop: 8, background: "#1f7a45", color: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "4px 10px", fontSize: 12, cursor: "pointer" }} onClick={onGo}>{promo.cta} →</button>
       </div>
     </div>
   );
@@ -4793,7 +4793,7 @@ export default function TennisManager() {
                   <Icon name={sc.icon} size={17} halo={on} />
                   {sc.label}
                   {sc.id === "finance" && hasNewSponsorOffer && <BangBadge size={22} top="calc(50% - 11px)" right={3} />}
-                  {sc.id === "shop" && shopIsNew() && <BangBadge size={22} top="calc(50% - 11px)" right={3} />}
+                  {sc.id === "shop" && !player.challenge && shopIsNew() && <BangBadge size={18} style={{ position: "static", flexShrink: 0 }} />}
                 </button>
               );
             })}

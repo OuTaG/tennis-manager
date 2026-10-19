@@ -18,8 +18,12 @@ export function ShopScreen({ onPurchasesChanged, focusId, onUse }) {
   const [thanks, setThanks] = useState(null); // article qui vient d'être acheté
   const focusRef = useRef(null);
   useEffect(() => { markShopSeen(); }, []);
+  // Différé : le parent remet la page en haut à chaque changement d'écran,
+  // après les effets de la boutique.
   useEffect(() => {
-    if (focusId && focusRef.current) focusRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (!focusId) return;
+    const t = setTimeout(() => { if (focusRef.current) focusRef.current.scrollIntoView({ block: "center", behavior: "smooth" }); }, 120);
+    return () => clearTimeout(t);
   }, [focusId]);
   const [pending, setPending] = useState(null); // article en cours de confirmation
   // App iOS : vrais achats intégrés (prix de l'App Store, restauration).

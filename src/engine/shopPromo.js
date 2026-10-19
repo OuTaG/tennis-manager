@@ -43,11 +43,25 @@ const ORDER = {
   end: ["multi_careers", "dlc_challenges", "custom_mode"],
 };
 
+// Fin de carrière : la carrière est terminée, d'autres arguments.
+const PITCH_END = {
+  multi_careers: {
+    title: "Et la prochaine ?",
+    text: "Menez jusqu'à 3 carrières en parallèle : un autre style, l'autre circuit, une autre ville de départ.",
+    cta: "Voir les Carrières multiples",
+  },
+  dlc_challenges: {
+    title: "Envie d'un nouveau défi ?",
+    text: "8 scénarios imposés à renverser, sur les deux circuits : genou fragile, dette à rembourser, remontée express…",
+    cta: "Découvrir les Défis",
+  },
+};
+
 export function shopPromo(moment, seed = 0) {
   const left = unowned().map(i => i.id);
   const ids = (ORDER[moment] || ORDER.season).filter(id => left.includes(id));
   if (!ids.length) return null;
   const id = ids[Math.abs(seed) % ids.length];
   const item = AVAILABLE.find(i => i.id === id);
-  return { id, icon: item.icon, name: item.name, ...PITCH[id] };
+  return { id, icon: item.icon, name: item.name, ...((moment === "end" && PITCH_END[id]) || PITCH[id]) };
 }
