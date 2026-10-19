@@ -1,15 +1,30 @@
 // Écran Boutique.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SHOP_ITEMS, SHOP_STORAGE_KEY, loadPurchases } from "../../engine/storage.js";
 import { buyItem, isNativeStore, loadStorePrices, syncEntitlements } from "../../engine/iap.js";
+import { markShopSeen } from "../../engine/shopPromo.js";
 import { Icon } from "../icons.jsx";
+import { ThankYouScreen } from "../overlays/ThankYou.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 
 const INK = "#141414";
 
-export function ShopScreen({ onPurchasesChanged }) {
+// `focusId` : article mis en avant à l'ouverture (arrivée depuis un contenu
+// verrouillé). `onUse(itemId)` : bouton « en profiter » de la page de
+// remerciement (absent en cours de carrière).
+export function ShopScreen({ onPurchasesChanged, focusId, onUse }) {
   const [owned, setOwned] = useState(() => loadPurchases());
+  const [thanks, setThanks] = useState(null); // article qui vient d'être acheté
+  const focusRef = useRef(null);
+  useEffect(() => { markShopSeen(); }, []);
+  // Différé : le parent remet la page en haut à chaque changement d'écran,
+  // après les effets de la boutique.
+  useEffect(() => {
+    if (!focusId) return;
+    const t = setTimeout(() => { if (focusRef.current) focusRef.current.scrollIntoView({ block: "center", behavior: "smooth" }); }, 120);
+    return () => clearTimeout(t);
+  }, [focusId]);
   const [pending, setPending] = useState(null); // article en cours de confirmation
   // App iOS : vrais achats intégrés (prix de l'App Store, restauration).
   // Web : achat simulé.
@@ -31,7 +46,7 @@ export function ShopScreen({ onPurchasesChanged }) {
       const r = await buyItem(item);
       setBusy(false);
       setPending(null);
-      if (r.ok) { setOwned(loadPurchases()); setNotice("Merci ! « " + item.name + " » est débloqué."); if (onPurchasesChanged) onPurchasesChanged(); }
+      if (r.ok) { setOwned(loadPurchases()); setThanks(item); if (onPurchasesChanged) onPurchasesChanged(); }
       else if (r.error) setNotice("L'achat n'a pas abouti : " + r.error);
       return;
     }
@@ -39,6 +54,7 @@ export function ShopScreen({ onPurchasesChanged }) {
     try { localStorage.setItem(SHOP_STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
     setOwned(next);
     setPending(null);
+    setThanks(item);
     if (onPurchasesChanged) onPurchasesChanged();
   };
   const restore = async () => {
@@ -64,6 +80,11 @@ export function ShopScreen({ onPurchasesChanged }) {
   return (
     <div style={styles.tabContent}>
       <div style={styles.sectionTitle}>Boutique</div>
+      {items.length > 0 && (
+        <div className="tm-lettering" style={{ background: "#ffffff", color: INK, border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK, padding: "8px 11px", marginBottom: 16, fontSize: 15, lineHeight: 1.3, transform: "rotate(-0.4deg)" }}>
+          Pas de publicité, pas d'abonnement : chaque extension se paie une seule fois et finance les prochaines mises à jour du jeu.
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div style={{ ...styles.skillsCard, textAlign: "center", padding: "28px 18px" }}>
@@ -89,8 +110,9 @@ export function ShopScreen({ onPurchasesChanged }) {
             // L'accès complet inclut l'accès Classements.
             const isOwned = owned.includes(item.id) || (item.id === "online_ranked" && owned.includes("online_full"));
             const soon = item.status === "soon";
+            const focused = item.id === focusId && !isOwned;
             return (
-              <div key={item.id} style={{ background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, marginBottom: 12, opacity: soon ? 0.85 : 1, overflow: "hidden" }}>
+              <div key={item.id} ref={focused ? focusRef : null} className={focused ? "tm-shop-focus" : undefined} style={{ background: "#ffffff", color: INK, border: "3px solid " + INK, boxShadow: "4px 4px 0 " + (focused ? "#c4302b" : INK), marginBottom: 12, opacity: soon ? 0.85 : 1, overflow: "hidden" }}>
                 <div className={soon ? "tm-halftone-lilac" : isOwned ? "tm-halftone-cyan" : "tm-halftone-yellow"} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: "2.5px solid " + INK }}>
                   <div style={{ width: 40, height: 40, background: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, transform: "rotate(-4deg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Icon name={item.icon || "bag"} size={20} color={INK} />
@@ -146,6 +168,10 @@ export function ShopScreen({ onPurchasesChanged }) {
       {notice && (
         <div role="status" className="tm-lettering" onClick={() => setNotice(null)} style={{ marginTop: 12, background: "#ffffff", color: INK, border: "2.5px solid " + INK, boxShadow: "3px 3px 0 " + INK, padding: "6px 10px", fontSize: 15, lineHeight: 1.25 }}>{notice}</div>
       )}
+
+      {focusId && <style>{`@keyframes tm-shop-focus { 0%, 100% { transform: none; } 30% { transform: rotate(-1deg) scale(1.02); } 60% { transform: rotate(.6deg) scale(1.01); } } .tm-shop-focus { animation: tm-shop-focus .7s ease-in-out .3s 2; } @media (prefers-reduced-motion: reduce) { .tm-shop-focus { animation: none; } }`}</style>}
+
+      {thanks && <ThankYouScreen item={thanks} onUse={onUse} onClose={() => setThanks(null)} />}
 
       {pending && (
         <div style={{ ...styles.dilemmaOverlay, zIndex: 200 }} onClick={() => { if (!busy) setPending(null); }}>

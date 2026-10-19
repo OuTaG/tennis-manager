@@ -28,7 +28,7 @@ import { FINALS_PRIZE, FINALS_PTS, RR_SCHEDULE, buildFinalsDraw, finalizeHumanTo
 import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, limitPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
 import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor, sponsorObjectiveCounters } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
-import { hasPurchased, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
+import { hasPurchased, liveKeyFor, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
@@ -42,6 +42,7 @@ import { AVATAR_OPTIONS, Avatar, AvatarBuilder, aiAvatar, femaleHairStyle } from
 import { fmtMoney, fmtNum, fmtKm, fmtStatDelta, rankingName } from "./ui/format.js";
 import { showLoadingScreen } from "./ui/loading.js";
 import { isNativeStore, syncEntitlements } from "./engine/iap.js";
+import { shopIsNew, shopPromo } from "./engine/shopPromo.js";
 import { BangBadge, FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags } from "./ui/icons.jsx";
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
@@ -99,6 +100,14 @@ function buildSponsorSlate(p, rankingNow, perfBonus, year, week) {
     }
   }
   return slate;
+}
+
+// Identifiant du point de reprise d'un tournoi (avant-match ou entre deux
+// matchs) : change à chaque match joué.
+function resumeKeyOf(snap) {
+  return snap
+    ? (snap.pendingNextMatch ? "next:" : "pre:") + (snap.tournMatchesPlayed || []).length + ":" + (snap.tournament?.id || "")
+    : "none";
 }
 
 export default function TennisManager() {
@@ -225,6 +234,23 @@ export default function TennisManager() {
   const [challengeMeta, setChallengeMeta] = useState(() => loadChallengeMeta());
   const refreshSlots = () => { setSlotMetas(loadSlotMetas()); setChallengeMeta(loadChallengeMeta()); };
   const [menuShop, setMenuShop] = useState(false); // boutique ouverte depuis le menu
+  const [shopFocus, setShopFocus] = useState(null); // article mis en avant à l'ouverture de la boutique
+  const openMenuShop = (focus = null) => { setShopFocus(focus); setMenuShop(true); };
+  const openShopTab = (focus = null) => { setShopFocus(focus); setActiveTab("shop"); };
+  useEffect(() => { if (activeTab !== "shop") setShopFocus(null); }, [activeTab]);
+  // Encart « boutique » des bilans (fin de saison, fin de carrière).
+  const shopPromoCard = (promo, onGo) => promo && (
+    <div style={{ background: "#ffffff", color: "#141414", border: "2.5px dashed " + T.ink, padding: "10px 12px", marginBottom: 12, display: "flex", gap: 10, alignItems: "flex-start" }}>
+      <span style={{ width: 34, height: 34, flexShrink: 0, background: "#d6ef3c", border: "2.5px solid " + T.ink, transform: "rotate(-4deg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon name={promo.icon || "bag"} size={17} color="#141414" />
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="tm-display" style={{ fontSize: 14, lineHeight: 1.15 }}>{promo.title}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4, marginTop: 3 }}>{promo.text}</div>
+        <button className="tm-display" style={{ marginTop: 8, background: "#1f7a45", color: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "4px 10px", fontSize: 12, cursor: "pointer" }} onClick={onGo}>{promo.cta} →</button>
+      </div>
+    </div>
+  );
   const [circuitInput, setCircuitInput] = useState("atp"); // circuit choisi à la création
   const [rosterInput, setRosterInput] = useState(-1); // base de joueurs : -1 = Standard, 0-2 = configuration perso
   const [confirmDelete, setConfirmDelete] = useState(null); // emplacement à effacer (null = fermé)
@@ -354,9 +380,39 @@ export default function TennisManager() {
   if (matchState && (matchState.pendingNextMatch || atPrematch)) lastResumeRef.current = matchState;
   if (!matchState || (matchState.finalResult && !matchState.pendingNextMatch)) lastResumeRef.current = null;
   const resumeSnapshot = lastResumeRef.current;
-  const resumeKey = resumeSnapshot
-    ? (resumeSnapshot.pendingNextMatch ? "next:" : "pre:") + (resumeSnapshot.tournMatchesPlayed || []).length + ":" + (resumeSnapshot.tournament?.id || "")
-    : "none";
+  const resumeKey = resumeKeyOf(resumeSnapshot);
+
+  // Match en cours, sauvegardé à part (quelques Ko) à chaque point pour
+  // reprendre au point près après une fermeture de l'app. Le moteur décide
+  // tous les points d'un jeu d'un coup avant de les animer : l'état écrit
+  // est celui de la fin du jeu affiché, dès que ses points sont connus.
+  // Lié au point de reprise du tournoi (resumeKey) : ignoré s'il ne
+  // correspond plus à la sauvegarde principale.
+  const liveSavedRef = useRef("");
+  const writeLiveMatch = (st) => {
+    try {
+      // Le tableau du tournoi (~200 Ko) ne change pas pendant un match : il
+      // est repris de l'avant-match de la sauvegarde principale.
+      const { bracketParticipants, bracketOpponents, ...light } = st;
+      const raw = JSON.stringify({ key: resumeKeyOf(lastResumeRef.current), state: light });
+      if (raw === liveSavedRef.current) return;
+      localStorage.setItem(liveKeyFor(slotRef.current), raw);
+      liveSavedRef.current = raw;
+    } catch (e) {}
+  };
+  const clearLiveMatch = () => {
+    if (!liveSavedRef.current) return;
+    liveSavedRef.current = "";
+    try { localStorage.removeItem(liveKeyFor(slotRef.current)); } catch (e) {}
+  };
+  useEffect(() => {
+    const ms = matchState;
+    if (!ms) return; // retour au menu : le match reste reprenable
+    if (ms.finalResult || ms.phase !== "live" || !lastResumeRef.current) { clearLiveMatch(); return; }
+    const started = (ms.eventLog || []).length > 0 || ms.matchData.sets.some(st => st.gameLog.length > 0);
+    // Jeu en cours d'animation : son état final est déjà écrit (playGame).
+    if (started && !pendingCommitRef.current) writeLiveMatch(ms);
+  }, [matchState]);
   useEffect(() => {
     if (!player || !atpDb || screen === "menu" || screen === "create") return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -471,7 +527,18 @@ export default function TennisManager() {
       setActiveTab("hub");
       // Resume a tournament that was saved between two matches.
       if (data.resume && (data.resume.pendingNextMatch || data.resume.phase === "prematch")) {
-        setMatchState(data.resume);
+        // Match quitté en cours : reprise au point près (en pause).
+        let live = null;
+        try { live = JSON.parse(localStorage.getItem(liveKeyFor(slotIdx)) || "null"); } catch (e) {}
+        if (live && live.state && live.key === resumeKeyOf(data.resume)) {
+          liveSavedRef.current = JSON.stringify(live);
+          // Le point de reprise du tournoi reste l'avant-match de ce match.
+          lastResumeRef.current = data.resume;
+          setPausedBoth(true);
+          setMatchState({ ...live.state, bracketParticipants: data.resume.bracketParticipants, bracketOpponents: data.resume.bracketOpponents });
+        } else {
+          setMatchState(data.resume);
+        }
         setScreen("match");
       } else {
         setScreen("hub");
@@ -492,6 +559,7 @@ export default function TennisManager() {
     if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
     try {
       localStorage.removeItem(saveKeyFor(target));
+      localStorage.removeItem(liveKeyFor(target));
       localStorage.removeItem(slotMetaKeyFor(target));
     } catch (e) {}
     // Si c'est la carrière en cours, on revient proprement au menu principal.
@@ -584,7 +652,7 @@ export default function TennisManager() {
         p.challengeStartNegotiation = { phase: "start", year: 2026, ranking: rk, results: [], objMoney: 0 };
       }
     }
-    try { localStorage.removeItem(saveKeyFor(CHALLENGE_SLOT)); } catch (e) {}
+    try { localStorage.removeItem(saveKeyFor(CHALLENGE_SLOT)); localStorage.removeItem(liveKeyFor(CHALLENGE_SLOT)); } catch (e) {}
     setSlot(CHALLENGE_SLOT);
     slotRef.current = CHALLENGE_SLOT;
     setPlayer(p);
@@ -1780,6 +1848,7 @@ export default function TennisManager() {
       fixOffered,
       lastResolveMsg: null,
     };
+    writeLiveMatch(committedState);
 
     // ── Animation context label ──────────────────────────────────────────
     // Score BEFORE this game (games in the current set, set count).
@@ -1976,6 +2045,12 @@ export default function TennisManager() {
       if (!matchPausedRef.current && playGameRef.current) playGameRef.current();
     }, (pgNow && pgNow.isTiebreak ? 1400 : win ? 250 : 1600) * speedFactor());
   };
+  // Match repris après un rechargement : un mini-jeu déjà joué n'est pas
+  // rejoué, son issue enregistrée s'applique directement.
+  useEffect(() => {
+    const pd = matchState && matchState.pendingDilemma;
+    if (pd && pd.minigame && pd.decided) resolveMiniGame(pd.minigame, pd.decided.win, pd.decided.text, pd.decided.zone, pd.decided.label);
+  }, [matchState && matchState.pendingDilemma]);
   const resolveDilemma = (option, dilemma) => {
     // ── Special handling: match-fixing proposal ──
     if (dilemma && dilemma.isMatchFix) {
@@ -2816,18 +2891,26 @@ export default function TennisManager() {
         onAbandon={() => deleteSave(CHALLENGE_SLOT)}
         current={challengeMeta}
         owned={hasPurchased("dlc_challenges")}
-        goShop={() => { setMenuShop(true); setScreen("menu"); }}
+        goShop={() => { openMenuShop("dlc_challenges"); setScreen("menu"); }}
       />
     </>
   );
   if (screen === "menu" && menuShop) return (
     <div style={styles.root}>
       <div style={{ padding: "16px 16px 0" }}>
-        <button style={{ ...styles.btnSmall, display: "flex", alignItems: "center", gap: 6 }} onClick={() => { setMenuShop(false); refreshSlots(); }}>
+        <button style={{ ...styles.btnSmall, display: "flex", alignItems: "center", gap: 6 }} onClick={() => { setMenuShop(false); setShopFocus(null); refreshSlots(); }}>
           <Icon name="arrowLeft" size={14} /> Menu principal
         </button>
       </div>
-      <ShopScreen onPurchasesChanged={refreshPurchases} />
+      <ShopScreen onPurchasesChanged={refreshPurchases} focusId={shopFocus} onUse={(id) => {
+        // Page de remerciement → contenu acheté (carrières multiples : le
+        // menu, où les emplacements 2 et 3 sont désormais libres).
+        setMenuShop(false);
+        setShopFocus(null);
+        refreshSlots();
+        if (id === "dlc_challenges") setScreen("challenges");
+        else if (id === "custom_mode") setScreen("customize");
+      }} />
     </div>
   );
 
@@ -2877,7 +2960,7 @@ export default function TennisManager() {
                   key={i}
                   style={{ ...styles.btnSecondary, marginBottom: 10, display: "flex", alignItems: "center", gap: 10, textAlign: "left", opacity: locked ? 0.75 : 1 }}
                   onClick={() => {
-                    if (locked) { setMenuShop(true); return; }
+                    if (locked) { openMenuShop("multi_careers"); return; }
                     setSlot(i);
                     slotRef.current = i;
                     setCreateStep(-1);
@@ -2887,7 +2970,7 @@ export default function TennisManager() {
                   }}
                 >
                   <span className="tm-display" style={{ background: locked ? "#ebe8da" : T.ink, color: locked ? "#141414" : "#d6ef3c", border: locked ? "2px solid " + T.ink : "none", boxSizing: "border-box", fontSize: 13, width: 22, height: 22, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", transform: "rotate(-4deg)" }}>{i + 1}</span>
-                  <span style={{ flex: 1 }}>{locked ? "Emplacement verrouillé" : "Nouvelle carrière"}</span>
+                  <span style={{ flex: 1 }}>{locked ? (i === 1 ? "2e carrière en parallèle" : "3e carrière en parallèle") : "Nouvelle carrière"}</span>
                   <Icon name={locked ? "lock" : "plus"} size={16} color={locked ? T.amber : T.green} />
                 </button>
               );
@@ -2904,13 +2987,29 @@ export default function TennisManager() {
             <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setScreen("records")}>
               <Icon name="trophy" size={16} color={T.amber} /> Records
             </button>
-            <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => (hasPurchased("custom_mode") ? setScreen("customize") : setMenuShop(true))}>
+            <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => (hasPurchased("custom_mode") ? setScreen("customize") : openMenuShop("custom_mode"))}>
               <Icon name="edit" size={16} color={T.amber} /> Personnalisation
               {!hasPurchased("custom_mode") && <Icon name="lock" size={13} color={T.fg} />}
             </button>
-            <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setMenuShop(true)}>
-              <Icon name="bag" size={16} color={T.amber} /> Boutique
-            </button>
+            {/* Boutique : case mise en avant tant qu'il reste une extension à
+                découvrir, pastille « ! » tant qu'elle n'a jamais été ouverte. */}
+            {shopPromo("season") ? (
+              <button className="tm-bd-press tm-halftone-yellow" style={{ position: "relative", overflow: "visible", width: "100%", marginTop: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", padding: "10px 12px", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, borderRadius: 0, cursor: "pointer", fontFamily: T.body, transform: "rotate(-0.6deg)" }} onClick={() => openMenuShop()}>
+                {shopIsNew() && <BangBadge size={26} top={-13} right={-8} />}
+                <span style={{ width: 40, height: 40, flexShrink: 0, background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, transform: "rotate(-4deg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="bag" size={20} color="#141414" />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className="tm-display" style={{ display: "block", fontSize: 17, lineHeight: 1.05, color: "#141414" }}>Boutique</span>
+                  <span style={{ display: "block", fontSize: 12, fontWeight: 700, lineHeight: 1.3, marginTop: 3, color: "#141414" }}>Défis scénarisés, personnalisation des joueurs, carrières multiples</span>
+                </span>
+                <Icon name="chevronRight" size={18} color="#141414" />
+              </button>
+            ) : (
+              <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => openMenuShop()}>
+                <Icon name="bag" size={16} color={T.amber} /> Boutique
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -3421,16 +3520,25 @@ export default function TennisManager() {
               </div>
             </div>
 
-            <button style={{ ...styles.btnPrimary, marginTop: 4 }} onClick={() => {
-              try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(slotMetaKeyFor(slot)); } catch (e) {}
-              setPlayer(null);
-              setAtpDb(null);
-              setNews([]);
-              setMatchState(null);
-              setCircuit("atp");
-              refreshSlots();
-              setScreen("menu");
-            }}>Nouvelle carrière</button>
+            {(() => {
+              const leaveCareer = () => {
+                try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(liveKeyFor(slot)); localStorage.removeItem(slotMetaKeyFor(slot)); } catch (e) {}
+                setPlayer(null);
+                setAtpDb(null);
+                setNews([]);
+                setMatchState(null);
+                setCircuit("atp");
+                refreshSlots();
+                setScreen("menu");
+              };
+              const promo = player.challenge ? null : shopPromo("end", (player.careerSeasons || []).length);
+              return (
+                <>
+                  {shopPromoCard(promo, () => { leaveCareer(); openMenuShop(promo.id); })}
+                  <button style={{ ...styles.btnPrimary, marginTop: 4 }} onClick={leaveCareer}>Nouvelle carrière</button>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -4425,6 +4533,7 @@ export default function TennisManager() {
                   oppAvatar={aiAvatar(ms.opponent, player.circuit === "wta")}
                   myAvatar={player.avatar}
                   onDone={(win, text, zone, label) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone, label)}
+                  onDecided={(r) => writeLiveMatch({ ...ms, pendingDilemma: { ...ms.pendingDilemma, decided: { win: !!r.win, text: r.text, zone: r.zone ?? null, label: r.label ?? null } } })}
                 />
                 <div style={{ flex: 1 }} />
               </div>
@@ -4742,6 +4851,7 @@ export default function TennisManager() {
                   <Icon name={sc.icon} size={17} halo={on} />
                   {sc.label}
                   {sc.id === "finance" && hasNewSponsorOffer && <BangBadge size={22} top="calc(50% - 11px)" right={3} />}
+                  {sc.id === "shop" && !player.challenge && shopIsNew() && <BangBadge size={18} style={{ position: "static", flexShrink: 0 }} />}
                 </button>
               );
             })}
@@ -4854,7 +4964,7 @@ export default function TennisManager() {
             }
           }} />}
           {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} markSponsorOfferSeen={markSponsorOfferSeen} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
-          {activeTab === "shop" && <ShopScreen onPurchasesChanged={refreshPurchases} />}
+          {activeTab === "shop" && <ShopScreen onPurchasesChanged={refreshPurchases} focusId={shopFocus} />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>
         {!flightAnim && !sponsorNegotiation && (
@@ -4868,7 +4978,7 @@ export default function TennisManager() {
                   style={{ ...styles.navBtn, ...(isActive ? styles.navBtnActive : {}), position: "relative", overflow: "visible" }}
                   onClick={() => setActiveTab(isActive ? activeTab : (lastScreenByGroup.current[g.id] || g.screens[0].id))}
                 >
-                  {g.id === "office" && hasNewSponsorOffer && <BangBadge size={22} top={-12} right={4} />}
+                  {g.id === "office" && (hasNewSponsorOffer || (!player.challenge && shopIsNew())) && <BangBadge size={22} top={-12} right={4} />}
                   <Icon name={g.icon} size={20} color={isActive ? "#161616" : T.fg} strokeWidth={2.1} />
                   <span style={{ fontSize: 10.5, fontWeight: 800 }}>{g.label}</span>
                 </button>
@@ -4977,6 +5087,10 @@ export default function TennisManager() {
                     </div>
                   </>
                 );
+              })()}
+              {!player.challenge && (() => {
+                const promo = shopPromo("season", r.year);
+                return shopPromoCard(promo, () => { dismissSeasonRecap(); openShopTab(promo.id); });
               })()}
               <button style={styles.btnPrimary} onClick={dismissSeasonRecap}>Continuer →</button>
               </div>

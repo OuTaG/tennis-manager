@@ -59,6 +59,8 @@ export const SHOP_STORAGE_KEY = "tm-purchases";
 export const SAVE_SLOTS = 3;
 export function saveKeyFor(i) { return i === 0 ? "tm_save_v1" : "tm_save_v1_s" + (i + 1); }
 export function slotMetaKeyFor(i) { return "tm_slot_meta_" + (i + 1); }
+// Match en cours de l'emplacement (reprise au point près).
+export function liveKeyFor(i) { return saveKeyFor(i) + "_live"; }
 export function writeSlotMeta(i, player, atpDb) {
   if (!player) return;
   try {
