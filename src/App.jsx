@@ -391,7 +391,10 @@ export default function TennisManager() {
   const liveSavedRef = useRef("");
   const writeLiveMatch = (st) => {
     try {
-      const raw = JSON.stringify({ key: resumeKeyOf(lastResumeRef.current), state: st });
+      // Le tableau du tournoi (~200 Ko) ne change pas pendant un match : il
+      // est repris de l'avant-match de la sauvegarde principale.
+      const { bracketParticipants, bracketOpponents, ...light } = st;
+      const raw = JSON.stringify({ key: resumeKeyOf(lastResumeRef.current), state: light });
       if (raw === liveSavedRef.current) return;
       localStorage.setItem(liveKeyFor(slotRef.current), raw);
       liveSavedRef.current = raw;
@@ -529,8 +532,10 @@ export default function TennisManager() {
         try { live = JSON.parse(localStorage.getItem(liveKeyFor(slotIdx)) || "null"); } catch (e) {}
         if (live && live.state && live.key === resumeKeyOf(data.resume)) {
           liveSavedRef.current = JSON.stringify(live);
+          // Le point de reprise du tournoi reste l'avant-match de ce match.
+          lastResumeRef.current = data.resume;
           setPausedBoth(true);
-          setMatchState(live.state);
+          setMatchState({ ...live.state, bracketParticipants: data.resume.bracketParticipants, bracketOpponents: data.resume.bracketOpponents });
         } else {
           setMatchState(data.resume);
         }
