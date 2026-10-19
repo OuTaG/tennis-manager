@@ -235,7 +235,6 @@ export default function TennisManager() {
   const refreshSlots = () => { setSlotMetas(loadSlotMetas()); setChallengeMeta(loadChallengeMeta()); };
   const [menuShop, setMenuShop] = useState(false); // boutique ouverte depuis le menu
   const [menuCareers, setMenuCareers] = useState(false); // emplacements de carrière ouverts depuis le menu
-  const [soonInfo, setSoonInfo] = useState(null); // mode « bientôt » dont on affiche la présentation
   const [shopFocus, setShopFocus] = useState(null); // article mis en avant à l'ouverture de la boutique
   const openMenuShop = (focus = null) => { setShopFocus(focus); setMenuShop(true); };
   const openShopTab = (focus = null) => { setShopFocus(focus); setActiveTab("shop"); };
@@ -2983,27 +2982,6 @@ export default function TennisManager() {
   if (screen === "menu") return (
     <div style={styles.root}>
       {deleteSaveDialog}
-      {soonInfo && (
-        <div style={{ ...styles.dilemmaOverlay, zIndex: 300 }} onClick={() => setSoonInfo(null)}>
-          <div style={styles.dilemmaCard} onClick={e => e.stopPropagation()}>
-            <div className="tm-halftone-lilac" style={{ margin: "-16px -16px 12px", padding: "10px 16px", borderBottom: "3px solid " + T.ink, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ width: 36, height: 36, flexShrink: 0, background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, transform: "rotate(-4deg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Icon name={soonInfo.icon} size={19} color="#141414" />
-              </span>
-              <div style={{ minWidth: 0 }}>
-                <div className="tm-display" style={{ color: "#141414", fontSize: 20, lineHeight: 1.05 }}>{soonInfo.name}</div>
-                <div className="tm-lettering" style={{ color: "#141414", fontSize: 15 }}>Bientôt disponible</div>
-              </div>
-            </div>
-            <div style={{ color: "#141414", fontSize: 13, fontWeight: 700, lineHeight: 1.45, marginBottom: 12 }}>{soonInfo.desc}</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 14, color: "#141414" }}>
-              <span className="tm-num" style={{ background: "#ffffff", border: "2px solid " + T.ink, fontSize: 14, fontWeight: 800, padding: "1px 8px" }}>{soonInfo.price}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 700 }}>{soonInfo.priceNote}</span>
-            </div>
-            <button style={styles.btnSecondary} onClick={() => setSoonInfo(null)}>Compris</button>
-          </div>
-        </div>
-      )}
       <div style={styles.menuBg} className="tm-grain">
         <WindowShades />
         <div style={styles.menuCard}>
@@ -3022,11 +3000,11 @@ export default function TennisManager() {
               {slotMetas.some(Boolean) && <span style={{ fontSize: 12, fontWeight: 500 }}>· {slotMetas.filter(Boolean).length} en cours</span>}
             </button>
             {COMING_SOON.map(cs => (
-              <button key={cs.id} style={{ ...styles.btnSecondary, marginBottom: 10, display: "flex", alignItems: "center", gap: 10, textAlign: "left", opacity: 0.85 }} onClick={() => setSoonInfo(cs)}>
+              <div key={cs.id} aria-disabled="true" style={{ ...styles.btnSecondary, boxSizing: "border-box", cursor: "default", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, textAlign: "left", opacity: 0.85 }}>
                 <Icon name={cs.icon} size={16} color={T.amber} />
                 <span style={{ flex: 1 }}>{cs.name}</span>
                 <span className="tm-lettering" style={{ background: "#c9b6ea", color: "#141414", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 14, textTransform: "none", letterSpacing: 0, transform: "rotate(-2deg)" }}>bientôt</span>
-              </button>
+              </div>
             ))}
             <button style={{
               ...styles.btnPrimary, marginTop: 6, marginBottom: 3,

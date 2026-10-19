@@ -35,10 +35,8 @@ export const SHOP_ITEMS = [
 // Modes annoncés dans le menu principal, pas encore en vente (absents de la
 // boutique tant qu'ils ne sont pas prêts).
 export const COMING_SOON = [
-  { id: "coop", icon: "users", name: "Carrière coop", price: "4,99\u00a0€", priceNote: "achat unique",
-    desc: "Menez une carrière à plusieurs : chacun son joueur, le même circuit, les mêmes tournois. Payé une seule fois." },
-  { id: "weekly", icon: "trophy", name: "Défi hebdomadaire", price: "1,99\u00a0€", priceNote: "abonnement mensuel",
-    desc: "Chaque semaine, un nouveau défi joué par tous les abonnés et un classement mondial. Les meilleurs du classement gagnent des cadeaux." },
+  { id: "coop", icon: "users", name: "Carrière coop" },
+  { id: "weekly", icon: "trophy", name: "Défi hebdomadaire" },
 ];
 export const SHOP_STORAGE_KEY = "tm-purchases";
 
