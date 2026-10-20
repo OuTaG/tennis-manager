@@ -3121,8 +3121,12 @@ export default function TennisManager() {
                 const locked = o.id >= 0 && !owned;
                 const on = rosterInput === o.id;
                 return (
-                  <button key={o.id} disabled={locked} onClick={() => setRosterInput(o.id)} style={{
-                    display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", cursor: locked ? "default" : "pointer",
+                  <button key={o.id} onClick={() => {
+                    // Configuration verrouillée : direction la boutique, sur le mode Personnalisation.
+                    if (locked) { openMenuShop("custom_mode"); setScreen("menu"); return; }
+                    setRosterInput(o.id);
+                  }} style={{
+                    display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", cursor: "pointer",
                     background: on ? T.gold : locked ? "#ebe8da" : "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: on ? "4px 4px 0 " + T.ink : locked ? "none" : "2px 2px 0 " + T.ink,
                     padding: "10px 12px", fontFamily: T.body, opacity: locked ? 0.7 : 1,
                   }}>
