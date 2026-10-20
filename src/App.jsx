@@ -4455,7 +4455,7 @@ export default function TennisManager() {
               <BoxShade boxRef={feedBoxRef} side="top" />
               {ms.eventLog.length === 0 && (
                 <div className="tm-lettering" style={{ background: "#ffffff", color: "#141414", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, fontSize: 16, textAlign: "center", padding: 14, margin: "6px 0" }}>
-                  {matchPaused ? "Match en pause · appuyez sur Reprendre pour commencer."
+                  {matchPaused ? <>Match en pause · appuyez sur <span aria-label="Reprendre" style={{ display: "inline-flex", verticalAlign: "-5px", width: 24, height: 24, alignItems: "center", justifyContent: "center", background: T.magenta, color: "#ffffff", border: "2px solid " + T.ink, margin: "0 2px" }}><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor" /></svg></span> pour commencer.</>
                     : startCountdown > 0 ? <>Préparez-vous… début du match dans <strong className="tm-num">{startCountdown}</strong></>
                     : "Premier jeu…"}
                 </div>
