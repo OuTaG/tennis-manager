@@ -1,5 +1,6 @@
 // Base des 1 200 joueurs IA : génération, note, choix d'adversaire.
-import { NAMES_REAL_TOP50, NAMES_REAL_WTA_TOP50, NATIONALITIES, NAT_BY_CODE } from "../data/names.js";
+import { NATIONALITIES, NAT_BY_CODE } from "../data/names.js";
+import { REAL_ATP_TOP200, REAL_WTA_TOP200 } from "../data/realPlayers.js";
 import { PLAYER_STYLES } from "../data/staff.js";
 import { isWTA } from "./circuit.js";
 import { generateName, pickNationality } from "./names.js";
@@ -10,7 +11,7 @@ import { random } from "./rng.js";
 // dans le top 100 pour que les écarts de note donnent des probabilités de
 // victoire réalistes avec le moteur service/retour :
 //   n°1 vs n°2 ≈ 55 % · n°1 vs n°10 ≈ 80 % · n°10 vs n°50 ≈ 75-80 % · n°50 vs n°100 ≈ 60-65 %
-// Les deux premiers (Sinterm / Alcázar) restent un cran au-dessus du reste.
+// Les deux premiers restent un cran au-dessus du reste.
 export function atpRatingForRank(i) {
   const rank = i + 1;
   const jitter = amp => (random() * 2 - 1) * amp;
@@ -26,48 +27,24 @@ export function atpRatingForRank(i) {
 // noms, nationalités et portraits à chaque carrière ; sinon base standard.
 export function generateAtpDatabase(roster = null) {
   const players = [];
-  // The NAMES_REAL_TOP50 ages are accurate as of 2024 — game starts in 2026,
-  // so we offset all real players by 2 years.
-  // Circuit WTA : top 50 féminin, âges déjà à jour pour 2026.
-  const wta = isWTA();
-  const REAL_AGE_OFFSET = wta ? 0 : 2;
-  const TOP50 = wta ? NAMES_REAL_WTA_TOP50 : NAMES_REAL_TOP50;
-  for (let i = 0; i < 50; i++) {
-    const realPlayer = roster ? roster[i] : TOP50[i];
-    const nat = roster ? roster[i].nat : (NAT_BY_CODE[realPlayer.code] || NATIONALITIES[0]);
-    // Realistic points distribution: top 2 (Sinner/Alcaraz) much stronger than rest
-    let points;
-    if (wta) {
-      // Répartition WTA : n°1 loin devant, peloton plus resserré derrière.
-      if (i === 0) points = 10500 + Math.floor(random() * 200);
-      else if (i === 1) points = 8000 + Math.floor(random() * 200);
-      else if (i === 2) points = 6900 + Math.floor(random() * 150);
-      else if (i === 3) points = 6200 + Math.floor(random() * 150);
-      else if (i === 4) points = 5800 + Math.floor(random() * 100);
-      else if (i < 10) points = Math.round(5200 - (i - 5) * 330 + random() * 100);
-      else if (i < 20) points = Math.round(3400 - (i - 10) * 140 + random() * 80);
-      else if (i < 30) points = Math.round(2000 - (i - 20) * 60 + random() * 80);
-      else points = Math.round(1400 - (i - 30) * 25 + random() * 60);
-    }
-    else if (i === 0) points = 11830 + Math.floor(random() * 200);          // ~12000
-    else if (i === 1) points = 8580 + Math.floor(random() * 200);      // ~8700
-    else if (i === 2) points = 5100 + Math.floor(random() * 200);      // ~5200
-    else if (i < 10) points = Math.round(4400 - (i - 3) * 250 + random() * 150);
-    else if (i < 20) points = Math.round(2800 - (i - 10) * 80 + random() * 100);
-    else if (i < 30) points = Math.round(2000 - (i - 20) * 60 + random() * 80);
-    else points = Math.round(1400 - (i - 30) * 25 + random() * 60);
-    // Note de niveau calée sur le moteur de match (voir atpRatingForRank).
-    const ratingBase = atpRatingForRank(i);
-    const age = (TOP50[i] && TOP50[i].age) + REAL_AGE_OFFSET;
-    players.push(makeAtpPlayer(realPlayer.name, nat, points, ratingBase, undefined, age));
+  // Top 200 réel : noms (modifiés), âges et points réels, style connu pour
+  // les meilleurs. La note de niveau suit le rang (atpRatingForRank).
+  const TOP = isWTA() ? REAL_WTA_TOP200 : REAL_ATP_TOP200;
+  for (let i = 0; i < TOP.length; i++) {
+    const real = TOP[i];
+    const name = roster ? roster[i].name : real.name;
+    const nat = roster ? roster[i].nat : (NAT_BY_CODE[real.code] || NATIONALITIES[0]);
+    players.push(makeAtpPlayer(name, nat, real.points, atpRatingForRank(i), undefined, real.age, real.style));
     if (roster && roster[i].avatar) players[players.length - 1].avatar = roster[i].avatar;
   }
-  for (let i = 50; i < 1200; i++) {
+  for (let i = TOP.length; i < 1200; i++) {
     const nat = roster ? roster[i].nat : pickNationality();
     const name = roster ? roster[i].name : generateName(nat);
     let points;
-    if (i < 100) points = Math.round(1100 - (i - 50) * 12 + random() * 50);
-    else if (i < 250) points = Math.round(500 - (i - 100) * 1.8 + random() * 30);
+    // Après le top 200 réel : raccord progressif depuis les points du 200e
+    // jusqu'au barème du 250e (~230 pts).
+    const lastReal = TOP[TOP.length - 1].points;
+    if (i < 250) points = Math.round(lastReal - 2 - (lastReal - 232) * (i - TOP.length) / (250 - TOP.length) + random() * 4);
     else if (i < 500) points = Math.round(230 - (i - 250) * 0.55 + random() * 20);
     else if (i < 800) points = Math.round(95 - (i - 500) * 0.18 + random() * 10);
     else if (i < 1000) points = Math.max(5, Math.round(40 - (i - 800) * 0.045 + random() * 6));
@@ -81,9 +58,10 @@ export function generateAtpDatabase(roster = null) {
   return players;
 }
 
-export function makeAtpPlayer(name, nat, points, ratingBase, startYear, ageOverride) {
+export function makeAtpPlayer(name, nat, points, ratingBase, startYear, ageOverride, styleOverride) {
   const styleKeys = Object.keys(PLAYER_STYLES);
-  const style = styleKeys[Math.floor(random() * styleKeys.length)];
+  const randomStyle = styleKeys[Math.floor(random() * styleKeys.length)];
+  const style = PLAYER_STYLES[styleOverride] ? styleOverride : randomStyle;
   const styleBase = PLAYER_STYLES[style].base;
   const ratingShift = ratingBase - 50;
   const stats = {

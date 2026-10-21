@@ -5,7 +5,8 @@
 // (mêmes 1 200 noms et nationalités à chaque fois, par circuit) et ne
 // stockent que les modifications : { index: { name?, code?, avatar? } }.
 // Les points et les stats restent tirés à chaque carrière.
-import { NAMES_REAL_TOP50, NAMES_REAL_WTA_TOP50, NAT_BY_CODE } from "../data/names.js";
+import { NAT_BY_CODE } from "../data/names.js";
+import { REAL_ATP_TOP200, REAL_WTA_TOP200 } from "../data/realPlayers.js";
 import { CIRCUIT, setCircuit } from "./circuit.js";
 import { generateName, pickNationality } from "./names.js";
 import { getRngState, setRngState, setSeed } from "./rng.js";
@@ -24,7 +25,7 @@ export function baseRoster(circuit) {
   const saved = getRngState(), savedCircuit = CIRCUIT;
   setCircuit(c);
   setSeed(BASE_SEEDS[c]);
-  const top = c === "wta" ? NAMES_REAL_WTA_TOP50 : NAMES_REAL_TOP50;
+  const top = c === "wta" ? REAL_WTA_TOP200 : REAL_ATP_TOP200;
   const out = [];
   for (let i = 0; i < ROSTER_SIZE; i++) {
     if (i < top.length) out.push({ name: top[i].name, code: top[i].code });

@@ -1,115 +1,5 @@
-// Top 50 réels (noms modifiés), listes de prénoms/noms, nationalités.
-
-// ─── NAME GENERATORS ───────────────────────────────────────────────────────────
-// Real top 50 players with their actual nationality codes
-// Order matters: index 0 = world #1, etc. (Sinner & Alcaraz are MUCH stronger)
-export const NAMES_REAL_TOP50 = [
-  { name: "J. Sinterm", code: "it", age: 22 },             // 1
-  { name: "C. Alcázar", code: "es", age: 20 },             // 2
-  { name: "A. Zwerev", code: "de", age: 26 },              // 3
-  { name: "D. Medvedov", code: "rus", age: 27 },           // 4
-  { name: "T. Frisk", code: "us", age: 26 },               // 5
-  { name: "C. Ruus", code: "no", age: 25 },                // 6
-  { name: "N. Djokic", code: "srb", age: 36 },             // 7
-  { name: "A. Rublyov", code: "rus", age: 26 },            // 8
-  { name: "G. Dimitrev", code: "bg", age: 32 },            // 9
-  { name: "S. Tsitsipan", code: "gr", age: 25 },           // 10
-  { name: "H. Runne", code: "dk", age: 20 },               // 11
-  { name: "U. Humblot", code: "fr", age: 25 },             // 12
-  { name: "B. Sheltan", code: "us", age: 21 },             // 13
-  { name: "T. Pauls", code: "us", age: 26 },               // 14
-  { name: "F. Tiafol", code: "us", age: 25 },              // 15
-  { name: "F. Auger-Alassime", code: "ca", age: 23 },      // 16
-  { name: "K. Khatchanov", code: "rus", age: 27 },         // 17
-  { name: "S. Korba", code: "us", age: 23 },               // 18
-  { name: "A. de Minoor", code: "au", age: 24 },           // 19
-  { name: "L. Musetri", code: "it", age: 21 },             // 20
-  { name: "T. Machac", code: "cz", age: 23 },              // 21
-  { name: "J. Lehocka", code: "cz", age: 22 },             // 22
-  { name: "F. Cerundano", code: "arg", age: 25 },          // 23
-  { name: "A. Davidovich Fontana", code: "es", age: 24 },  // 24
-  { name: "T. Griekspaar", code: "nl", age: 27 },          // 25
-  { name: "M. Berrettino", code: "it", age: 27 },          // 26
-  { name: "A. Mannorino", code: "fr", age: 35 },           // 27
-  { name: "B. Nakishima", code: "us", age: 22 },           // 28
-  { name: "D. Lajavic", code: "srb", age: 33 },            // 29
-  { name: "M. Arnaldi", code: "it", age: 22 },             // 30
-  { name: "P. Carreño Bueno", code: "es", age: 32 },       // 31
-  { name: "A. Bublak", code: "kz", age: 26 },              // 32
-  { name: "F. Coráia", code: "arg", age: 31 },             // 33
-  { name: "J. Munoz", code: "es", age: 26 },               // 34
-  { name: "Y. Hanfman", code: "de", age: 32 },             // 35
-  { name: "A. Vukar", code: "au", age: 27 },               // 36
-  { name: "M. Kecmanic", code: "srb", age: 24 },           // 37
-  { name: "S. Baéz", code: "arg", age: 22 },               // 38
-  { name: "R. Bautista Aput", code: "es", age: 35 },       // 39
-  { name: "M. Cilac", code: "hr", age: 35 },               // 40
-  { name: "G. Mpetshi Perraud", code: "fr", age: 20 },     // 41
-  { name: "F. Marozán", code: "hu", age: 23 },             // 42
-  { name: "Z. Borgs", code: "be", age: 24 },               // 43
-  { name: "T. Kokkinaks", code: "au", age: 27 },           // 44
-  { name: "L. Tienn", code: "us", age: 18 },               // 45
-  { name: "M. Fucsavics", code: "hu", age: 32 },           // 46
-  { name: "F. Coballi", code: "it", age: 21 },             // 47
-  { name: "A. Mullor", code: "fr", age: 26 },              // 48
-  { name: "C. Norrey", code: "uk", age: 28 },              // 49
-  { name: "M. McDonell", code: "us", age: 28 },            // 50
-];
-
-// ─── WTA : TOP 50 RÉEL (noms modifiés) ───────────────────────────────────────
-// Classement WTA réel de début 2026, âges en 2026 (pas de décalage).
-export const NAMES_REAL_WTA_TOP50 = [
-  { name: "A. Sabalenko", code: "by", age: 28 },          // 1
-  { name: "I. Swiatak", code: "pl", age: 25 },            // 2
-  { name: "C. Gauffe", code: "us", age: 22 },             // 3
-  { name: "A. Anisimava", code: "us", age: 25 },          // 4
-  { name: "E. Rybakova", code: "kz", age: 27 },           // 5
-  { name: "J. Pegola", code: "us", age: 32 },             // 6
-  { name: "M. Kees", code: "us", age: 31 },               // 7
-  { name: "J. Paolina", code: "it", age: 30 },            // 8
-  { name: "M. Andreyeva", code: "rus", age: 19 },         // 9
-  { name: "E. Alexandrava", code: "rus", age: 31 },       // 10
-  { name: "B. Bencik", code: "ch", age: 29 },             // 11
-  { name: "E. Svitolena", code: "ua", age: 32 },          // 12
-  { name: "C. Tausen", code: "dk", age: 24 },             // 13
-  { name: "L. Noskava", code: "cz", age: 22 },            // 14
-  { name: "K. Muchava", code: "cz", age: 30 },            // 15
-  { name: "E. Navaro", code: "us", age: 25 },             // 16
-  { name: "L. Samsanova", code: "rus", age: 27 },         // 17
-  { name: "V. Mboka", code: "ca", age: 20 },              // 18
-  { name: "N. Osaki", code: "jp", age: 29 },              // 19
-  { name: "E. Mertins", code: "be", age: 31 },            // 20
-  { name: "D. Kasatkine", code: "au", age: 29 },          // 21
-  { name: "D. Shnaidar", code: "rus", age: 22 },          // 22
-  { name: "J. Ostapanko", code: "lv", age: 29 },          // 23
-  { name: "B. Krejcikava", code: "cz", age: 30 },         // 24
-  { name: "M. Kostyak", code: "ua", age: 24 },            // 25
-  { name: "P. Badossa", code: "es", age: 28 },            // 26
-  { name: "L. Fernándes", code: "ca", age: 24 },          // 27
-  { name: "Q. Zhen", code: "cn", age: 24 },               // 28
-  { name: "B. Haddad Maya", code: "br", age: 30 },        // 29
-  { name: "I. Jovik", code: "us", age: 19 },              // 30
-  { name: "S. Kenen", code: "us", age: 28 },              // 31
-  { name: "E. Raducana", code: "uk", age: 24 },           // 32
-  { name: "M. Joynt", code: "au", age: 20 },              // 33
-  { name: "M. Vondrasova", code: "cz", age: 27 },         // 34
-  { name: "A. Kalinskaïa", code: "rus", age: 28 },        // 35
-  { name: "V. Kudermetava", code: "rus", age: 29 },       // 36
-  { name: "L. Boissin", code: "fr", age: 23 },            // 37
-  { name: "M. Frach", code: "pl", age: 28 },              // 38
-  { name: "J. Cristiane", code: "ro", age: 28 },          // 39
-  { name: "A. Lee", code: "us", age: 26 },                // 40
-  { name: "M. Kessner", code: "us", age: 27 },            // 41
-  { name: "E. Cocciaretti", code: "it", age: 25 },        // 42
-  { name: "S. Cirstia", code: "ro", age: 36 },            // 43
-  { name: "D. Yastremskaïa", code: "ua", age: 26 },       // 44
-  { name: "Y. Putintsiva", code: "kz", age: 31 },         // 45
-  { name: "A. Potapava", code: "at", age: 25 },           // 46
-  { name: "D. Vekik", code: "hr", age: 30 },              // 47
-  { name: "C. Osario", code: "co", age: 25 },             // 48
-  { name: "P. Stearn", code: "us", age: 25 },             // 49
-  { name: "T. Mariah", code: "de", age: 39 },             // 50
-];
+// Listes de prénoms/noms et nationalités (le top 200 réel est dans
+// data/realPlayers.js).
 
 // Pays supplémentaires du circuit féminin (prénoms / noms déjà au féminin).
 export const WTA_EXTRA_NAME_LISTS = {
@@ -360,4 +250,30 @@ export const NAT_BY_CODE = {
   co:  { code: "co",  country: "Colombie",        flag: "🇨🇴" },
   at:  { code: "at",  country: "Autriche",        flag: "🇦🇹" },
   sk:  { code: "sk",  country: "Slovaquie",       flag: "🇸🇰" },
+  // Top 200 réel (data/realPlayers.js)
+  mc:  { code: "mc",  country: "Monaco",          flag: "🇲🇨" },
+  pe:  { code: "pe",  country: "Pérou",           flag: "🇵🇪" },
+  cl:  { code: "cl",  country: "Chili",           flag: "🇨🇱" },
+  py:  { code: "py",  country: "Paraguay",        flag: "🇵🇾" },
+  pt:  { code: "pt",  country: "Portugal",        flag: "🇵🇹" },
+  ba:  { code: "ba",  country: "Bosnie-Herzégovine", flag: "🇧🇦" },
+  hk:  { code: "hk",  country: "Hong Kong",       flag: "🇭🇰" },
+  za:  { code: "za",  country: "Afrique du Sud",  flag: "🇿🇦" },
+  fi:  { code: "fi",  country: "Finlande",        flag: "🇫🇮" },
+  ge:  { code: "ge",  country: "Géorgie",         flag: "🇬🇪" },
+  bo:  { code: "bo",  country: "Bolivie",         flag: "🇧🇴" },
+  lt:  { code: "lt",  country: "Lituanie",        flag: "🇱🇹" },
+  ee:  { code: "ee",  country: "Estonie",         flag: "🇪🇪" },
+  lu:  { code: "lu",  country: "Luxembourg",      flag: "🇱🇺" },
+  kr:  { code: "kr",  country: "Corée du Sud",    flag: "🇰🇷" },
+  ph:  { code: "ph",  country: "Philippines",     flag: "🇵🇭" },
+  id:  { code: "id",  country: "Indonésie",       flag: "🇮🇩" },
+  eg:  { code: "eg",  country: "Égypte",          flag: "🇪🇬" },
+  th:  { code: "th",  country: "Thaïlande",       flag: "🇹🇭" },
+  tr:  { code: "tr",  country: "Turquie",         flag: "🇹🇷" },
+  uz:  { code: "uz",  country: "Ouzbékistan",     flag: "🇺🇿" },
+  mx:  { code: "mx",  country: "Mexique",         flag: "🇲🇽" },
+  am:  { code: "am",  country: "Arménie",         flag: "🇦🇲" },
+  si:  { code: "si",  country: "Slovénie",        flag: "🇸🇮" },
+  tw:  { code: "tw",  country: "Taïwan",          flag: "🇹🇼" },
 };
