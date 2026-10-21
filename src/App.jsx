@@ -102,6 +102,45 @@ function buildSponsorSlate(p, rankingNow, perfBonus, year, week) {
   return slate;
 }
 
+// Tableau du tournoi retiré de la copie du match en cours (repris de
+// l'avant-match à la restauration).
+function stripBracket(st) {
+  const { bracketParticipants, bracketOpponents, ...light } = st;
+  return light;
+}
+
+// Score d'un point en cases joueur / adversaire pour le tableau d'affichage.
+// Sur le point décisif « JEU », seule la ligne du vainqueur l'affiche.
+function splitLabel(label, winner, prevP, prevO) {
+  if (!label) return { p: "0", o: "0" };
+  if (label === "JEU") {
+    return winner === "p"
+      ? { p: "JEU", o: prevO || "—" }
+      : { p: prevP || "—", o: "JEU" };
+  }
+  if (label === "ÉGALITÉ") return { p: "40", o: "40" };
+  if (label === "AV. JOUEUR") return { p: "AV", o: "—" };
+  if (label === "AV. ADV.") return { p: "—", o: "AV" };
+  const [a, b] = label.split("-");
+  return { p: a, o: b };
+}
+
+// Points à animer d'un jeu décidé : après un mini-jeu, seuls les points
+// restants (le point du mini-jeu est déjà affiché : JEU ou ÉGALITÉ).
+function gamePoints(G) {
+  const all = G.points;
+  const rf = G.r.resumeFrom;
+  return { points: rf ? all.slice(rf + 1) : all, resumeLabel: rf ? all[rf] : null };
+}
+
+// Score affiché après les k premiers points animés d'un jeu décidé.
+function livePointAt(G, k) {
+  const { points, resumeLabel } = gamePoints(G);
+  let cur = resumeLabel ? splitLabel(resumeLabel.label, resumeLabel.winner, "40", "40") : { p: "0", o: "0" };
+  for (let i = 0; i < k && i < points.length; i++) cur = splitLabel(points[i].label, points[i].winner, cur.p, cur.o);
+  return cur;
+}
+
 // Identifiant du point de reprise d'un tournoi (avant-match ou entre deux
 // matchs) : change à chaque match joué.
 function resumeKeyOf(snap) {
@@ -391,12 +430,17 @@ export default function TennisManager() {
   // Lié au point de reprise du tournoi (resumeKey) : ignoré s'il ne
   // correspond plus à la sauvegarde principale.
   const liveSavedRef = useRef("");
-  const writeLiveMatch = (st) => {
+  const replayRef = useRef(null); // jeu interrompu à rejouer : { G, step }
+  // extra = { game, step } pendant l'animation d'un jeu : st est alors l'état
+  // d'avant le jeu, game le jeu décidé et step le nombre de points montrés.
+  const writeLiveMatch = (st, extra) => {
     try {
       // Le tableau du tournoi (~200 Ko) ne change pas pendant un match : il
       // est repris de l'avant-match de la sauvegarde principale.
-      const { bracketParticipants, bracketOpponents, ...light } = st;
-      const raw = JSON.stringify({ key: resumeKeyOf(lastResumeRef.current), state: light });
+      const light = stripBracket(st);
+      const payload = { key: resumeKeyOf(lastResumeRef.current), state: light };
+      if (extra) { payload.game = { ...extra.game, committedState: stripBracket(extra.game.committedState) }; payload.step = extra.step; }
+      const raw = JSON.stringify(payload);
       if (raw === liveSavedRef.current) return;
       localStorage.setItem(liveKeyFor(slotRef.current), raw);
       liveSavedRef.current = raw;
@@ -413,7 +457,7 @@ export default function TennisManager() {
     if (ms.finalResult || ms.phase !== "live" || !lastResumeRef.current) { clearLiveMatch(); return; }
     const started = (ms.eventLog || []).length > 0 || ms.matchData.sets.some(st => st.gameLog.length > 0);
     // Jeu en cours d'animation : son état final est déjà écrit (playGame).
-    if (started && !pendingCommitRef.current) writeLiveMatch(ms);
+    if (started && !pendingCommitRef.current && !replayRef.current) writeLiveMatch(ms);
   }, [matchState]);
   useEffect(() => {
     if (!player || !atpDb || screen === "menu" || screen === "create") return;
@@ -532,12 +576,24 @@ export default function TennisManager() {
         // Match quitté en cours : reprise au point près (en pause).
         let live = null;
         try { live = JSON.parse(localStorage.getItem(liveKeyFor(slotIdx)) || "null"); } catch (e) {}
+        replayRef.current = null;
         if (live && live.state && live.key === resumeKeyOf(data.resume)) {
           liveSavedRef.current = JSON.stringify(live);
           // Le point de reprise du tournoi reste l'avant-match de ce match.
           lastResumeRef.current = data.resume;
           setPausedBoth(true);
-          setMatchState({ ...live.state, bracketParticipants: data.resume.bracketParticipants, bracketOpponents: data.resume.bracketOpponents });
+          const withBracket = (st) => ({ ...st, bracketParticipants: data.resume.bracketParticipants, bracketOpponents: data.resume.bracketOpponents });
+          setMatchState(withBracket(live.state));
+          // Jeu interrompu : il reprendra au point près (▶), score du point affiché.
+          if (live.game) {
+            const G = { ...live.game, committedState: withBracket(live.game.committedState) };
+            const step = live.step || 0;
+            replayRef.current = { G, step };
+            const lp = livePointAt(G, step);
+            const { points } = gamePoints(G);
+            const pt = points[Math.min(step, points.length - 1)];
+            setLivePoint({ p: lp.p, o: lp.o, server: pt ? !!pt.servingPlayer : !!G.r.isPlayerServing });
+          }
         } else {
           setMatchState(data.resume);
         }
@@ -602,6 +658,7 @@ export default function TennisManager() {
     setRallyAnim(null);
     setLivePoint(null);
     if (pendingCommitRef.current) pendingCommitRef.current = null;
+    replayRef.current = null;
     setActiveTab("hub");
     setCircuit("atp");
     refreshSlots();
@@ -1740,6 +1797,13 @@ export default function TennisManager() {
       pendingCommitRef.current();
       return;
     }
+    // Match repris : le jeu interrompu se rejoue au point près.
+    if (replayRef.current) {
+      const { G, step } = replayRef.current;
+      replayRef.current = null;
+      animateGame(G, step, matchState);
+      return;
+    }
     const ms = matchState;
     if (!ms || ms.matchData.matchComplete) return;
 
@@ -1850,7 +1914,6 @@ export default function TennisManager() {
       fixOffered,
       lastResolveMsg: null,
     };
-    writeLiveMatch(committedState);
 
     // ── Animation context label ──────────────────────────────────────────
     // Score BEFORE this game (games in the current set, set count).
@@ -1867,27 +1930,20 @@ export default function TennisManager() {
     }
 
     const allPoints = result.points && result.points.length ? result.points : [{ winner: result.gameType && /won|break|hold|rebreak/.test(result.gameType) ? "p" : "o", kind: "winner", rallies: 3, label: "JEU", servingPlayer: !!result.isPlayerServing }];
-    // Jeu repris après un mini-jeu : on n'anime que les points restants.
-    // (le point du mini-jeu est déjà affiché : JEU ou ÉGALITÉ).
-    const points = result.resumeFrom ? allPoints.slice(result.resumeFrom + 1) : allPoints;
-    const resumeLabel = result.resumeFrom ? allPoints[result.resumeFrom] : null;
-
-    // Decompose a point label into per-player cells for the scoreboard.
-    // For the deciding "JEU" label, show it only on the winner's line so the
-    // loser's line stays at their last score-letter.
-    const splitLabel = (label, winner, prevP, prevO) => {
-      if (!label) return { p: "0", o: "0" };
-      if (label === "JEU") {
-        return winner === "p"
-          ? { p: "JEU", o: prevO || "—" }
-          : { p: prevP || "—", o: "JEU" };
-      }
-      if (label === "ÉGALITÉ") return { p: "40", o: "40" };
-      if (label === "AV. JOUEUR") return { p: "AV", o: "—" };
-      if (label === "AV. ADV.") return { p: "—", o: "AV" };
-      const [a, b] = label.split("-");
-      return { p: a, o: b };
+    // Jeu décidé : tous ses points sont connus. Il est animé point par point
+    // (et rejouable au point près après une fermeture de l'app).
+    const G = {
+      committedState,
+      points: allPoints,
+      r: { resumeFrom: result.resumeFrom || 0, setComplete: !!result.setComplete, isTiebreak: !!result.isTiebreak, tbTarget: result.tbTarget, isPlayerServing: !!result.isPlayerServing },
     };
+    animateGame(G, 0, ms);
+  };
+  // Anime un jeu décidé (G), à partir du point startStep ; pre = l'état du
+  // match avant ce jeu (sauvegardé avec G pour reprendre au point près).
+  const animateGame = (G, startStep, pre) => {
+    const { committedState, r: result } = G;
+    const { points, resumeLabel } = gamePoints(G);
 
     // Build the shared commit function used by both modes. Calling it again
     // (e.g. user clicking the button mid-simulation) skips to the end.
@@ -1920,7 +1976,7 @@ export default function TennisManager() {
     if (autoTimerRef.current) { clearTimeout(autoTimerRef.current); autoTimerRef.current = null; }
     const scheduleAuto = () => {
       if (matchModeRef.current === "manual") return;
-      if (committedState.pendingDilemma || m.matchComplete) return; // stop on events / end
+      if (committedState.pendingDilemma || committedState.matchData.matchComplete) return; // stop on events / end
       if (matchPausedRef.current) return; // match en pause
       autoTimerRef.current = setTimeout(() => {
         autoTimerRef.current = null;
@@ -1929,10 +1985,13 @@ export default function TennisManager() {
     };
     const commitAndMaybeContinue = () => { commitNow(); scheduleAuto(); };
     pendingCommitRef.current = commitAndMaybeContinue;
-    const startSplit = resumeLabel ? splitLabel(resumeLabel.label, resumeLabel.winner, "40", "40") : { p: "0", o: "0" };
-    setLivePoint({ ...startSplit, server: serverAt(0) });
-    let step = 0;
-    let prevP = startSplit.p, prevO = startSplit.o;
+    // Reprise au point près : les points déjà montrés sont repris tels quels.
+    const start = livePointAt(G, startStep);
+    setLivePoint({ p: start.p, o: start.o, server: serverAt(startStep) });
+    let step = startStep;
+    let prevP = start.p, prevO = start.o;
+    const saveStep = () => writeLiveMatch(pre, { game: G, step });
+    saveStep();
     // Super tie-break (10 points): slower points to build suspense.
     // Speed: x2 = reference pace (also used in manual). x1 = everything twice
     // as slow. x4 = twice as fast, except tie-break points which keep their pace.
@@ -1959,6 +2018,7 @@ export default function TennisManager() {
       }
       prevP = split.p; prevO = split.o;
       step++;
+      saveStep();
       const id = setTimeout(runStep, stepDur);
       livePointTimersRef.current.push(id);
     };
