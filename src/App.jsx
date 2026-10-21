@@ -4617,6 +4617,7 @@ export default function TennisManager() {
                 <div style={{ flex: 1 }} />
                 <MatchMiniGame
                   kind={ms.pendingDilemma.minigame}
+                  surface={ms.tournament && ms.tournament.surface}
                   oppName={ms.opponent.name}
                   oppStats={ms.opponent.stats}
                   myStats={player.stats}

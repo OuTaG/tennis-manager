@@ -10,6 +10,14 @@ const BALL = "#d6ef3c";
 const PURPLE = "#5b2d8e";
 const LILAC = "#c9b6ea";
 const GRASS = "#1f7a45";
+// Couleurs du court des duels selon la surface du tournoi : { fond, carrés de
+// service }. Assez sombres pour les lignes blanches, la balle jaune et les noms.
+const COURT_COLORS = {
+  Gazon: ["#1f7a45", "#2f9a5c"],
+  "Terre battue": ["#a8492a", "#c25a35"],
+  Dur: ["#1f4f8a", "#2d66a8"],
+  Indoor: ["#3f3a78", "#544d96"],
+};
 
 function Sfx({ children, color = BALL }) {
   return (
@@ -202,7 +210,8 @@ export function buildDuelSteps(r) {
 // onDone(win, text, zone, label) : appelé quand le joueur clique « Continuer ».
 // onDecided(res) : appelé dès que l'issue est connue, avant l'animation
 // (le match l'enregistre pour qu'un rechargement ne permette pas de rejouer).
-export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, myMental, onDone, onDecided }) {
+export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, myMental, surface, onDone, onDecided }) {
+  const [courtBg, courtBox] = COURT_COLORS[surface] || COURT_COLORS.Gazon;
   const [res, setResState] = useState(null);
   const setRes = (r) => { setResState(r); if (r && onDecided) onDecided(r); };
   const [phase, setPhase] = useState("pick"); // pick → play → reveal
@@ -289,9 +298,9 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
         : kind === "smash"
         ? <SmashGauge done={!!res} onHit={(precision) => { setRes({ ...smashResult(precision), zone: null }); setPhase("reveal"); }} />
         : (
-          <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, maxHeight: "56vh", alignSelf: "center", background: GRASS, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, overflow: "hidden" }}>
+          <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, maxHeight: "56vh", alignSelf: "center", background: courtBg, border: "3px solid " + INK, boxShadow: "5px 5px 0 " + INK, overflow: "hidden" }}>
             <svg viewBox={"0 0 " + VW + " " + VH} width="100%" height="100%" preserveAspectRatio="none" aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
-              <rect x={BOX.x} y={BOX.y} width={BOX.w} height={BOX.h} fill="#2f9a5c" />
+              <rect x={BOX.x} y={BOX.y} width={BOX.w} height={BOX.h} fill={courtBox} />
               <path d="M16 16 L344 16 L344 404 L16 404 Z M40 16 L40 404 M320 16 L320 404 M40 112 L320 112 M40 308 L320 308 M180 112 L180 308" fill="none" stroke="#ffffff" strokeWidth="4" />
               <path d={"M4 " + NET_Y + " L356 " + NET_Y} stroke={INK} strokeWidth="7" />
               <path d={"M4 " + NET_Y + " L356 " + NET_Y} stroke="#ffffff" strokeWidth="2" strokeDasharray="6 5" />
