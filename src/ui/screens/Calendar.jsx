@@ -216,7 +216,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                       <div style={{ color: "#141414", fontSize: 12, fontWeight: 700, marginTop: 4 }}>
                         <SurfaceIcon name={t.surface} /> {t.surface}
                         {player.favoriteSurface === t.surface && (
-                          <span style={{ display: "inline-block", background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, fontSize: 10, lineHeight: 1.3, fontWeight: 800, padding: "0 3px", marginLeft: 5 }} title="Votre surface de prédilection">★</span>
+                          <span style={{ display: "inline-block", background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, fontSize: 10, lineHeight: 1.3, fontWeight: 800, padding: "0 4px", marginLeft: 5 }} title="Votre surface de prédilection">★ votre surface</span>
                         )}
                         <span style={{ color: "#141414", margin: "0 6px" }}>·</span>
                         <FlagFromEmoji emoji={cityInfo?.flag} /> {t.city}{cityInfo?.country ? ", " + cityInfo.country : ""}
@@ -232,7 +232,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                       <span className="tm-num">{t.points}</span> PTS
                     </span>
                     <span style={styles.tournChip}>
-                      Draw <span className="tm-num">{fmt.drawSize}</span>
+                      Tableau de <span className="tm-num">{fmt.drawSize}</span>
                     </span>
                     {!onSite && (
                       <span style={{ ...styles.tournChip, background: "#ffffff", color: "#c4302b", fontWeight: 800 }}>
@@ -258,7 +258,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                   )}
                   {entry.status === "blocked" && (
                     <div style={{ display: "inline-block", background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, marginBottom: 10, fontWeight: 800, padding: "1px 6px" }}>
-                      <Icon name="x" size={11} color="#ffffff" /> {entry.banned ? entry.reason : "Classement insuffisant"}
+                      <Icon name="x" size={11} color="#ffffff" /> {entry.reason}
                     </div>
                   )}
                   {isCurrentWeek && !onSite && <div style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content", background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px", marginBottom: 10 }}><Icon name="x" size={11} color="#ffffff" /> Vous devez être à {t.city}</div>}

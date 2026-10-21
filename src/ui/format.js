@@ -5,6 +5,13 @@ import { ALL_TOURNAMENTS, getTournamentFormat } from "../engine/circuit.js";
 // aussi aux textes générés, réexportés ici pour l'UI.
 export { fmtNum, fmtDec, fmtMoney, fmtMoneyShort, fmtKm, fmtStatDelta, STAT_DECIMALS, NBSP, NNBSP, MINUS } from "../engine/text.js";
 
+// Rang du joueur, affiché de la même façon partout : « #1165 » dès qu'il a
+// des points (1 200 classés par circuit), sinon « NC » / « Non classé »
+// (accordé au féminin par la couche WTA).
+export function rankText(rank, short = false) {
+  return rank && rank <= 1200 ? "#" + rank : (short ? "NC" : "Non classé");
+}
+
 // Premium SVG line chart with gradient area, dots, and smooth curve
 // Round in which a history match was PLAYED (a quarter-final loss is a
 // "Quarts", a round-of-16 win is a "8es"). Older saves stored the round

@@ -1,7 +1,8 @@
 // Écran Circuit › Voyages.
 import { useState, useEffect, useMemo, useRef } from "react";
 import { CITIES } from "../../data/geo.js";
-import { distanceKm, travelCostBetween } from "../../engine/travel.js";
+import { ALL_TOURNAMENTS } from "../../engine/circuit.js";
+import { distanceKm, travelCostBetween, travelEnergyCost } from "../../engine/travel.js";
 import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
@@ -12,6 +13,12 @@ export function TravelScreen({ player, travelTo, initialSearch = "", onSearchUse
   // Recherche pré-remplie (fenêtre de forfait) : consommée une seule fois.
   useEffect(() => { if (initialSearch && onSearchUsed) onSearchUsed(); }, []);
   const [continent, setContinent] = useState("all");
+  // Voyage à confirmer (un billet ne part jamais d'un seul toucher).
+  const [confirmCity, setConfirmCity] = useState(null);
+  const askTravel = (name) => setConfirmCity(name);
+  // Ville du prochain tournoi où le joueur est inscrit, si ce n'est pas ici.
+  const nextT = player.enrollment ? ALL_TOURNAMENTS.find(t => t.id === player.enrollment.tournamentId) : null;
+  const nextCity = nextT && nextT.city !== player.location && CITIES[nextT.city] ? nextT.city : null;
 
   // Continent grouping based on rough lat/lon
   const continentOf = (lat, lon) => {
@@ -122,6 +129,24 @@ export function TravelScreen({ player, travelTo, initialSearch = "", onSearchUse
         <span className="tm-lettering" style={{ background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, padding: "2px 7px", fontSize: 12.5, textAlign: "center", lineHeight: 1.15 }}>30 € + 0,18 €/km</span>
       </div>
 
+      {/* Prochain tournoi : la ville à rejoindre, en tête de liste */}
+      {nextCity && (
+        <div style={{ background: "#d6ef3c", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, padding: "10px 12px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase" }}>Votre prochain tournoi</div>
+            <div className="tm-display" style={{ fontSize: 16, lineHeight: 1.1, display: "flex", alignItems: "center", gap: 6 }}>
+              <FlagFromEmoji emoji={CITIES[nextCity].flag} size={14} />{nextCity}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 2 }}>{nextT.name} · semaine {nextT.week}</div>
+          </div>
+          <button
+            style={{ ...styles.btnSmall, background: player.money >= travelCostBetween(player.location, nextCity) ? "#1f7a45" : "#ffffff", color: player.money >= travelCostBetween(player.location, nextCity) ? "#ffffff" : "#141414", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontFamily: T.display, fontSize: 14, flexShrink: 0 }}
+            disabled={player.money < travelCostBetween(player.location, nextCity)}
+            onClick={() => askTravel(nextCity)}
+          >Y aller · {fmtMoney(travelCostBetween(player.location, nextCity))}</button>
+        </div>
+      )}
+
       <input
         type="text"
         placeholder="Rechercher une ville ou un pays..."
@@ -174,7 +199,7 @@ export function TravelScreen({ player, travelTo, initialSearch = "", onSearchUse
                       opacity: canAfford ? 1 : 0.5,
                     }}
                     disabled={!canAfford}
-                    onClick={() => travelTo(c.name)}
+                    onClick={() => askTravel(c.name)}
                   >{fmtMoney(c.cost)}</button>
                 )}
               </div>
@@ -182,6 +207,40 @@ export function TravelScreen({ player, travelTo, initialSearch = "", onSearchUse
           })}
         </div>
       ))}
+
+      {confirmCity && (() => {
+        const cost = travelCostBetween(player.location, confirmCity);
+        const energy = travelEnergyCost(player.location, confirmCity);
+        const km = Math.round(distanceKm(player.location, confirmCity));
+        const forTournament = confirmCity === nextCity;
+        return (
+          <div style={{ ...styles.dilemmaOverlay, zIndex: 300 }} onClick={() => setConfirmCity(null)}>
+            <div style={styles.dilemmaCard} onClick={e => e.stopPropagation()}>
+              <div className="tm-halftone-cyan" style={{ margin: "-16px -16px 12px", padding: "10px 16px", borderBottom: "3px solid " + T.ink, color: "#ffffff", display: "flex", alignItems: "center", gap: 10 }}>
+                <Icon name="plane" size={22} color="#ffffff" />
+                <div className="tm-display" style={{ fontSize: 19, lineHeight: 1.1, textShadow: "2px 2px 0 " + T.ink }}>Partir pour {confirmCity} ?</div>
+              </div>
+              <div style={{ color: "#141414", fontSize: 13.5, fontWeight: 700, lineHeight: 1.5, marginBottom: 12 }}>
+                {player.location} → {confirmCity} · {km.toLocaleString("fr-FR")} km
+                {forTournament && <div style={{ color: "#1f7a45" }}>Ville de votre prochain tournoi ({nextT.name}).</div>}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14, color: "#141414" }}>
+                <div style={{ border: "2.5px solid " + T.ink, padding: "6px 8px", background: "#ffffff" }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase" }}>Billet</div>
+                  <div className="tm-display" style={{ fontSize: 17, color: "#c4302b" }}>−{fmtMoney(cost)}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700 }}>Reste {fmtMoney(player.money - cost)}</div>
+                </div>
+                <div style={{ border: "2.5px solid " + T.ink, padding: "6px 8px", background: "#ffffff" }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase" }}>Fatigue du voyage</div>
+                  <div className="tm-display" style={{ fontSize: 17, color: "#c4302b" }}>−{energy} énergie</div>
+                </div>
+              </div>
+              <button style={styles.btnPrimary} onClick={() => { setConfirmCity(null); travelTo(confirmCity); }}>Partir</button>
+              <button style={{ ...styles.btnSecondary, marginTop: 8 }} onClick={() => setConfirmCity(null)}>Annuler</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {hasMore && (
         <button
