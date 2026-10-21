@@ -97,7 +97,7 @@ export function ThankYouScreen({ item, onUse, onClose }) {
             {/* Mot du développeur, en bulle de BD */}
             <div style={{ position: "relative", background: "#ffffff", border: "2.5px solid " + INK, padding: "10px 12px", marginTop: 4 }}>
               <div className="tm-lettering" style={{ fontSize: 16, lineHeight: 1.3 }}>
-                Courtside est développé par une seule personne. Votre achat finance directement les prochaines mises à jour : merci de tout cœur !
+                Courtside est développé de manière indépendante. Votre achat finance directement les prochaines mises à jour : merci de tout cœur !
               </div>
               <div style={{ fontSize: 12, fontWeight: 800, marginTop: 6, textAlign: "right" }}>Arthur, créateur de Courtside</div>
               <span aria-hidden="true" style={{ position: "absolute", left: 22, bottom: -12, width: 0, height: 0, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderTop: "12px solid " + INK }} />
