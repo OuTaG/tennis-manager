@@ -25,3 +25,10 @@ export function travelCostBetween(from, to) {
   const mul = challengeActive("seul") ? 0.75 : 1;
   return Math.round((TRAVEL_FIXED_COST + km * TRAVEL_COST_PER_KM) * mul);
 }
+
+// Fatigue d'un voyage : 3 d'énergie pour un trajet court (< 1 000 km),
+// jusqu'à 8 pour les plus longs vols intercontinentaux (~20 000 km).
+export function travelEnergyCost(from, to) {
+  const km = distanceKm(from, to);
+  return km <= 1000 ? 3 : Math.min(8, Math.round(3 + ((km - 1000) / 19000) * 5));
+}

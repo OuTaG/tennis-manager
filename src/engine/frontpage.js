@@ -47,7 +47,7 @@ function frontStory({ player, ranking, enrolled }) {
     return {
       kicker: "Infirmerie",
       title: ln + " à l'arrêt",
-      deck: injury.label + ". Retour espéré dans " + injury.weeksRemaining + " semaine" + (injury.weeksRemaining > 1 ? "s" : "") + ".",
+      deck: injury.label + (injury.canPlay ? ". Guérison espérée dans " : ". Retour espéré dans ") + injury.weeksRemaining + " semaine" + (injury.weeksRemaining > 1 ? "s" : "") + ".",
       tone: "red",
       caption: "À l'infirmerie…",
       quotes: ["Je reviendrai plus fort.", "Patience. Le circuit m'attendra."],

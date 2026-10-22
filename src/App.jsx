@@ -19,7 +19,7 @@ import { tournamentEarningsFromHistory, tournamentIdByName } from "./engine/hist
 import { computeCareerSummary, computeLegacyBreakdown, computeLegacyScore, legacyTier } from "./engine/legacy.js";
 import { advanceMatchOneGame, aiMatchProb, clampMomentum, createInitialMatchData } from "./engine/match.js";
 import { randomFullName } from "./engine/names.js";
-import { RETIREMENT_AGE, START_CITIES, betweenMatchRecovery, START_STAT_BONUS, SURFACE_BONUS, adjustLife, ageTrainingMultiplier, applyWeeklyAgeDecline, clampLife, computeMatchLifeDeltas, createInitialPlayer, difficultyFactors, getEffectiveStats, getPlayerRanking, lifeCaps, rollInjury, startMoney, totalAtpPoints } from "./engine/player.js";
+import { RETIREMENT_AGE, START_CITIES, betweenMatchRecovery, START_STAT_BONUS, SURFACE_BONUS, adjustLife, lifeDeltaPreview, ageTrainingMultiplier, applyWeeklyAgeDecline, clampLife, computeMatchLifeDeltas, createInitialPlayer, difficultyFactors, getEffectiveStats, getPlayerRanking, lifeCaps, rollInjury, startMoney, totalAtpPoints } from "./engine/player.js";
 import { buildPressConference } from "./engine/press.js";
 import { computeTournamentProgression, styledProgressionMultiplier } from "./engine/progression.js";
 import { expireOldPoints, playerRaceRank, pointsWeekAfter, raceStandings } from "./engine/race.js";
@@ -29,7 +29,7 @@ import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, gen
 import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor, sponsorObjectiveCounters } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
 import { COMING_SOON, hasPurchased, liveKeyFor, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
-import { distanceKm, travelCostBetween } from "./engine/travel.js";
+import { distanceKm, travelCostBetween, travelEnergyCost } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
 import { WallGame } from "./ui/overlays/WallGame.jsx";
@@ -39,7 +39,7 @@ import { loadRosterConfigs, rosterEditCount, rosterEntries } from "./engine/rost
 // Couleur du bandeau de match selon la surface.
 const LIVE_SURF_BG = { "Gazon": "#1f7a45", "Terre battue": "#c4622d", "Dur": "#2c6fd1", "Indoor": "#5b2d8e" };
 import { AVATAR_OPTIONS, Avatar, AvatarBuilder, aiAvatar, femaleHairStyle } from "./ui/avatar.jsx";
-import { fmtMoney, fmtNum, fmtKm, fmtStatDelta, rankingName } from "./ui/format.js";
+import { fmtMoney, fmtNum, fmtKm, fmtStatDelta, rankText, rankingName } from "./ui/format.js";
 import { showLoadingScreen } from "./ui/loading.js";
 import { isNativeStore, syncEntitlements } from "./engine/iap.js";
 import { shopIsNew, shopPromo } from "./engine/shopPromo.js";
@@ -738,14 +738,21 @@ export default function TennisManager() {
   // Nouvelle partie : la fiche d'aide de chaque page s'ouvre toute seule la
   // première fois qu'on y arrive (une seule fois par carrière). Elle reste
   // accessible à tout moment via le bouton « i » en haut à droite.
+  // Même principe pour le premier match (avant-match) et la première
+  // wildcard proposée.
+  const wildcardCount = (player?.wildcardOffers || []).length;
   useEffect(() => {
-    if (screen !== "hub" || !player || !PAGE_HELP[activeTab]) return;
+    if (!player || helpTab) return;
     if (sponsorNegotiation || flightAnim || player.pendingSeasonRecap || player.pendingLifeEvent) return;
     const seen = player.seenHelp || [];
-    if (seen.includes(activeTab)) return;
-    setHelpTab(activeTab);
-    setPlayer(p => ({ ...p, seenHelp: [...(p.seenHelp || []), activeTab] }));
-  }, [activeTab, screen, !!player, sponsorNegotiation, flightAnim, player?.pendingSeasonRecap, player?.pendingLifeEvent]);
+    let key = null;
+    if (screen === "match" && matchState && matchState.phase === "prematch") key = "match";
+    else if (screen === "hub" && PAGE_HELP[activeTab] && !seen.includes(activeTab)) key = activeTab;
+    else if (screen === "hub" && activeTab === "hub" && wildcardCount > 0) key = "wildcard";
+    if (!key || seen.includes(key)) return;
+    setHelpTab(key);
+    setPlayer(p => ({ ...p, seenHelp: [...(p.seenHelp || []), key] }));
+  }, [activeTab, screen, !!player, helpTab, matchState?.phase, wildcardCount, sponsorNegotiation, flightAnim, player?.pendingSeasonRecap, player?.pendingLifeEvent]);
 
   // ── WEEK ADVANCE ──────────────────────────────────────────────────────────
   // « Semaine suivante » : si le tournoi où l'on est inscrit commence la
@@ -2672,12 +2679,7 @@ export default function TennisManager() {
     const cost = travelCostBetween(player.location, cityName);
     if (player.money < cost) { return; }
     const fromCity = player.location;
-    // Energy drain scales with distance: 3 for short hops (<1000 km),
-    // up to 8 for the longest intercontinental flights (~20000 km).
-    const km = distanceKm(player.location, cityName);
-    const energyCost = km <= 1000
-      ? 3
-      : Math.min(8, Math.round(3 + ((km - 1000) / 19000) * 5));
+    const energyCost = travelEnergyCost(player.location, cityName);
     setFlightAnim({ from: fromCity, to: cityName });
     setPlayer(p => ({
       ...p, location: cityName,
@@ -3001,7 +3003,7 @@ export default function TennisManager() {
                           {meta.flag && <FlagFromEmoji emoji={meta.flag} size={14} style={{ marginRight: 6, verticalAlign: "-2px" }} />}{meta.name}
                         </div>
                         <div style={{ color: T.fg, fontSize: 12, fontWeight: 700, marginTop: 2 }}>
-                          {meta.circuit === "wta" ? "WTA" : "ATP"} · {meta.rank && meta.rank <= 1200 ? "N°" + meta.rank : (meta.circuit === "wta" ? "Non classée" : "Non classé")} · Sem. {meta.week} · {meta.year}
+                          {meta.circuit === "wta" ? "Circuit féminin" : "Circuit masculin"} · {meta.rank && meta.rank <= 1200 ? "#" + meta.rank : (meta.circuit === "wta" ? "Non classée" : "Non classé")} · Sem. {meta.week} · {meta.year}
                         </div>
                       </div>
                       <button
@@ -3775,6 +3777,39 @@ export default function TennisManager() {
   }
 
   // ─── MATCH SCREEN ──────────────────────────────────────────────────────────
+  // Fiche d'aide (onglets, premier match, première wildcard) : partagée par
+  // l'accueil et l'écran de match.
+  const helpModalEl = helpTab && PAGE_HELP[helpTab] ? (
+            <div onClick={() => setHelpTab(null)} style={{
+              position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400,
+              display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+            }}>
+              <div className="tm-paper" onClick={e => e.stopPropagation()} style={{
+                border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, color: "#141414",
+                maxWidth: 440, width: "100%", maxHeight: "80vh", overflowY: "auto",
+              }}>
+                {/* En-tête BD : case « i », étiquette et titre de la page */}
+                <div className="tm-halftone-cyan" style={{ borderBottom: "3px solid " + T.ink, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span className="tm-display" style={{ width: 34, height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", color: "#141414", border: "2.5px solid " + T.ink, fontSize: 20, textTransform: "none", transform: "rotate(-4deg)" }}>i</span>
+                  <div style={{ minWidth: 0 }}>
+                    <span style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase" }}>Aide</span>
+                    <div className="tm-display" style={{ color: "#ffffff", fontSize: 21, lineHeight: 1.05, marginTop: 3, textShadow: "2px 2px 0 " + T.ink }}>{PAGE_HELP[helpTab].title}</div>
+                  </div>
+                </div>
+                <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                {PAGE_HELP[helpTab].items.map((it, i) => (
+                  <div key={i} style={{ background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}>
+                    <div className="tm-display" style={{ background: i % 2 ? "#c9b6ea" : "#d6ef3c", borderBottom: "2px solid " + T.ink, fontSize: 13, padding: "3px 9px" }}>{it[0]}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.45, padding: "6px 9px 8px" }}>{withFlags(it[1])}</div>
+                  </div>
+                ))}
+                <button style={{ ...styles.btnPrimary, marginTop: 4 }} onClick={() => setHelpTab(null)}>Compris</button>
+                </div>
+              </div>
+            </div>
+          
+  ) : null;
+
   if (screen === "match" && matchState) {
     const ms = matchState;
     const fmt = ms.format;
@@ -4187,6 +4222,7 @@ export default function TennisManager() {
       );
       return (
         <div style={styles.root}>
+          {helpModalEl}
           <div style={{ ...styles.screen, paddingBottom: 0 }}>
             <WindowShades />
             {/* Bandeau du tournoi */}
@@ -4448,7 +4484,7 @@ export default function TennisManager() {
                     </span>
                     <span style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
                       <span className="tm-display" style={{ color: T.fg, fontSize: 14, lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.name}</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 800, color: T.fg3 }}><FlagFromEmoji emoji={row.flag} size={10} />#{row.isP ? ranking : ms.opponentRank}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 800, color: T.fg3 }}><FlagFromEmoji emoji={row.flag} size={10} />{row.isP ? rankText(ranking, true) : "#" + ms.opponentRank}</span>
                     </span>
                   </span>
                   {setsPlayed.map((s, i) => {
@@ -4913,7 +4949,7 @@ export default function TennisManager() {
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <span style={{ flex: 1, minWidth: 0, fontWeight: 800, fontSize: 14, lineHeight: 1.15, textTransform: "uppercase", overflowWrap: "anywhere" }}>{player.name}</span>
-                <span className="tm-num" style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: "#ffffff", background: T.blue, border: "2px solid " + T.ink, padding: "0 5px" }}>{ranking > 1000 ? "NC" : "#" + ranking}</span>
+                <span className="tm-num" style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: "#ffffff", background: T.blue, border: "2px solid " + T.ink, padding: "0 5px" }}>{rankText(ranking, true)}</span>
               </div>
               <div className="tm-num" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap", minWidth: 0 }}>
                 <span>Sem. {player.week} · {player.year}</span>
@@ -5013,37 +5049,36 @@ export default function TennisManager() {
               </div>
             </div>
           )}
-          {helpTab && PAGE_HELP[helpTab] && (
-            <div onClick={() => setHelpTab(null)} style={{
-              position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400,
-              display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-            }}>
-              <div className="tm-paper" onClick={e => e.stopPropagation()} style={{
-                border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, color: "#141414",
-                maxWidth: 440, width: "100%", maxHeight: "80vh", overflowY: "auto",
-              }}>
-                {/* En-tête BD : case « i », étiquette et titre de la page */}
-                <div className="tm-halftone-cyan" style={{ borderBottom: "3px solid " + T.ink, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="tm-display" style={{ width: 34, height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", color: "#141414", border: "2.5px solid " + T.ink, fontSize: 20, textTransform: "none", transform: "rotate(-4deg)" }}>i</span>
-                  <div style={{ minWidth: 0 }}>
-                    <span style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase" }}>Aide</span>
-                    <div className="tm-display" style={{ color: "#ffffff", fontSize: 21, lineHeight: 1.05, marginTop: 3, textShadow: "2px 2px 0 " + T.ink }}>{PAGE_HELP[helpTab].title}</div>
+          {/* Blessure : annoncée une fois, dès le retour à l'accueil */}
+          {!helpTab && player.injury && !player.injury.noticed && player.injury.severity !== "suspension" && !player.pendingLifeEvent && !sponsorNegotiation && (() => {
+            const inj = player.injury;
+            const close = () => setPlayer(p => (p.injury ? { ...p, injury: { ...p.injury, noticed: true } } : p));
+            return (
+              <div onClick={close} style={{ position: "fixed", inset: 0, background: "var(--tm-overlay)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+                <div className="tm-paper" onClick={e => e.stopPropagation()} style={{ border: "3px solid " + T.ink, boxShadow: "6px 6px 0 " + T.ink, color: "#141414", maxWidth: 400, width: "100%" }}>
+                  <div style={{ background: "#c4302b", borderBottom: "3px solid " + T.ink, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ width: 36, height: 36, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", border: "2.5px solid " + T.ink, transform: "rotate(-4deg)" }}><Icon name="bandage" size={20} color="#c4302b" /></span>
+                    <div style={{ minWidth: 0 }}>
+                      <span style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10, fontWeight: 800, letterSpacing: 1, padding: "1px 6px", textTransform: "uppercase" }}>Diagnostic médical</span>
+                      <div className="tm-display" style={{ color: "#ffffff", fontSize: 19, lineHeight: 1.1, marginTop: 3, textShadow: "2px 2px 0 " + T.ink }}>{inj.label}</div>
+                    </div>
                   </div>
-                </div>
-                <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                {PAGE_HELP[helpTab].items.map((it, i) => (
-                  <div key={i} style={{ background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink }}>
-                    <div className="tm-display" style={{ background: i % 2 ? "#c9b6ea" : "#d6ef3c", borderBottom: "2px solid " + T.ink, fontSize: 13, padding: "3px 9px" }}>{it[0]}</div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.45, padding: "6px 9px 8px" }}>{withFlags(it[1])}</div>
+                  <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.45 }}>
+                      {inj.canPlay
+                        ? <>Vous pouvez continuer à jouer, mais vos stats sont réduites de <strong>{Math.round(inj.statPenalty * 100)} %</strong> en match pendant encore <strong>{inj.weeksRemaining} semaine{inj.weeksRemaining > 1 ? "s" : ""}</strong>.</>
+                        : <>Vous ne pouvez disputer aucun tournoi pendant <strong>{inj.weeksRemaining} semaine{inj.weeksRemaining > 1 ? "s" : ""}</strong>.</>}
+                    </div>
+                    <div className="tm-lettering" style={{ background: "#ffffff", border: "2.5px solid " + T.ink, fontSize: 14.5, lineHeight: 1.25, padding: "6px 9px" }}>S'entraîner reste possible, mais chaque séance risque d'aggraver la blessure. Un kiné réduit les risques.</div>
+                    <button style={styles.btnPrimary} onClick={close}>Compris</button>
                   </div>
-                ))}
-                <button style={{ ...styles.btnPrimary, marginTop: 4 }} onClick={() => setHelpTab(null)}>Compris</button>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
+          {helpModalEl}
           {activeTab === "hub" && player.challenge && <ChallengePanel player={player} atpDb={atpDb} repayDebt={repayDebt} />}
-          {activeTab === "hub" && <HubScreen player={player} news={news} advanceWeek={requestAdvanceWeek} rating={rating} ranking={ranking} totalPts={totalPts} cancelEnrollment={cancelEnrollment} isAdvancingWeek={isAdvancingWeek} acceptWildcard={acceptWildcard} declineWildcard={declineWildcard} retire={retire} setTournamentDetail={setTournamentDetail} />}
+          {activeTab === "hub" && <HubScreen player={player} news={news} advanceWeek={requestAdvanceWeek} rating={rating} ranking={ranking} totalPts={totalPts} cancelEnrollment={cancelEnrollment} isAdvancingWeek={isAdvancingWeek} acceptWildcard={acceptWildcard} declineWildcard={declineWildcard} retire={retire} setTournamentDetail={setTournamentDetail} goTravel={() => setActiveTab("travel")} />}
           {activeTab === "calendar" && <CalendarScreen player={player} ranking={ranking} calFilters={calFilters} setCalFilters={setCalFilters} enrollTournament={enrollTournament} cancelEnrollment={cancelEnrollment} setTournamentDetail={setTournamentDetail} />}
           {activeTab === "travel" && <TravelScreen player={player} travelTo={travelTo} initialSearch={travelSearch} onSearchUsed={() => setTravelSearch("")} />}
           {activeTab === "prep" && <PrepScreen player={player} doTraining={doTraining} hireStaff={hireStaff} fireStaff={fireStaff} />}
@@ -5307,11 +5342,22 @@ export default function TennisManager() {
                 const eff = { ...(opt.effects || {}) };
                 if (opt.maxMoneyShare && (eff.money || 0) < 0) eff.money = -Math.min(-eff.money, Math.floor(Math.max(0, player.money || 0) * opt.maxMoneyShare));
                 const chips = [];
+                // Effets affichés tels qu'ils seront appliqués : énergie bornée à
+                // 0-100, bonheur / popularité / image selon la difficulté et le
+                // plafond de notoriété (lié au classement).
+                const real = lifeDeltaPreview(player, { happiness: eff.happiness, popularity: eff.popularity, image: eff.image });
+                const energyReal = eff.energy ? Math.max(0, Math.min(100, (player.energy || 0) + eff.energy)) - (player.energy || 0) : 0;
+                const sgn = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v);
+                const lifeChip = (nominal, actual, name, icon, plus) => {
+                  if (!nominal) return;
+                  const atCap = nominal > 0 && actual < nominal;
+                  chips.push({ label: name + " " + sgn(actual) + (atCap ? (actual === 0 ? " · au maximum" : " · plafond") : ""), color: actual > 0 ? plus : actual < 0 ? T.red : "#8a8a8a", icon });
+                };
                 if (eff.money) chips.push({ label: fmtMoney(eff.money, { sign: true }), color: eff.money > 0 ? T.green : T.red });
-                if (eff.energy) chips.push({ label: (eff.energy > 0 ? "+" : "") + eff.energy, color: eff.energy > 0 ? T.green : T.red, icon: "energy" });
-                if (eff.happiness) chips.push({ label: (eff.happiness > 0 ? "+" : "") + eff.happiness, color: eff.happiness > 0 ? "var(--tm-amber)" : T.red, icon: "heart" });
-                if (eff.popularity) chips.push({ label: (eff.popularity > 0 ? "+" : "") + eff.popularity, color: eff.popularity > 0 ? T.green : T.red, icon: "sparkles" });
-                if (eff.image) chips.push({ label: (eff.image > 0 ? "+" : "") + eff.image, color: eff.image > 0 ? "var(--tm-blue)" : T.red, icon: "users" });
+                lifeChip(eff.energy, energyReal, "Énergie", null, T.green);
+                lifeChip(eff.happiness, real.happiness, "Bonheur", null, "var(--tm-amber)");
+                lifeChip(eff.popularity, real.popularity, "Popularité", null, T.green);
+                lifeChip(eff.image, real.image, "Image", null, "var(--tm-blue)");
                 if (opt.investment) chips.push({ label: "Résultat dans " + opt.investment.weeks + " sem. · gros gain possible", color: T.amber });
                 if (opt.restWeeks) chips.push({ label: "Ni entraînement ni tournoi : cette semaine + " + opt.restWeeks + " sem.", color: T.amber });
                 if (opt.injuryRisk) chips.push({ label: "Risque de blessure " + Math.round(opt.injuryRisk * 100) + "%", color: T.red });
@@ -5612,7 +5658,7 @@ export default function TennisManager() {
                   ]],
                   ["target", "Critères d'accès", [
                     ["Entrée directe", "top " + fmt.directCut],
-                    ["Qualifs ouvertes", "jusqu'au top " + (fmt.qualiCut === 9999 ? "∞" : fmt.qualiCut)],
+                    ["Qualifications", fmt.qualiCut >= 9999 ? "ouvertes à tous les classements" : "jusqu'au top " + fmt.qualiCut],
                   ]],
                 ].map(([icon, title, rows]) => (
                   <div key={title} style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, marginBottom: 12 }}>
@@ -5632,7 +5678,7 @@ export default function TennisManager() {
                   <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 13, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}><Icon name="user" size={12} color="#d6ef3c" /> Votre situation</div>
                   <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, fontWeight: 700 }}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                      <span style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>#{ranking}</span>
+                      <span style={{ background: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>{rankText(ranking, true)}</span>
                       {entry.status === "direct" && <span style={{ background: "#1f7a45", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>✓ Entrée directe{entry.protected ? " (classement protégé)" : ""}</span>}
                       {entry.status === "qualifying" && <span style={{ background: "#e0a21b", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>Qualifs requises</span>}
                       {entry.status === "blocked" && <span style={{ background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", fontWeight: 800 }}>{entry.banned ? entry.reason : "Classement insuffisant"}</span>}

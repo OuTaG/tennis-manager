@@ -1,6 +1,6 @@
 // Écran Joueur › Vie.
 import { LIFE_ACTIVITIES } from "../../data/life.js";
-import { lifeCaps } from "../../engine/player.js";
+import { lifeCaps, lifeDeltaPreview } from "../../engine/player.js";
 import { Icon, StatIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
@@ -32,7 +32,8 @@ export function LifeScreen({ player, doLifeActivity }) {
 
   // Étiquette BD d'un coût ou d'un gain : picto BD + montant signé,
   // vert si c'est favorable, rouge sinon.
-  const effectChip = (key, icon, amount, good, suffix = "") => (
+  // capped : gain réduit par le plafond de notoriété (affiché tel qu'appliqué).
+  const effectChip = (key, icon, amount, good, suffix = "", capped = false) => (
     <span key={key} style={{
       display: "inline-flex", alignItems: "center", gap: 4,
       background: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink,
@@ -40,8 +41,9 @@ export function LifeScreen({ player, doLifeActivity }) {
     }}>
       <StatIcon name={icon} size={16} />
       <span className="tm-display tm-num" style={{ fontSize: 12.5, color: good ? "#1f7a45" : "#c4302b", whiteSpace: "nowrap" }}>
-        {fmtNum(amount, { sign: true })}{suffix}
+        {amount === 0 ? "0" : fmtNum(amount, { sign: true })}{suffix}
       </span>
+      {capped && <span style={{ fontSize: 10, fontWeight: 800, color: "#141414" }}>{amount === 0 ? "au max" : "plafond"}</span>}
     </span>
   );
 
@@ -118,9 +120,12 @@ export function LifeScreen({ player, doLifeActivity }) {
             <div style={{ display: "flex", gap: 7, marginBottom: 12, flexWrap: "wrap" }}>
               {act.cost > 0 && effectChip("cost", "money", -act.cost, false, NBSP + "€")}
               {act.energyCost !== 0 && effectChip("energy", "energy", -act.energyCost, act.energyCost < 0)}
-              {act.happiness !== 0 && effectChip("happiness", "happiness", act.happiness, act.happiness > 0)}
-              {act.popularity !== 0 && effectChip("popularity", "popularity", act.popularity, act.popularity > 0)}
-              {act.image !== 0 && effectChip("image", "image", act.image, act.image > 0)}
+              {(() => {
+                // Effets réels (difficulté et plafond de notoriété compris).
+                const real = lifeDeltaPreview(player, { happiness: act.happiness, popularity: act.popularity, image: act.image });
+                return ["happiness", "popularity", "image"].filter(k => act[k] !== 0).map(k =>
+                  effectChip(k, k, real[k], real[k] > 0, "", act[k] > 0 && real[k] < act[k]));
+              })()}
             </div>
 
             <button

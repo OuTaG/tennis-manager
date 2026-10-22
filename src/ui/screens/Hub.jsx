@@ -6,11 +6,12 @@ import { GAME_OPTIONS, difficultyLevel, formatMultiplier, scoreMultiplier } from
 import { CITIES } from "../../data/geo.js";
 import { buildFrontPage } from "../../engine/frontpage.js";
 import { sponsorObjectiveCounters, sponsorObjectiveProgress } from "../../engine/sponsors.js";
+import { travelCostBetween } from "../../engine/travel.js";
 import { Avatar } from "../avatar.jsx";
 import { FlagFromEmoji, Icon, StatIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
-import { fmtMoney, fmtNum } from "../format.js";
+import { fmtMoney, fmtNum, rankText } from "../format.js";
 
 // Couleur de la case de la une selon l'actualité.
 const PANEL = { clay: "tm-halftone-magenta", red: "tm-halftone-magenta", green: "tm-halftone-yellow", blue: "tm-halftone-cyan" };
@@ -48,7 +49,7 @@ function MoodGauge({ icon, label, value, color, words }) {
 }
 
 // ─── SUB SCREENS ───────────────────────────────────────────────────────────────
-export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts, cancelEnrollment, isAdvancingWeek, acceptWildcard, declineWildcard, retire, setTournamentDetail }) {
+export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts, cancelEnrollment, isAdvancingWeek, acceptWildcard, declineWildcard, retire, setTournamentDetail, goTravel }) {
   const staffWeeklyCost = player.staff.reduce((a, s) => a + s.cost, 0);
   const enrolled = player.enrollment ? ALL_TOURNAMENTS.find(t => t.id === player.enrollment.tournamentId) : null;
   const injury = player.injury;
@@ -101,7 +102,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
           <button onClick={() => setShowSetup(true)} title="Voir les réglages de la partie" style={{ background: T.magenta, color: "#ffffff", fontSize: 11, fontWeight: 800, padding: "2px 6px", transform: "rotate(-3deg)", whiteSpace: "nowrap", textTransform: "uppercase", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, cursor: "pointer", fontFamily: T.body }}>{level.name} {formatMultiplier(mul)}</button>
         </div>
         {[
-          { label: "Rang", value: ranking > 1000 ? "—" : ranking },
+          { label: "Rang", value: rankText(ranking, true) },
           { label: "Points", value: fmtNum(totalPts) },
           { label: "Saison", value: (ss.wins || 0) + "-" + (ss.losses || 0) },
           { label: "Énergie", value: Math.round(player.energy), yellow: true },
@@ -147,7 +148,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
                   {injury.canPlay ? "Stats −" + Math.round(injury.statPenalty * 100) + " % en match" : "Tournois impossibles"}
                 </span>
                 <span style={{ background: "#ffffff", border: "2px solid " + T.ink, fontSize: 11.5, fontWeight: 800, padding: "1px 7px" }}>
-                  Retour dans {injury.weeksRemaining} sem.
+                  {injury.canPlay ? "Guérison dans " + injury.weeksRemaining + " sem. · vous pouvez jouer" : "Indisponible " + injury.weeksRemaining + " sem."}
                 </span>
               </div>
               <div className="tm-lettering" style={{ marginTop: 9, background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontSize: 14.5, lineHeight: 1.25, display: "flex", alignItems: "stretch" }}>
@@ -189,9 +190,9 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         </div>
       )}
 
-      {/* CETTE SEMAINE */}
-      <section aria-label="Cette semaine" style={{ marginBottom: 14 }}>
-        <Rubric title="Cette semaine" aside={enrolled ? tierLabel(enrolled.tier) + " · " + enrolled.surface : "Calendrier libre"} color={T.blue} />
+      {/* PROCHAIN TOURNOI (le tournoi inscrit se joue en général la semaine suivante) */}
+      <section aria-label="Prochain tournoi" style={{ marginBottom: 14 }}>
+        <Rubric title={enrolled && enrolled.week === player.week ? "Cette semaine" : enrolled && enrolled.week === (player.week % 52) + 1 ? "La semaine prochaine" : "Prochain tournoi"} aside={enrolled ? tierLabel(enrolled.tier) + " · " + enrolled.surface : "Calendrier libre"} color={T.blue} />
       {enrolled && (
         <div className="tm-fade-up" style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 12, overflow: "hidden" }}>
           <div style={{ background: tierColor(enrolled.tier), borderBottom: "2.5px solid " + T.ink, padding: "3px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
@@ -214,6 +215,18 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
                 <span key={txt} style={{ background: bg, color: fg, border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "1px 6px" }}>{txt}</span>
               ))}
             </div>
+            {/* Être sur place : rappel visible dès l'inscription */}
+            {player.location === enrolled.city ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 8, fontSize: 12, fontWeight: 800, color: "#1f7a45" }}>
+                <Icon name="location" size={13} color="#1f7a45" /> Vous êtes sur place
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, background: "#fff1ec", border: "2px solid #c4302b", padding: "5px 8px" }}>
+                <Icon name="plane" size={14} color="#c4302b" />
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: "#c4302b", lineHeight: 1.3 }}>Pensez à voyager : vous êtes à {player.location}, il faut être à {enrolled.city} avant le début.</span>
+                {goTravel && <button className="tm-display" style={{ background: "#c4302b", color: "#ffffff", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "3px 8px", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }} onClick={goTravel}>Voyager · {fmtMoney(travelCostBetween(player.location, enrolled.city))}</button>}
+              </div>
+            )}
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <button className="tm-display" style={{ flex: 1, background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "7px 8px", fontSize: 13, cursor: "pointer" }} onClick={() => setTournamentDetail && setTournamentDetail(enrolled.id)}>Voir le tournoi</button>
               {enrolled.week !== player.week && (
@@ -260,7 +273,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
           {(player.sponsors || []).filter(s => s.objective).map((s, i, arr) => {
             const o = s.objective;
             let cur = 0, met = false, curLabel = "";
-            if (o.type === "rank") { cur = ranking; met = ranking <= o.target; curLabel = "#" + ranking + " / top " + o.target; }
+            if (o.type === "rank") { cur = ranking; met = ranking <= o.target; curLabel = rankText(ranking, true) + " / top " + o.target; }
             else { cur = sponsorObjectiveProgress(o, s.objectiveBaseline || {}, sponsorObjectiveCounters(player)) ?? 0; met = cur >= o.target; curLabel = cur + "/" + o.target; }
             const progress = o.type === "rank" ? (met ? 1 : Math.max(0, Math.min(1, o.target / Math.max(1, ranking)))) : Math.max(0, Math.min(1, cur / o.target));
             // Weeks left until this objective is evaluated (next negotiation phase).

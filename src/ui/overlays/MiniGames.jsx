@@ -111,6 +111,9 @@ const serveAxisX = (lx, y) => lx + (lx - SERVER_X) * (LAND_Y - y) / (BOT_Y - 6 -
 // r = résultat de resolveServeDuel (+ serveZone, readZone).
 export function buildDuelSteps(r) {
   const steps = [];
+  // Onomatopées du point de vue du joueur (r.win) : on sait toujours qui a
+  // fait le coup gagnant ou la faute.
+  const mine = !!r.win;
   const lx = zoneX(r.serveZone);
   const serveFrom = { x: SERVER_X, y: BOT_Y - 6 };
   const serveLand = { x: lx, y: LAND_Y };
@@ -128,7 +131,7 @@ export function buildDuelSteps(r) {
     let lunge = zoneX(r.shift);
     const away = Math.sign(readX - passX) || 1;
     if ((lunge - passX) * away < 46) lunge = passX + away * 46;
-    steps.push({ ball: out, dur: durAfter(serveSeg, 430, { from: serveLand, to: out }, 1.1), ret: lunge, burst: { text: "ACE !", at: { x: Math.min(290, Math.max(70, lx)), y: 96 } } });
+    steps.push({ ball: out, dur: durAfter(serveSeg, 430, { from: serveLand, to: out }, 1.1), ret: lunge, burst: { text: mine ? "ACE !" : "ACE ADVERSE !", at: { x: Math.min(290, Math.max(70, lx)), y: 96 } } });
     return steps;
   }
   // …puis se décale au dernier moment (s'il n'était pas sur la bonne
@@ -159,7 +162,7 @@ export function buildDuelSteps(r) {
   if (r.kind === "return_winner") {
     // Bien lu : retour gagnant loin du serveur.
     const [hit, after] = winnerSteps(contact, true, SERVER_X);
-    steps.push(hit, { ...after, burst: { text: "RETOUR GAGNANT !", at: { x: 250, y: 290 } } });
+    steps.push(hit, { ...after, burst: { text: mine ? "RETOUR GAGNANT !" : "RETOUR ADVERSE GAGNANT !", at: { x: 250, y: 290 } } });
     return steps;
   }
   // 2. Un point se joue : échanges, puis le dernier coup.
@@ -191,7 +194,9 @@ export function buildDuelSteps(r) {
     if (prev.ret !== undefined) prev.ret = hx; else prev.srv = hx;
   }
   const from = prev.ball;
-  const labels = { winner: "GAGNANT !", net: "FILET !", out: "FAUTE !", drop: "AMORTIE !" };
+  const labels = mine
+    ? { winner: "GAGNANT !", net: "FAUTE ADVERSE !", out: "FAUTE ADVERSE !", drop: "AMORTIE GAGNANTE !" }
+    : { winner: "GAGNANT ADVERSE !", net: "VOTRE FAUTE !", out: "VOTRE FAUTE !", drop: "AMORTIE ADVERSE !" };
   const burstY = toBottom ? 300 : 110;
   if (rally.end === "winner" || rally.end === "drop") {
     const [hit, after] = winnerSteps(from, toBottom, oppX, { lob: rally.shot === "lob", drop: rally.end === "drop" });
@@ -346,6 +351,7 @@ export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle
       {!res && kind !== "smash" && (
         <div style={{ fontSize: 12.5, fontWeight: 700, color: T.fg }}>
           {kind === "serve_duel" ? "Servez là où il ne vous attend pas." : "Placez-vous là où il va servir."}
+          <div style={{ fontSize: 11.5, fontWeight: 600, marginTop: 3 }}>Au T : au centre du court · Corps : droit sur le joueur · Extérieur : vers la ligne de côté</div>
         </div>
       )}
       {res && revealed && (

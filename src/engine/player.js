@@ -185,6 +185,14 @@ export function adjustLife(player, deltas) {
     image: clampLife(img + capped(img, deltas.image, caps.image)),
   };
 }
+// Effet réel d'un changement de vie (difficulté et plafonds de notoriété
+// compris), pour l'afficher tel qu'il sera appliqué : { happiness, popularity,
+// image } en points gagnés ou perdus.
+export function lifeDeltaPreview(player, deltas) {
+  const after = adjustLife(player, deltas);
+  const d = (k, def) => Math.round(after[k]) - Math.round(player[k] ?? def);
+  return { happiness: d("happiness", 70), popularity: d("popularity", 20), image: d("image", 60) };
+}
 // Returns small additive stat modifiers based on life stats.
 // Light effect: every 20pts above/below 50 = ±1 on relevant stats.
 // Severe effect: image < 20 or happiness < 15 triggers larger penalties.
@@ -256,13 +264,13 @@ export function totalAtpPoints(log) { return log.reduce((a, e) => a + e.points, 
 // severe (8-16 weeks, cannot play). Triggered with low probability when player picks
 // a risky dilemma option that has riskInjury set.
 export const INJURY_TYPES = [
-  // icon : nom d'un émoji BD (src/ui/bdEmoji.jsx).
-  { part: "mollet", icon: "leg" },
-  { part: "épaule", icon: "muscle" },
-  { part: "poignet", icon: "hand" },
-  { part: "genou", icon: "knee" },
-  { part: "dos", icon: "back" },
-  { part: "cheville", icon: "foot" },
+  // icon : nom d'un émoji BD (src/ui/bdEmoji.jsx) ; at : « au mollet », « à l'épaule »…
+  { part: "mollet", at: "au mollet", icon: "leg" },
+  { part: "épaule", at: "à l'épaule", icon: "muscle" },
+  { part: "poignet", at: "au poignet", icon: "hand" },
+  { part: "genou", at: "au genou", icon: "knee" },
+  { part: "dos", at: "au dos", icon: "back" },
+  { part: "cheville", at: "à la cheville", icon: "foot" },
 ];
 
 export function rollInjury() {
@@ -273,7 +281,7 @@ export function rollInjury() {
   if (r < 0.60) {
     return {
       severity: "minor",
-      label: "Légère gêne au " + part.part,
+      label: "Légère gêne " + part.at,
       icon: part.icon,
       weeksRemaining: 1 + Math.floor(random() * 3), // 1-3
       statPenalty: 0.05,
@@ -283,7 +291,7 @@ export function rollInjury() {
   if (r < 0.90) {
     return {
       severity: "moderate",
-      label: "Blessure au " + part.part,
+      label: "Blessure " + part.at,
       icon: part.icon,
       weeksRemaining: 4 + Math.floor(random() * 5), // 4-8
       statPenalty: 0.15,
@@ -292,7 +300,7 @@ export function rollInjury() {
   }
   return {
     severity: "severe",
-    label: "Blessure sévère au " + part.part,
+    label: "Blessure sévère " + part.at,
     icon: part.icon,
     weeksRemaining: 8 + Math.floor(random() * 9), // 8-16
     statPenalty: 0.30,

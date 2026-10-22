@@ -20,62 +20,66 @@ export function screenPathLabel(screenId) {
   return g.screens.length > 1 ? g.label + " › " + (sc ? sc.label : screenId) : g.label;
 }
 
-// Help content shown by the "?" button, one entry per tab.
+// Fiches d'aide : une par onglet (ouverte seule à la première visite, puis
+// via le bouton « i »), plus le premier match et la première wildcard.
+// Courtes, orientées « quoi faire », vocabulaire expliqué.
 export const PAGE_HELP = {
-  hub: { title: "Accueil", items: [
-    ["Bienvenue", "Vous démarrez sans classement, avec l'argent de départ de votre ville. Objectif : grimper jusqu'au sommet du classement mondial. Cette fiche reste disponible à tout moment via le bouton « i » en haut à droite."],
-    ["Vos ressources", "L'argent et l'énergie sont toujours affichés en haut. Le bonheur, la popularité et l'image se gèrent dans Joueur › Vie : ils dérivent doucement et influencent l'entraînement, le soutien du public et les sponsors."],
-    ["Semaine suivante", "Fait avancer le temps d'une semaine : énergie récupérée, salaires et sponsors réglés, circuit simulé. Si vous êtes inscrit à un tournoi cette semaine-là, il se lance."],
-    ["Récupération", "Chaque semaine rend 25 d'énergie (plus le bonus du kiné ou du nutritionniste). En match, chaque pause entre deux sets rend 3 à 5. Entre deux matchs d'un tournoi, vous récupérez 10 à 20 selon votre endurance."],
-    ["Votre tournoi", "L'encart d'inscription rappelle le tournoi prévu. Vous pouvez l'annuler (frais remboursés)."],
-    ["Objectifs sponsors", "Chaque contrat fixe un objectif à tenir avant sa fin : prime si réussi, pénalité sinon. Quatre types possibles : classement, titres, victoires, ou victoires de prestige contre le top 50, 100, 200 ou 400 (selon votre rang). Vous choisissez le niveau : facile, moyen ou ambitieux (plus exigeant, mieux payé)."],
-    ["Événements", "Des imprévus surviennent parfois : chaque choix a ses conséquences sur l'argent, l'énergie, le bonheur, la popularité ou l'image."],
+  hub: { title: "Bienvenue", items: [
+    ["Votre objectif", "Partir de zéro et grimper jusqu'à la première place mondiale. Plus vous gagnez de matchs dans de gros tournois, plus vous gagnez de points au classement."],
+    ["Chaque semaine", "1. Inscrivez-vous à un tournoi (onglet Circuit). 2. Voyagez jusqu'à sa ville. 3. Entraînez-vous (onglet Joueur). 4. Touchez « Semaine suivante » : le temps avance et votre tournoi se joue."],
+    ["Argent et énergie", "Toujours affichés en haut. L'énergie remonte de 25 chaque semaine ; à plat, vous jouez moins bien. Si votre argent passe sous zéro, c'est la faillite et la carrière s'arrête."],
   ] },
   calendar: { title: "Tournois", items: [
-    ["S'inscrire", "Choisissez un tournoi de la semaine en cours ou à venir. Votre classement décide si vous entrez directement, par les qualifications, ou pas du tout."],
-    ["Être sur place", "Il faut être dans la ville du tournoi au moment où il commence : pensez à voyager avant."],
-    ["Catégories", "Du Circuit Open au Majeur : plus la catégorie est haute, plus les points, les gains et le niveau des adversaires sont élevés."],
-    ["Un tournoi à la fois", "Une seule inscription possible, un seul tournoi par semaine."],
+    ["S'inscrire", "La liste montre les tournois des semaines à venir. Touchez le nom d'un tournoi pour voir ses conditions d'accès, son format et sa ville."],
+    ["Entrer dans le tableau", "Votre classement décide : « Tableau principal » = vous entrez directement ; « Qualifications » = il faut d'abord gagner quelques matchs pour y accéder ; sinon votre rang est insuffisant (le seuil est indiqué)."],
+    ["Les catégories", "Du plus petit au plus grand : Circuit Open, Circuit Pro, Tour 250, Tour 500, Grand 1000, puis les 4 Majeurs. Plus c'est grand, plus il y a de points, d'argent… et d'adversaires forts."],
+    ["Bon à savoir", "Un tournoi à la fois. Il faut être dans sa ville au moment où il commence. Les qualifications rapportent peu : les vrais points se gagnent dans le tableau principal. ★ = votre surface préférée."],
   ] },
   travel: { title: "Voyages", items: [
-    ["Se déplacer", "Chaque trajet coûte de l'argent et un peu d'énergie, selon la distance."],
-    ["Planifier", "Enchaîner des tournois proches les uns des autres limite la fatigue et les frais."],
+    ["Rejoindre son tournoi", "La ville de votre prochain tournoi est indiquée en haut : touchez « Y aller ». Chaque billet demande une confirmation."],
+    ["Coût d'un voyage", "Le prix et la fatigue augmentent avec la distance. Enchaîner des tournois proches les uns des autres économise de l'argent et de l'énergie."],
   ] },
   prep: { title: "Préparation", items: [
-    ["Entraînement", "Chaque séance améliore une statistique contre de l'argent et de l'énergie. Plus une stat est haute, plus elle progresse lentement."],
-    ["Âge et moral", "Les progrès ralentissent avec l'âge et quand le bonheur est bas."],
-    ["Staff", "Coachs, préparateurs, kinés, agents : chacun apporte des bonus (et parfois des contraintes) contre un salaire hebdomadaire."],
+    ["S'entraîner", "Chaque séance améliore une stat contre de l'argent et de l'énergie. Plus une stat est haute, plus elle progresse lentement : les gains se comptent en dixièmes."],
+    ["Le staff", "Coach, kiné, préparateurs, agent… Chacun donne un bonus contre un salaire chaque semaine. Vérifiez que vos revenus suivent avant d'embaucher."],
   ] },
   life: { title: "Vie", items: [
-    ["Activités", "Deux activités par semaine au maximum, chacune avec un délai avant de pouvoir la refaire."],
-    ["Bonheur", "Influence vos progrès à l'entraînement et votre mental en match."],
-    ["Popularité et image", "La popularité attire les wildcards et le soutien du public, l'image attire les sponsors."],
+    ["Trois jauges", "Bonheur : aide vos progrès et votre mental. Popularité : soutien du public et invitations (wildcards). Image : attire les sponsors."],
+    ["Activités", "Deux par semaine au maximum, chacune avec un délai avant de la refaire. Les effets affichés sont ceux que vous obtiendrez réellement."],
+    ["Plafond de notoriété", "Tant que vous êtes peu classé, popularité et image ne peuvent pas monter très haut : grimpez au classement pour relever ce plafond."],
+    ["Événements", "Des imprévus arrivent parfois en fin de semaine. Chaque choix indique son effet sur l'argent, l'énergie et vos jauges."],
   ] },
   stats: { title: "Statistiques", items: [
-    ["Vos stats", "Service, coup droit, revers, endurance, mental et filet déterminent votre force en match."],
-    ["Graphiques", "Touchez le nom d'une courbe pour en avoir la définition."],
-    ["Historique", "Vos derniers tournois, match par match, avec les gains et les points obtenus."],
+    ["Vos stats", "Service, coup droit, revers, endurance, mental et filet font votre niveau en match. La cote est leur moyenne."],
+    ["Graphiques et historique", "Touchez le nom d'une courbe pour en avoir la définition. Plus bas, vos derniers tournois match par match."],
   ] },
-  atp: { title: "Top 100", items: [
-    ["Classement mondial", "Les meilleurs joueurs du circuit, classés par leurs points sur 52 semaines."],
-    ["Race", "Second onglet : seuls les points gagnés depuis le 1er janvier comptent. Les 8 premiers en fin de saison disputent le Masters de fin d'année."],
-    ["Profils", "Touchez un joueur pour voir son profil, son style et ses résultats récents."],
+  atp: { title: "Classement", items: [
+    ["Classement mondial", "Les joueurs sont classés selon les points gagnés sur les 52 dernières semaines. Sans aucun point, vous êtes « NC » (non classé)."],
+    ["Race", "Second onglet : seuls les points de l'année comptent. Les 8 premiers en fin de saison jouent le Masters de fin d'année."],
+    ["Profils", "Touchez un joueur pour voir son profil, son style de jeu et ses derniers résultats."],
   ] },
   finance: { title: "Finances", items: [
-    ["Revenus et dépenses", "Gains en tournoi, sponsors et primes d'un côté ; staff, voyages, entraînements et frais fixes de l'autre."],
-    ["Catégories de sponsors", "Un seul équipementier (étiquette bleue) et jusqu'à deux partenaires en même temps. Certaines marques sont « à prendre ou à laisser »."],
-    ["Sponsors", "Les offres arrivent aux semaines 26 et 52. Négociez le salaire ou la prime, choisissez le niveau d'objectif, puis signez."],
-    ["Propositions de sponsor", "En cours de saison, une marque peut aussi se manifester (plus souvent après de bons résultats). L'offre reste 4 semaines : signez-la telle quelle ou, si vos places sont prises, remplacez un contrat en payant sa résiliation."],
-    ["Faillite", "Si votre argent passe sous zéro, votre carrière s'arrête."],
+    ["Revenus et dépenses", "D'un côté : gains en tournoi, sponsors et primes. De l'autre : staff, voyages, entraînements et frais fixes. Sous zéro, c'est la faillite."],
+    ["Sponsors", "Un équipementier et jusqu'à deux partenaires. Les offres arrivent aux semaines 26 et 52, parfois en cours de saison : négociez, puis signez."],
+    ["Objectifs", "Chaque contrat fixe un objectif (classement, titres, victoires…) à atteindre avant la fin : prime si réussi, pénalité sinon. Facile, moyen ou ambitieux : plus c'est exigeant, mieux c'est payé."],
   ] },
   shop: { title: "Boutique", items: [
-    ["Gratuit", "Le jeu est gratuit : circuits masculin et féminin, vitesse de match ×4. Aucun achat ne donne d'avantage en jeu."],
-    ["Options", "Défis scénarisés, Personnalisation et Carrières multiples se paient une fois. Les achats sont liés à votre appareil : ils restent acquis si vous recommencez une carrière."],
-    ["Personnalisation", "Modifiez le nom, la nationalité et le portrait de tous les joueurs depuis le menu principal, dans 3 configurations. Au lancement d'une carrière, choisissez la base Standard ou l'une d'elles."],
+    ["Gratuit", "Le jeu complet est gratuit, sans publicité. Aucun achat ne donne d'avantage en match."],
+    ["Extensions", "Défis scénarisés, Personnalisation et Carrières multiples se paient une seule fois et restent acquis, même si vous recommencez une carrière."],
   ] },
   social: { title: "Social", items: [
-    ["Pour vous", "Les messages des fans et de la presse qui vous concernent. Vos réponses influencent votre bonheur, votre popularité et votre image."],
-    ["Monde", "L'actualité du circuit : résultats, rumeurs, annonces."],
-    ["Historique", "Seules les 5 dernières semaines sont affichées."],
+    ["Pour vous", "Messages des fans et de la presse. Vos réponses font bouger votre bonheur, votre popularité et votre image."],
+    ["Monde", "L'actualité du circuit : résultats, rumeurs, annonces (5 dernières semaines)."],
+  ] },
+  match: { title: "Votre premier match", items: [
+    ["Le match se joue tout seul", "Les points défilent avec les commentaires. Le bouton ▶ / ❚❚ lance le match ou le met en pause."],
+    ["Énergie et élan", "Énergie : votre réserve physique, elle baisse au fil du match ; fatigué, vous jouez moins bien. Élan : la dynamique du moment, la barre penche vers celui qui enchaîne les points."],
+    ["Tactique", "Le bouton Tactique met en pause et ouvre votre plan de jeu : attitude, service, échanges, filet, cible. ★ = conseil de votre coach."],
+    ["Points décisifs", "Sur une balle de jeu, vous jouez parfois le point vous-même : duel au service ou au retour (Au T = au centre, Corps = sur le joueur, Extérieur = vers la ligne de côté), smash ou sang-froid au tie-break."],
+  ] },
+  wildcard: { title: "Une wildcard !", items: [
+    ["C'est quoi ?", "Une invitation des organisateurs : vous entrez directement dans le tableau principal du tournoi, même si votre classement ne suffit pas."],
+    ["Pourquoi vous ?", "Votre popularité et vos bons résultats attirent les invitations. Plus vous êtes connu, plus il y en a."],
+    ["Que faire ?", "Acceptez-la sur l'accueil, puis voyagez jusqu'à la ville du tournoi. Déjà inscrit ailleurs ? Annulez d'abord cette inscription. Vous pouvez aussi la refuser."],
   ] },
 };

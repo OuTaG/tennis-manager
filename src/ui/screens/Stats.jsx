@@ -3,7 +3,7 @@ import { tournamentIdByName } from "../../engine/history.js";
 import { computeCareerSummary } from "../../engine/legacy.js";
 import { SURFACE_BONUS } from "../../engine/player.js";
 import { MiniLineChart } from "../charts.jsx";
-import { fmtMoney, fmtMoneyShort, fmtNum, historyRoundLabel, NBSP } from "../format.js";
+import { fmtMoney, fmtMoneyShort, fmtNum, historyRoundLabel, NBSP, rankText } from "../format.js";
 import { Icon, SurfaceIcon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
@@ -38,7 +38,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
         <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 0 }}>
           <div>
             <span style={chip(INK, "#ffffff")}>Classement</span>
-            <div className="tm-display" style={{ fontSize: 48, color: "#141414", lineHeight: 1, letterSpacing: -1, textShadow: "3px 3px 0 #ffffff" }}>#{ranking}</div>
+            <div className="tm-display" style={{ fontSize: 48, color: "#141414", lineHeight: 1, letterSpacing: -1, textShadow: "3px 3px 0 #ffffff" }}>{rankText(ranking, true)}</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <span style={{ ...chip("#ffffff", "#141414"), marginBottom: 4 }}>Cote</span>
