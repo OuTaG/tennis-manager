@@ -155,6 +155,8 @@ export default function TennisManager() {
   const [atpDb, setAtpDb] = useState(null);
   const [news, setNews] = useState([]); // articles
   const [nameInput, setNameInput] = useState("");
+  // « Suivant » touché avec un champ manquant : on signale ce qu'il reste à remplir.
+  const [identityTried, setIdentityTried] = useState(false);
   const [styleInput, setStyleInput] = useState("allcourt");
   const [startCityInput, setStartCityInput] = useState("Paris");
   const [difficultyInput, setDifficultyInput] = useState(3);
@@ -3214,6 +3216,15 @@ export default function TennisManager() {
 
     // STEP 0 : IDENTITY (name + avatar)
     if (createStep === 0) {
+      const nameMissing = nameInput.trim().length < 2;
+      const natMissing = !nationalityInput;
+      const missingMsg = nameMissing && natMissing ? "Choisissez un nom et une nationalité pour continuer."
+        : nameMissing ? "Choisissez un nom (2 lettres minimum) ou touchez le dé."
+        : "Choisissez une nationalité pour continuer.";
+      const warnBorder = (missing) => identityTried && missing ? { border: "3px solid " + T.red, boxShadow: "3px 3px 0 " + T.red } : null;
+      const fieldError = (missing, text) => identityTried && missing
+        ? <div role="alert" style={{ color: T.red, fontSize: 13, fontWeight: 800, marginTop: 6 }}>{text}</div>
+        : null;
       return (
         <div style={styles.root}>
           <div style={styles.menuBg}>
@@ -3224,7 +3235,7 @@ export default function TennisManager() {
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Nom du joueur</label>
                 <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
-                  <input style={{ ...styles.input, flex: 1, minWidth: 0 }} placeholder={circuitInput === "wta" ? "Ex: Léa Martin" : "Ex: Thomas Martin"} value={nameInput} onChange={e => setNameInput(e.target.value)} />
+                  <input id="tm-name-input" style={{ ...styles.input, flex: 1, minWidth: 0, ...warnBorder(nameMissing) }} placeholder={circuitInput === "wta" ? "Ex: Léa Martin" : "Ex: Thomas Martin"} value={nameInput} onChange={e => setNameInput(e.target.value)} />
                   <button
                     type="button"
                     title="Nom au hasard"
@@ -3238,6 +3249,7 @@ export default function TennisManager() {
                     <Icon name="dice" size={20} color="#141414" />
                   </button>
                 </div>
+                {fieldError(nameMissing, "Entrez un nom ou touchez le dé pour un nom au hasard.")}
               </div>
 
               <div style={styles.inputGroup}>
@@ -3250,8 +3262,9 @@ export default function TennisManager() {
                   </div>
                   <select
                     value={nationalityInput}
+                    id="tm-nat-input"
                     onChange={e => setNationalityInput(e.target.value)}
-                    style={{ ...styles.input, flex: 1, minWidth: 0, appearance: "auto" }}
+                    style={{ ...styles.input, flex: 1, minWidth: 0, appearance: "auto", ...warnBorder(natMissing) }}
                   >
                     <option value="">Choisir un pays…</option>
                     {[...new Set(Object.values(CITIES).map(c => c.country))]
@@ -3262,6 +3275,7 @@ export default function TennisManager() {
                 <div className="tm-lettering" style={{ color: T.fg, fontSize: 14, marginTop: 6 }}>
                   Elle compte pour jouer à domicile.
                 </div>
+                {fieldError(natMissing, "Choisissez un pays dans la liste.")}
               </div>
 
               <div>
@@ -3274,10 +3288,23 @@ export default function TennisManager() {
                 </div>
               </div>
 
+              {identityTried && (nameMissing || natMissing) && (
+                <div role="alert" style={{ background: T.red, color: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "8px 10px", fontSize: 13, fontWeight: 800, textAlign: "center" }}>
+                  {missingMsg}
+                </div>
+              )}
               <button
-                style={{ ...styles.btnPrimary, opacity: (nameInput.length < 2 || !nationalityInput) ? 0.4 : 1, marginTop: 4 }}
-                disabled={nameInput.length < 2 || !nationalityInput}
-                onClick={goToProfileStep}
+                style={{ ...styles.btnPrimary, opacity: (nameMissing || natMissing) ? 0.55 : 1, marginTop: 4 }}
+                onClick={() => {
+                  if (nameMissing || natMissing) {
+                    setIdentityTried(true);
+                    const el = document.getElementById(nameMissing ? "tm-name-input" : "tm-nat-input");
+                    if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus({ preventScroll: true }); }
+                    return;
+                  }
+                  setIdentityTried(false);
+                  goToProfileStep();
+                }}
               >
                 Suivant
               </button>
