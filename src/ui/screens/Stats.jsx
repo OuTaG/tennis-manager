@@ -161,7 +161,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
             <div key={s.year} style={{ background: "#ffffff", color: "#141414", padding: 12, marginBottom: i < (player.careerSeasons.length - 1) ? 8 : 0, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <div className="tm-display" style={{ color: "#141414", fontSize: 18, letterSpacing: 0.5 }}>SAISON {s.year}</div>
-                <div className="tm-display" style={{ ...chip("#d6ef3c", "#141414"), fontWeight: 400, fontSize: 13 }}>#{s.endOfYearRanking}</div>
+                <div className="tm-display" style={{ ...chip("#d6ef3c", "#141414"), fontWeight: 400, fontSize: 13 }}>{rankText(s.endOfYearRanking, true)}</div>
               </div>
               <div style={{ display: "flex", gap: 12, color: "#141414", fontSize: 11.5, fontWeight: 700 }}>
                 <span><span className="tm-num" style={{ color: "#1f7a45", fontWeight: 800 }}>{s.wins}</span>V</span>

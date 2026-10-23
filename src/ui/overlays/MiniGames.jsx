@@ -215,17 +215,34 @@ export function buildDuelSteps(r) {
 // onDone(win, text, zone, label) : appelé quand le joueur clique « Continuer ».
 // onDecided(res) : appelé dès que l'issue est connue, avant l'animation
 // (le match l'enregistre pour qu'un rechargement ne permette pas de rejouer).
-export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, myMental, surface, onDone, onDecided }) {
+// restored : issue déjà jouée avant une fermeture de l'app ; le mini-jeu
+// rouvre directement sur son écran de fin (dernière image de l'échange).
+export function MatchMiniGame({ kind, oppName, oppStats, history, stake = "Balle de jeu", oppAvatar, myAvatar, myMental, surface, onDone, onDecided, restored }) {
   const [courtBg, courtBox] = COURT_COLORS[surface] || COURT_COLORS.Gazon;
-  const [res, setResState] = useState(null);
+  // Dernière image d'un duel déjà joué : chaque étape appliquée sans animation.
+  const [endFrame] = useState(() => {
+    if (!restored || (kind !== "serve_duel" && kind !== "return_duel") || restored.serveZone === undefined) return null;
+    const f = { ball: null, retX: zoneX(1), srvX: SERVER_X, bounces: [], burst: null };
+    try {
+      buildDuelSteps(restored).forEach((st, k) => {
+        if (st.ret !== undefined) f.retX = st.ret;
+        if (st.srv !== undefined) f.srvX = st.srv;
+        f.ball = { x: st.ball.x, y: st.ball.y, dur: 0 };
+        if (st.bounce) f.bounces.push({ x: st.ball.x, y: st.ball.y, id: k });
+        if (st.burst) f.burst = st.burst;
+      });
+    } catch (e) { return null; }
+    return f;
+  });
+  const [res, setResState] = useState(restored || null);
   const setRes = (r) => { setResState(r); if (r && onDecided) onDecided(r); };
-  const [phase, setPhase] = useState("pick"); // pick → play → reveal
-  const [ball, setBall] = useState(null);     // { x, y, dur }
-  const [retX, setRetX] = useState(zoneX(1));
-  const [srvX, setSrvX] = useState(SERVER_X);
-  const [hideZones, setHideZones] = useState(false);
-  const [bounces, setBounces] = useState([]);
-  const [burst, setBurst] = useState(null);
+  const [phase, setPhase] = useState(restored ? "reveal" : "pick"); // pick → play → reveal
+  const [ball, setBall] = useState(endFrame ? endFrame.ball : null);     // { x, y, dur }
+  const [retX, setRetX] = useState(endFrame ? endFrame.retX : zoneX(1));
+  const [srvX, setSrvX] = useState(endFrame ? endFrame.srvX : SERVER_X);
+  const [hideZones, setHideZones] = useState(!!endFrame);
+  const [bounces, setBounces] = useState(endFrame ? endFrame.bounces : []);
+  const [burst, setBurst] = useState(endFrame ? endFrame.burst : null);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const title = kind === "serve_duel" ? "Duel au service !" : kind === "return_duel" ? "Duel au retour !" : kind === "mental" ? "Sang-froid !" : "Smash !";

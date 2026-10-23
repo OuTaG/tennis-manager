@@ -401,6 +401,9 @@ export function applyWeeklyAgeDecline(stats, age) {
 }
 
 export function getPlayerRanking(playerPoints, atpDb) {
+  // Sans aucun point : non classé (1201e), même si des joueurs du bas du
+  // classement sont eux aussi retombés à 0 point.
+  if (!(playerPoints > 0)) return atpDb.length + 1;
   // Binary search: atpDb is sorted DESC by points
   let lo = 0, hi = atpDb.length;
   while (lo < hi) {

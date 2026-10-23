@@ -444,7 +444,10 @@ export default function TennisManager() {
       if (extra) { payload.game = { ...extra.game, committedState: stripBracket(extra.game.committedState) }; payload.step = extra.step; }
       const raw = JSON.stringify(payload);
       if (raw === liveSavedRef.current) return;
-      localStorage.setItem(liveKeyFor(slotRef.current), raw);
+      // Date d'écriture (copie de secours iOS : la plus récente l'emporte),
+      // hors comparaison pour ne pas réécrire un état inchangé.
+      const stamped = raw.slice(0, -1) + ',"t":' + Date.now() + "}";
+      localStorage.setItem(liveKeyFor(slotRef.current), stamped);
       liveSavedRef.current = raw;
     } catch (e) {}
   };
@@ -580,6 +583,7 @@ export default function TennisManager() {
         try { live = JSON.parse(localStorage.getItem(liveKeyFor(slotIdx)) || "null"); } catch (e) {}
         replayRef.current = null;
         if (live && live.state && live.key === resumeKeyOf(data.resume)) {
+          delete live.t;
           liveSavedRef.current = JSON.stringify(live);
           // Le point de reprise du tournoi reste l'avant-match de ce match.
           lastResumeRef.current = data.resume;
@@ -2116,12 +2120,6 @@ export default function TennisManager() {
       if (!matchPausedRef.current && playGameRef.current) playGameRef.current();
     }, (pgNow && pgNow.isTiebreak ? 1400 : win ? 250 : 1600) * speedFactor());
   };
-  // Match repris après un rechargement : un mini-jeu déjà joué n'est pas
-  // rejoué, son issue enregistrée s'applique directement.
-  useEffect(() => {
-    const pd = matchState && matchState.pendingDilemma;
-    if (pd && pd.minigame && pd.decided) resolveMiniGame(pd.minigame, pd.decided.win, pd.decided.text, pd.decided.zone, pd.decided.label);
-  }, [matchState && matchState.pendingDilemma]);
   const resolveDilemma = (option, dilemma) => {
     // ── Special handling: match-fixing proposal ──
     if (dilemma && dilemma.isMatchFix) {
@@ -3621,7 +3619,7 @@ export default function TennisManager() {
               <div style={{ padding: "4px 12px 10px" }}>
                 {[
                   { l: "Âge final", v: player.age + " ans" },
-                  { l: "Meilleur classement", v: "#" + (summary.bestRank === 9999 ? "—" : summary.bestRank) },
+                  { l: "Meilleur classement", v: summary.bestRank === 9999 ? "—" : rankText(summary.bestRank, true) },
                   { l: "Semaines n°1", v: summary.weeksNo1, hide: summary.weeksNo1 === 0 },
                   { l: "Semaines top 10", v: summary.weeksTop10, hide: summary.weeksTop10 === 0 },
                   { l: "Titres remportés", v: player.titlesWon },
@@ -4691,8 +4689,15 @@ export default function TennisManager() {
                   myMental={player.stats.mental}
                   oppAvatar={aiAvatar(ms.opponent, player.circuit === "wta")}
                   myAvatar={player.avatar}
-                  onDone={(win, text, zone, label) => resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone, label)}
-                  onDecided={(r) => writeLiveMatch({ ...ms, pendingDilemma: { ...ms.pendingDilemma, decided: { win: !!r.win, text: r.text, zone: r.zone ?? null, label: r.label ?? null } } })}
+                  // Mini-jeu joué avant une fermeture de l'app : il rouvre sur
+                  // son écran de fin, sans pouvoir être rejoué.
+                  restored={ms.pendingDilemma.decided ? (ms.pendingDilemma.decided.res || ms.pendingDilemma.decided) : null}
+                  onDone={(win, text, zone, label) => {
+                    // Reprise après fermeture : « Continuer » relance aussi le match.
+                    if (ms.pendingDilemma.decided) setPausedBoth(false);
+                    resolveMiniGame(ms.pendingDilemma.minigame, win, text, zone, label);
+                  }}
+                  onDecided={(r) => writeLiveMatch({ ...ms, pendingDilemma: { ...ms.pendingDilemma, decided: { win: !!r.win, text: r.text, zone: r.zone ?? null, label: r.label ?? null, res: r } } })}
                 />
                 <div style={{ flex: 1 }} />
               </div>
@@ -5179,7 +5184,7 @@ export default function TennisManager() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "8px 10px", textAlign: "center" }}>
                   <div className="tm-display" style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 11, padding: "1px 7px", transform: "rotate(-2deg)" }}>Classement final</div>
-                  <div className="tm-display" style={{ fontSize: 22, color: "#5b2d8e" }}>#{r.endOfYearRanking}</div>
+                  <div className="tm-display" style={{ fontSize: 22, color: "#5b2d8e" }}>{rankText(r.endOfYearRanking, true)}</div>
                   <div>{deltaChip(rankDelta, Math.abs(rankDelta) > 1 ? "places" : "place")}</div>
                 </div>
                 <div style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "8px 10px", textAlign: "center" }}>
