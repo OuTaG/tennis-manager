@@ -13,6 +13,56 @@ import { styles } from "../styles.js";
 import { T } from "../theme.js";
 import { fmtMoney, fmtNum, rankText } from "../format.js";
 
+// Objectifs des contrats en cours (Accueil et Bureau › Finances) : progression,
+// semaines restantes, prime / pénalité.
+export function SponsorObjectives({ player, ranking }) {
+  if (!(player.sponsors || []).some(s => s.objective)) return null;
+  return (
+    <div style={{ background: T.bg1, border: "2.5px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, padding: 14, marginBottom: 16 }}>
+      <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, margin: "-14px -14px 12px", padding: "5px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+        <Icon name="target" size={14} color={T.gold} /> Objectifs sponsors
+      </div>
+      {(player.sponsors || []).filter(s => s.objective).map((s, i, arr) => {
+        const o = s.objective;
+        let cur = 0, met = false, curLabel = "";
+        if (o.type === "rank") { cur = ranking; met = ranking <= o.target; curLabel = rankText(ranking, true) + " / top " + o.target; }
+        else { cur = sponsorObjectiveProgress(o, s.objectiveBaseline || {}, sponsorObjectiveCounters(player)) ?? 0; met = cur >= o.target; curLabel = cur + "/" + o.target; }
+        const progress = o.type === "rank" ? (met ? 1 : Math.max(0, Math.min(1, o.target / Math.max(1, ranking)))) : Math.max(0, Math.min(1, cur / o.target));
+        // Weeks left until this objective is evaluated (next negotiation phase).
+        let weeksLeft = null;
+        if (typeof s.weeksLeft === "number") {
+          weeksLeft = s.weeksLeft; // objective = whole contract
+        } else if (s.objectiveYear !== undefined && s.objectiveWeek !== undefined) {
+          weeksLeft = (s.objectiveYear - player.year) * 52 + (s.objectiveWeek - player.week);
+          if (weeksLeft < 0) weeksLeft = 0;
+        }
+        return (
+          <div key={i} style={{ marginBottom: i < arr.length - 1 ? 12 : 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+              <span className="tm-display" style={{ fontSize: 14 }}>{s.brand}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
+                {weeksLeft !== null && (
+                  <span style={{ background: weeksLeft <= 4 ? "#e0a21b" : "#ffffff", color: "#141414", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, padding: "0 5px", whiteSpace: "nowrap" }}>
+                    {weeksLeft} sem restantes
+                  </span>
+                )}
+                <span className="tm-num" style={{ background: met ? "#1f7a45" : "#ffffff", color: met ? "#ffffff" : "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "0 5px", whiteSpace: "nowrap" }}>{curLabel}</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <span style={{ color: met ? "#1f7a45" : "#141414", fontSize: 12, fontWeight: 700 }}>{met && <Icon name="check" size={11} strokeWidth={3} style={{ marginRight: 3, verticalAlign: -1 }} />}{o.label}</span>
+              <span className="tm-num" style={{ color: "#1f7a45", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", marginLeft: 8 }}>{fmtMoney(s.objectiveReward || 0, { sign: true })} / {fmtMoney(-(s.objectivePenalty || 0), { sign: true })}</span>
+            </div>
+            <div style={{ height: 12, background: "#ffffff", border: "2px solid " + T.ink, overflow: "hidden" }}>
+              <div style={{ width: (progress * 100).toFixed(0) + "%", height: "100%", background: met ? "#1f7a45" : "#d6ef3c", backgroundImage: "radial-gradient(rgba(20,20,20,0.18) 1.2px, transparent 1.4px)", backgroundSize: "5px 5px", borderRight: progress > 0 && progress < 1 ? "2px solid " + T.ink : "none", transition: "width 0.3s" }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Couleur de la case de la une selon l'actualité.
 const PANEL = { clay: "tm-halftone-magenta", red: "tm-halftone-magenta", green: "tm-halftone-yellow", blue: "tm-halftone-cyan" };
 
@@ -265,50 +315,7 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         })()}
       </section>
 
-      {(player.sponsors || []).some(s => s.objective) && (
-        <div style={{ background: T.bg1, border: "2.5px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, padding: 14, marginBottom: 16 }}>
-          <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 15, margin: "-14px -14px 12px", padding: "5px 10px", display: "flex", alignItems: "center", gap: 6 }}>
-            <Icon name="target" size={14} color={T.gold} /> Objectifs sponsors
-          </div>
-          {(player.sponsors || []).filter(s => s.objective).map((s, i, arr) => {
-            const o = s.objective;
-            let cur = 0, met = false, curLabel = "";
-            if (o.type === "rank") { cur = ranking; met = ranking <= o.target; curLabel = rankText(ranking, true) + " / top " + o.target; }
-            else { cur = sponsorObjectiveProgress(o, s.objectiveBaseline || {}, sponsorObjectiveCounters(player)) ?? 0; met = cur >= o.target; curLabel = cur + "/" + o.target; }
-            const progress = o.type === "rank" ? (met ? 1 : Math.max(0, Math.min(1, o.target / Math.max(1, ranking)))) : Math.max(0, Math.min(1, cur / o.target));
-            // Weeks left until this objective is evaluated (next negotiation phase).
-            let weeksLeft = null;
-            if (typeof s.weeksLeft === "number") {
-              weeksLeft = s.weeksLeft; // objective = whole contract
-            } else if (s.objectiveYear !== undefined && s.objectiveWeek !== undefined) {
-              weeksLeft = (s.objectiveYear - player.year) * 52 + (s.objectiveWeek - player.week);
-              if (weeksLeft < 0) weeksLeft = 0;
-            }
-            return (
-              <div key={i} style={{ marginBottom: i < arr.length - 1 ? 12 : 0 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                  <span className="tm-display" style={{ fontSize: 14 }}>{s.brand}</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
-                    {weeksLeft !== null && (
-                      <span style={{ background: weeksLeft <= 4 ? "#e0a21b" : "#ffffff", color: "#141414", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, padding: "0 5px", whiteSpace: "nowrap" }}>
-                        {weeksLeft} sem restantes
-                      </span>
-                    )}
-                    <span className="tm-num" style={{ background: met ? "#1f7a45" : "#ffffff", color: met ? "#ffffff" : "#141414", border: "2px solid " + T.ink, fontSize: 11, fontWeight: 800, padding: "0 5px", whiteSpace: "nowrap" }}>{curLabel}</span>
-                  </div>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <span style={{ color: met ? "#1f7a45" : "#141414", fontSize: 12, fontWeight: 700 }}>{met && <Icon name="check" size={11} strokeWidth={3} style={{ marginRight: 3, verticalAlign: -1 }} />}{o.label}</span>
-                  <span className="tm-num" style={{ color: "#1f7a45", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", marginLeft: 8 }}>{fmtMoney(s.objectiveReward || 0, { sign: true })} / {fmtMoney(-(s.objectivePenalty || 0), { sign: true })}</span>
-                </div>
-                <div style={{ height: 12, background: "#ffffff", border: "2px solid " + T.ink, overflow: "hidden" }}>
-                  <div style={{ width: (progress * 100).toFixed(0) + "%", height: "100%", background: met ? "#1f7a45" : "#d6ef3c", backgroundImage: "radial-gradient(rgba(20,20,20,0.18) 1.2px, transparent 1.4px)", backgroundSize: "5px 5px", borderRight: progress > 0 && progress < 1 ? "2px solid " + T.ink : "none", transition: "width 0.3s" }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <SponsorObjectives player={player} ranking={ranking} />
 
       {/* MORAL ET RÉPUTATION : bonheur, popularité, image */}
       <section aria-label="Moral et réputation" className="tm-fade-up" style={{ background: T.bg1, border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, marginBottom: 14 }}>
@@ -320,9 +327,13 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
         </div>
       </section>
 
-      <button style={{ ...styles.btnPrimary, opacity: isAdvancingWeek ? 0.5 : 1 }} disabled={isAdvancingWeek} onClick={advanceWeek}>
-        {isAdvancingWeek ? "Simulation en cours…" : "Semaine suivante →"}
-      </button>
+      {/* « Semaine suivante » : toujours à portée de pouce, juste au-dessus du
+          dock, sans défiler avec la page (place réservée en bas). */}
+      <div style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(59px + env(safe-area-inset-bottom, 0px) * 0.6)", width: "100%", maxWidth: 440, padding: "8px 16px", boxSizing: "border-box", zIndex: 90, pointerEvents: "none" }}>
+        <button data-tuto="next-week" style={{ ...styles.btnPrimary, marginBottom: 0, pointerEvents: "auto", opacity: isAdvancingWeek ? 0.5 : 1 }} disabled={isAdvancingWeek} onClick={advanceWeek}>
+          {isAdvancingWeek ? "Simulation en cours…" : "Semaine suivante →"}
+        </button>
+      </div>
 
       {/* Réglages de la partie (lecture seule) : difficulté, options, ville de départ */}
       {showSetup && (() => {
@@ -399,6 +410,8 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
           Prendre sa retraite
         </button>
       )}
+      {/* Place du bouton « Semaine suivante » fixé en bas. */}
+      <div aria-hidden="true" style={{ height: 72 }} />
     </div>
   );
 }

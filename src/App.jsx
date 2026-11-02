@@ -47,6 +47,7 @@ import { BangBadge, FlagFromEmoji, Icon, SurfaceIcon, flagEmojiToCode, withFlags
 import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
 import { SponsorNegotiationOverlay } from "./ui/overlays/Negotiation.jsx";
+import { TutorialOverlay } from "./ui/overlays/Tutorial.jsx";
 import { RallyOverlay } from "./ui/overlays/Rally.jsx";
 import { CalendarScreen } from "./ui/screens/Calendar.jsx";
 import { ChallengePanel, ChallengesScreen } from "./ui/screens/Challenges.jsx";
@@ -571,9 +572,6 @@ export default function TennisManager() {
       // page a été rechargée avant qu'elle soit conclue.
       // Sauvegardes déjà touchées par l'ancien bug : un sponsor signé clôt l'intro.
       if (data.player.introSponsorPending && (data.player.sponsors || []).length > 0) data.player.introSponsorPending = false;
-      if (data.player.introSponsorPending && (data.player.sponsorOffers || []).length > 0) {
-        setSponsorNegotiation({ phase: "intro", year: data.player.year || 2026, ranking: 1100, results: [], objMoney: 0 });
-      }
       setNews(data.news || []);
       setActiveTab("hub");
       // Resume a tournament that was saved between two matches.
@@ -749,6 +747,7 @@ export default function TennisManager() {
   const wildcardCount = (player?.wildcardOffers || []).length;
   useEffect(() => {
     if (!player || helpTab) return;
+    if (player.tutorial && !player.tutorial.done) return; // le tutoriel guidé remplace les fiches
     if (sponsorNegotiation || flightAnim || player.pendingSeasonRecap || player.pendingLifeEvent) return;
     const seen = player.seenHelp || [];
     let key = null;
@@ -758,7 +757,57 @@ export default function TennisManager() {
     if (!key || seen.includes(key)) return;
     setHelpTab(key);
     setPlayer(p => ({ ...p, seenHelp: [...(p.seenHelp || []), key] }));
-  }, [activeTab, screen, !!player, helpTab, matchState?.phase, wildcardCount, sponsorNegotiation, flightAnim, player?.pendingSeasonRecap, player?.pendingLifeEvent]);
+  }, [activeTab, screen, !!player, helpTab, matchState?.phase, wildcardCount, sponsorNegotiation, flightAnim, player?.pendingSeasonRecap, player?.pendingLifeEvent, player?.tutorial?.done]);
+
+  // ── TUTORIEL GUIDÉ ────────────────────────────────────────────────────────
+  // Nouvelle carrière : 10 étapes au plus (s'inscrire, voyager, s'entraîner,
+  // négocier le premier sponsor, lancer la semaine). Chaque étape vise un
+  // élément (data-tuto) et se valide d'elle-même quand le joueur a agi ;
+  // les étapes sans objet (déjà sur place, pas de sponsor…) sont sautées.
+  const tutoSteps = (p) => {
+    const base = (p.tutorial && p.tutorial.base) || {};
+    const enrT = p.enrollment ? ALL_TOURNAMENTS.find(t => t.id === p.enrollment.tournamentId) : null;
+    const city = enrT ? enrT.city : null;
+    const onSite = !!city && p.location === city;
+    return [
+      { target: '[data-tuto="nav-circuit"]', text: "Votre carrière commence ! Pour jouer, trouvez un tournoi : touchez Circuit.", done: ["calendar", "travel"].includes(activeTab) },
+      { tab: "calendar", target: '[data-tuto="enroll"]', text: "Inscrivez-vous à ce tournoi, ouvert à votre classement.", done: !!p.enrollment },
+      { target: '[data-tuto="sub-travel"]', text: "Le tournoi a lieu à " + city + ". Ouvrez Voyages pour vous y rendre.", skip: !city || onSite, done: activeTab === "travel" },
+      { tab: "travel", target: '[data-tuto="travel-go"]', text: "Réservez votre billet pour " + city + ".", skip: !city, done: onSite },
+      { target: '[data-tuto="nav-player"]', text: "Avant le tournoi, entraînez-vous : touchez Joueur.", done: ["prep", "life"].includes(activeTab) },
+      { tab: "prep", target: '[data-tuto="train"]', text: "Lancez une séance : elle fait progresser une statistique.", done: (p.trainCount || 0) > (base.trainCount || 0) },
+      { target: '[data-tuto="nav-office"]', text: "Un sponsor veut vous signer ! Touchez Bureau.", skip: !p.introSponsorPending, done: ["finance", "social", "shop"].includes(activeTab) },
+      { tab: "finance", target: '[data-tuto="negotiate"]', text: "Négociez votre premier contrat : il vous paiera chaque semaine.", done: !p.introSponsorPending },
+      { tab: "finance", target: '[data-tuto="objectives"]', text: "Chaque contrat a un objectif : atteint, une prime ; raté, une pénalité. Suivez-le ici.", next: "Compris", skip: !(p.sponsors || []).some(sp => sp.objective) },
+      { tab: "hub", target: '[data-tuto="next-week"]', text: "Tout est prêt ! Touchez Semaine suivante pour faire avancer le temps.", done: p.week !== base.week || p.year !== base.year },
+    ];
+  };
+  const tutoStep = player && player.tutorial && !player.tutorial.done ? player.tutorial.step : null;
+  // Fin du tutoriel : les fiches d'aide des pages déjà découvertes ne s'ouvrent plus.
+  const endTutorial = (p) => ({
+    ...p, tutorial: { done: true },
+    seenHelp: [...new Set([...(p.seenHelp || []), "hub", "calendar", "travel", "prep", "finance"])],
+  });
+  const nextTutorialStep = () => setPlayer(p => {
+    if (!p.tutorial || p.tutorial.done) return p;
+    const step = p.tutorial.step + 1;
+    if (step >= tutoSteps(p).length) return endTutorial(p);
+    return { ...p, tutorial: { step, base: { trainCount: p.trainCount || 0, week: p.week, year: p.year } } };
+  });
+  // Étape accomplie (ou sans objet) : on passe à la suivante.
+  useEffect(() => {
+    if (tutoStep === null || screen !== "hub") return;
+    const st = tutoSteps(player)[tutoStep];
+    if (!st || st.skip || st.done) nextTutorialStep();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player, activeTab, screen]);
+  // Nouvelle étape : on ouvre la page où elle se joue.
+  useEffect(() => {
+    if (tutoStep === null || screen !== "hub") return;
+    const st = tutoSteps(player)[tutoStep];
+    if (st && st.tab && !st.skip && !st.done && activeTab !== st.tab) setActiveTab(st.tab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tutoStep, screen]);
 
   // ── WEEK ADVANCE ──────────────────────────────────────────────────────────
   // « Semaine suivante » : si le tournoi où l'on est inscrit commence la
@@ -2791,7 +2840,7 @@ export default function TennisManager() {
   };
   // Offre reçue en cours de saison et pas encore ouverte : point
   // d'exclamation sur Bureau, Finances et la carte de l'offre.
-  const hasNewSponsorOffer = (player?.sponsorOffers || []).some(o => o.midSeason && !o.seen);
+  const hasNewSponsorOffer = (player?.sponsorOffers || []).some(o => (o.midSeason && !o.seen) || (!o.midSeason && player.introSponsorPending));
   const markSponsorOfferSeen = (offer) => {
     if (offer.seen) return;
     setPlayer(p => ({ ...p, sponsorOffers: (p.sponsorOffers || []).map(o => (o.id === offer.id ? { ...o, seen: true } : o)) }));
@@ -3518,19 +3567,15 @@ export default function TennisManager() {
                   // Rouverte au chargement tant qu'elle n'a pas été conclue.
                   newPlayer.introSponsorPending = true;
                 }
+                // Tutoriel guidé ; le premier contrat se négocie pendant le
+                // tutoriel, depuis Bureau › Finances.
+                newPlayer.tutorial = { step: 0, base: { trainCount: 0, week: newPlayer.week, year: newPlayer.year } };
                 setPlayer(newPlayer);
                 setAtpDb(newDb);
                 setNews([]);
                 setScreen("hub");
                 setActiveTab("hub");
                 setCreateStep(-1); // reset for next time
-                // Open the intro negotiation scene right away (if an offer exists).
-                if (starter) {
-                  setSponsorNegotiation({
-                    phase: "intro", year: 2026, ranking: startRanking,
-                    results: [], objMoney: 0,
-                  });
-                }
               })}
             >
               Lancer la carrière
@@ -4925,6 +4970,11 @@ export default function TennisManager() {
           onClose={() => setCardPick(null)}
         />
       )}
+      {tutoStep !== null && !helpTab && !sponsorNegotiation && !flightAnim && !cardPick && !tournamentDetail && !player.pendingLifeEvent && !player.pendingSeasonRecap && (() => {
+        const steps = tutoSteps(player);
+        const st = steps[tutoStep];
+        return st ? <TutorialOverlay step={st} index={tutoStep} total={steps.length} onNext={nextTutorialStep} onSkip={() => setPlayer(endTutorial)} /> : null;
+      })()}
       {sponsorNegotiation && (
         <SponsorNegotiationOverlay
           data={{ ...sponsorNegotiation, onWalkAway: (offerId) => {
@@ -5011,7 +5061,7 @@ export default function TennisManager() {
             {activeGroup.screens.map(sc => {
               const on = activeTab === sc.id;
               return (
-                <button key={sc.id} onClick={() => setActiveTab(sc.id)} style={{ ...styles.subTab, ...(on ? styles.subTabActive : {}), position: "relative", overflow: "visible" }}>
+                <button key={sc.id} data-tuto={"sub-" + sc.id} onClick={() => setActiveTab(sc.id)} style={{ ...styles.subTab, ...(on ? styles.subTabActive : {}), position: "relative", overflow: "visible" }}>
                   <Icon name={sc.icon} size={17} halo={on} />
                   {sc.label}
                   {sc.id === "finance" && hasNewSponsorOffer && <BangBadge size={22} top="calc(50% - 11px)" right={3} />}
@@ -5126,7 +5176,7 @@ export default function TennisManager() {
               });
             }
           }} />}
-          {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} markSponsorOfferSeen={markSponsorOfferSeen} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} />}
+          {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} markSponsorOfferSeen={markSponsorOfferSeen} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} negotiateIntro={() => setSponsorNegotiation({ phase: "intro", year: player.year || 2026, ranking: 1100, results: [], objMoney: 0 })} />}
           {activeTab === "shop" && <ShopScreen onPurchasesChanged={refreshPurchases} focusId={shopFocus} />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>
@@ -5138,6 +5188,7 @@ export default function TennisManager() {
               return (
                 <button
                   key={g.id}
+                  data-tuto={"nav-" + g.id}
                   style={{ ...styles.navBtn, ...(isActive ? styles.navBtnActive : {}), position: "relative", overflow: "visible" }}
                   onClick={() => setActiveTab(isActive ? activeTab : (lastScreenByGroup.current[g.id] || g.screens[0].id))}
                 >

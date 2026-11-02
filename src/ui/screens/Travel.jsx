@@ -142,6 +142,7 @@ export function TravelScreen({ player, travelTo, initialSearch = "", onSearchUse
           <button
             style={{ ...styles.btnSmall, background: player.money >= travelCostBetween(player.location, nextCity) ? "#1f7a45" : "#ffffff", color: player.money >= travelCostBetween(player.location, nextCity) ? "#ffffff" : "#141414", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, fontFamily: T.display, fontSize: 14, flexShrink: 0 }}
             disabled={player.money < travelCostBetween(player.location, nextCity)}
+            data-tuto="travel-go"
             onClick={() => askTravel(nextCity)}
           >Y aller · {fmtMoney(travelCostBetween(player.location, nextCity))}</button>
         </div>

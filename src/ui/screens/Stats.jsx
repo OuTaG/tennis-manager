@@ -115,7 +115,7 @@ export function StatsScreen({ player, rating, ranking, totalPts, setTournamentDe
         {rule("Progression")}
         <MiniLineChart data={pointsSeries} label="Points" color={T.green}
           info="Total de vos points au classement sur les 52 dernières semaines. Chaque tournoi rapporte des points selon le tour atteint ; ils expirent un an plus tard." />
-        <MiniLineChart data={rankingSeries} label="Classement" color={T.ball} invertY
+        <MiniLineChart data={rankingSeries} label="Classement" color={T.ball} invertY fmt={v => rankText(v, true)}
           info="Votre rang mondial parmi les 1 200 joueurs du circuit, établi d'après vos points. Plus le chiffre est bas, meilleur vous êtes. Il décide de votre accès aux tournois et de la valeur de vos sponsors." />
         <MiniLineChart data={moneySeries} label="Trésorerie" color={T.green} suffix={NBSP + "€"}
           info="L'argent dont vous disposez : gains en tournoi, sponsors et primes, moins les dépenses (staff, voyages, entraînements, frais fixes). Sous zéro, c'est la faillite." />
