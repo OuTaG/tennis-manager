@@ -283,6 +283,7 @@ export function CalendarScreen({ player, ranking, calFilters, setCalFilters, enr
                         opacity: (!canE || restBlocked || blockedByOther || alreadyPlayed || blockedByWeekLimit || (isCurrentWeek && !onSite)) ? 0.5 : 1,
                       }}
                       disabled={!canE || restBlocked || blockedByOther || alreadyPlayed || blockedByWeekLimit || (isCurrentWeek && !onSite)}
+                      data-tuto={(!canE || restBlocked || blockedByOther || alreadyPlayed || blockedByWeekLimit || isCurrentWeek) ? undefined : "enroll"}
                       onClick={() => enrollTournament(t)}
                     >
                       {blockedByWeekLimit ? "Tournoi déjà joué cette sem."

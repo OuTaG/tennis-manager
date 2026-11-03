@@ -45,7 +45,8 @@ export function DefinitionLabel({ label, info }) {
 
 // Courbe façon BD : case cernée d'encre avec ombre décalée, trait épais de
 // couleur cerné d'encre, remplissage en trame de points, balle au bout.
-export function MiniLineChart({ data, color, height = 80, label = "", suffix = "", invertY = false, info = null }) {
+// fmt (facultatif) : affichage d'une valeur, par exemple « NC » pour un rang hors classement.
+export function MiniLineChart({ data, color, height = 80, label = "", suffix = "", invertY = false, info = null, fmt = null }) {
   const [hoverIdx, setHoverIdx] = useState(null); // point under the pointer / finger
   const card = { marginBottom: 12, background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, color: "#141414" };
   if (!data || data.length < 2) {
@@ -100,7 +101,7 @@ export function MiniLineChart({ data, color, height = 80, label = "", suffix = "
             </span>
           )}
           <span className="tm-display" style={{ fontSize: 16, lineHeight: 1 }}>
-            {fmtNum(hover ? hover.d.value : last)}{suffix}
+            {fmt ? fmt(hover ? hover.d.value : last) : fmtNum(hover ? hover.d.value : last) + suffix}
           </span>
           {!hover && delta !== 0 && (
             <span className="tm-num" style={{ background: trendBg, color: "#ffffff", border: "2px solid " + T.ink, fontSize: 10.5, fontWeight: 800, padding: "0 4px", transform: "rotate(-3deg)" }}>

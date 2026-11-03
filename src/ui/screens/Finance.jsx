@@ -5,8 +5,9 @@ import { BangBadge, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
 import { fmtMoney } from "../format.js";
+import { SponsorObjectives } from "./Hub.jsx";
 
-export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSponsorOffer, declineSponsorOffer, requestCancelSponsor, sponsorCancelCost, setTournamentDetail }) {
+export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSponsorOffer, declineSponsorOffer, requestCancelSponsor, sponsorCancelCost, setTournamentDetail, negotiateIntro }) {
   const balance = player.money;
   const earned = player.totalEarnings || 0;
   const spent = player.totalSpent || 0;
@@ -16,6 +17,8 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
   // Offres reçues en cours de saison (celles des phases de négociation
   // passent par la table de négociation).
   const offers = (player.sponsorOffers || []).filter(o => o.midSeason);
+  // Premier contrat de la carrière : il se négocie à la table de négociation.
+  const introOffer = player.introSponsorPending ? (player.sponsorOffers || []).find(o => !o.midSeason) : null;
   const nowAbs = player.year * 52 + player.week;
   const weeklySponsorIncome = sponsors.reduce((a, s) => a + s.weeklyPay, 0);
   const weeklyOutflow = player.weeklyExpenses + staffWeekly;
@@ -104,6 +107,29 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
           );
         })}
       </div>
+
+      {/* Premier contrat : à négocier */}
+      {introOffer && (
+        <div style={panel}>
+          {band("Votre premier sponsor", <span style={chip("#d6ef3c", "#141414")}>À négocier</span>)}
+          <div className="tm-halftone-yellow" style={{ position: "relative", padding: 12 }}>
+            <BangBadge size={26} top={-10} right={-14} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
+                <span style={introOffer.cat === "equipment" ? chip("#2c6fd1", "#ffffff") : chip("#ffffff", "#141414")}>{introOffer.cat === "equipment" ? "Équipementier" : "Sponsor"}</span>
+                <div className="tm-display" style={{ fontSize: 17, marginTop: 5 }}>{introOffer.brand}</div>
+              </div>
+              <div className="tm-display" style={{ color: "#1f7a45", fontSize: 16, flexShrink: 0 }}>{fmtMoney(introOffer.weeklyPay, { sign: true })}<span style={{ fontSize: 11 }}>/sem</span></div>
+            </div>
+            <button data-tuto="negotiate" className="tm-display" style={{ marginTop: 10, width: "100%", background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "9px 8px", fontSize: 15, cursor: "pointer" }} onClick={negotiateIntro}>
+              Négocier le contrat
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Objectifs des contrats en cours */}
+      <div data-tuto="objectives"><SponsorObjectives player={player} ranking={ranking} /></div>
 
       {/* Offres en cours de saison */}
       {offers.length > 0 && (

@@ -118,6 +118,7 @@ export function TrainingScreen({ player, doTraining }) {
                 opacity: canDo ? 1 : 0.5,
               }}
               disabled={!canDo}
+              data-tuto={canDo ? "train" : undefined}
               onClick={() => doTraining(mod)}
             >{resting ? "Au repos cette semaine" : "S'entraîner"}</button>
           </div>
