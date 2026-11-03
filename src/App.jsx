@@ -775,7 +775,7 @@ export default function TennisManager() {
       { target: '[data-tuto="sub-travel"]', text: "Le tournoi a lieu à " + city + ". Ouvrez Voyages pour vous y rendre.", skip: !city || onSite, done: activeTab === "travel" },
       { tab: "travel", target: '[data-tuto="travel-go"]', text: "Réservez votre billet pour " + city + ".", skip: !city, done: onSite },
       { target: '[data-tuto="nav-player"]', text: "Avant le tournoi, entraînez-vous : touchez Joueur.", done: ["prep", "life"].includes(activeTab) },
-      { tab: "prep", target: '[data-tuto="train"]', text: "Lancez une séance : elle fait progresser une statistique.", done: (p.trainCount || 0) > (base.trainCount || 0) },
+      { tab: "prep", target: '[data-tuto="train"]', text: "Chaque séance coûte de l'argent et de l'énergie : entraînez-vous avec mesure pour éviter la faillite.", done: (p.trainCount || 0) > (base.trainCount || 0) },
       { target: '[data-tuto="nav-office"]', text: "Un sponsor veut vous signer ! Touchez Bureau.", skip: !p.introSponsorPending, done: ["finance", "social", "shop"].includes(activeTab) },
       { tab: "finance", target: '[data-tuto="negotiate"]', text: "Négociez votre premier contrat : il vous paiera chaque semaine.", done: !p.introSponsorPending },
       { tab: "finance", target: '[data-tuto="objectives"]', text: "Chaque contrat a un objectif : atteint, une prime ; raté, une pénalité. Suivez-le ici.", next: "Compris", skip: !(p.sponsors || []).some(sp => sp.objective) },
