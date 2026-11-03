@@ -48,6 +48,8 @@ import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
 import { SponsorNegotiationOverlay } from "./ui/overlays/Negotiation.jsx";
 import { TutorialOverlay } from "./ui/overlays/Tutorial.jsx";
+import { getAudioSettings, onAudioSettings, setAudioScene, setAudioSettings, unlockAudio } from "./engine/audio.js";
+import { Volume2, VolumeX } from "lucide-react";
 import { RallyOverlay } from "./ui/overlays/Rally.jsx";
 import { CalendarScreen } from "./ui/screens/Calendar.jsx";
 import { ChallengePanel, ChallengesScreen } from "./ui/screens/Challenges.jsx";
@@ -277,6 +279,26 @@ export default function TennisManager() {
   const refreshSlots = () => { setSlotMetas(loadSlotMetas()); setChallengeMeta(loadChallengeMeta()); };
   const [menuShop, setMenuShop] = useState(false); // boutique ouverte depuis le menu
   const [menuCareers, setMenuCareers] = useState(false); // emplacements de carrière ouverts depuis le menu
+  // Son : réglages partagés avec le moteur audio ; le son démarre au premier toucher.
+  const [audioSet, setAudioSet] = useState(getAudioSettings());
+  useEffect(() => onAudioSettings(setAudioSet), []);
+  useEffect(() => {
+    const unlock = () => { unlockAudio(); window.removeEventListener("pointerdown", unlock); };
+    window.addEventListener("pointerdown", unlock);
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, []);
+  // Musique hors match, ambiance de public pendant les matchs.
+  useEffect(() => { setAudioScene(screen === "match" ? "match" : "menu"); }, [screen]);
+  // Bouton haut-parleur : couper / rétablir le son.
+  const muteButton = (extra = {}) => (
+    <button
+      aria-label={audioSet.muted ? "Activer le son" : "Couper le son"}
+      onClick={() => setAudioSettings({ muted: !audioSet.muted })}
+      style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", background: audioSet.muted ? "#ffffff" : "#d6ef3c", border: "3px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, cursor: "pointer", transform: "rotate(-4deg)", ...extra }}
+    >
+      {audioSet.muted ? <VolumeX size={22} color="#141414" strokeWidth={2.4} /> : <Volume2 size={22} color="#141414" strokeWidth={2.4} />}
+    </button>
+  );
   const [shopFocus, setShopFocus] = useState(null); // article mis en avant à l'ouverture de la boutique
   const openMenuShop = (focus = null) => { setShopFocus(focus); setMenuShop(true); };
   const openShopTab = (focus = null) => { setShopFocus(focus); setActiveTab("shop"); };
@@ -3095,7 +3117,8 @@ export default function TennisManager() {
       {deleteSaveDialog}
       <div style={styles.menuBg} className="tm-grain">
         <WindowShades />
-        <div style={styles.menuCard}>
+        <div style={{ ...styles.menuCard, position: "relative" }}>
+          <div style={{ position: "absolute", top: 12, right: 12, zIndex: 3 }}>{muteButton()}</div>
           <div style={{ position: "relative", zIndex: 2, width: "100%", textAlign: "center" }}>
             {/* Balle de tennis dessinée à l'encre */}
             <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true" style={{ display: "block", margin: "4px auto 14px", transform: "rotate(-12deg)" }}>
@@ -3742,6 +3765,39 @@ export default function TennisManager() {
               <div style={{ minWidth: 0 }}>
                 <h1 className="tm-display" style={{ color: "#d6ef3c", fontSize: 32, lineHeight: 1, margin: 0, WebkitTextStroke: "1.5px " + T.ink, textShadow: "3px 3px 0 " + T.ink, transform: "rotate(-2deg)", transformOrigin: "left center" }}>Réglages</h1>
                 <p className="tm-lettering" style={{ display: "inline-block", margin: "8px 0 0", background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px", fontSize: 14, transform: "rotate(-1deg)" }}>Paramètres de la partie en cours</p>
+              </div>
+            </div>
+
+            {/* Son : couper, volume de la musique et des effets */}
+            <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
+              <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px", display: "flex", alignItems: "center", gap: 8 }}>
+                <Volume2 size={16} color="#d6ef3c" strokeWidth={2.6} /> Son
+              </div>
+              <div className="tm-halftone-yellow" style={{ padding: "12px 12px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
+                <button
+                  className="tm-bd-press"
+                  style={setBtn(audioSet.muted ? "#ffffff" : "#1f7a45", audioSet.muted ? "#141414" : "#ffffff", { transform: "rotate(-0.6deg)" })}
+                  onClick={() => setAudioSettings({ muted: !audioSet.muted })}
+                >
+                  <span style={iconCase(audioSet.muted ? "#ffffff" : "#d6ef3c")}>{audioSet.muted ? <VolumeX size={20} color="#141414" /> : <Volume2 size={20} color="#141414" />}</span>
+                  <span style={{ flex: 1, minWidth: 0, textTransform: "uppercase" }}>{audioSet.muted ? "Son coupé" : "Son activé"}</span>
+                  <span className="tm-display" style={{ fontSize: 12, background: audioSet.muted ? T.ink : "#ffffff", color: audioSet.muted ? "#ffffff" : "#141414", border: "2px solid " + T.ink, padding: "1px 7px" }}>{audioSet.muted ? "OFF" : "ON"}</span>
+                </button>
+                {[["music", "Musique"], ["sfx", "Effets et public"]].map(([k, label]) => (
+                  <label key={k} style={{ display: "block", background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "8px 10px", opacity: audioSet.muted ? 0.5 : 1 }}>
+                    <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <span className="tm-display" style={{ fontSize: 14, textTransform: "uppercase" }}>{label}</span>
+                      <span className="tm-num" style={{ fontSize: 12, fontWeight: 800, background: "#d6ef3c", border: "2px solid " + T.ink, padding: "0 6px" }}>{Math.round(audioSet[k] * 100)} %</span>
+                    </span>
+                    <input
+                      type="range" min="0" max="100" step="5" value={Math.round(audioSet[k] * 100)}
+                      disabled={audioSet.muted}
+                      onChange={e => setAudioSettings({ [k]: Number(e.target.value) / 100 })}
+                      aria-label={"Volume : " + label}
+                      style={{ width: "100%", accentColor: "#5b2d8e", height: 28, margin: 0, cursor: "pointer" }}
+                    />
+                  </label>
+                ))}
               </div>
             </div>
 

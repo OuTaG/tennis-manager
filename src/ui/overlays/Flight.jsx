@@ -9,6 +9,7 @@ import { FlagFromEmoji } from "../icons.jsx";
 import { T } from "../theme.js";
 import { fmtKm } from "../format.js";
 import { deCity } from "../../engine/text.js";
+import { playSfx } from "../../engine/audio.js";
 
 // ─── FLIGHT ANIMATION OVERLAY ───────────────────────────────────────────────
 // Le voyage vu de la cabine, en trois cases de BD : le tableau des départs
@@ -30,6 +31,8 @@ export function FlightOverlay({ from, to, onDone }) {
 
   useEffect(() => {
     if (!a || !b) { onDone(); return; }
+    playSfx("takeoff");
+    let landed = false;
     const DURATION = 3000; // ms
     let start = null;
     const ease = (p) => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
@@ -37,6 +40,7 @@ export function FlightOverlay({ from, to, onDone }) {
       if (start === null) start = now;
       const p = Math.min(1, (now - start) / DURATION);
       setT(ease(p));
+      if (!landed && p > 0.82) { landed = true; playSfx("landing"); }
       if (p < 1) { rafRef.current = requestAnimationFrame(step); }
       else { setTimeout(onDone, 900); } // le temps de voir le tampon « Arrivé ! »
     };
