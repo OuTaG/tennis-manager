@@ -3,11 +3,14 @@ import { computeCareerSummary, computeLegacyScore, getTitlesByTier } from "./leg
 import { getPlayerRanking, totalAtpPoints } from "./player.js";
 import { fmtMoneyShort, fmtNum } from "./text.js";
 import { tournamentEarningsFromHistory } from "./history.js";
+import { careerConfigOf } from "./careerConfig.js";
 
 // ─── RECORDS (toutes carrières) ──────────────────────────────────────────
 // Un résumé de chaque carrière est gardé à part (localStorage « tm-records »),
 // indépendamment de la sauvegarde : effacer ou écraser une partie ne fait pas
-// disparaître ses records. Mis à jour à chaque sauvegarde.
+// disparaître ses records. Mis à jour à chaque sauvegarde. Chaque résumé
+// garde la configuration de départ ; une carrière où une triche a servi
+// (ou relancée après faillite) a ses records à part, dans l'onglet Triche.
 export const RECORDS_STORAGE_KEY = "tm-records";
 
 export function loadCareerSummaries() {
@@ -57,6 +60,8 @@ export function updateCareerRecords(player, atpDb) {
       weeksTop10: Math.max(prev.weeksTop10 || 0, summary.weeksTop10 || 0),
       bestStreak: Math.max(prev.bestStreak || 0, summary.bestStreak || 0),
       legacy: Math.max(prev.legacy || 0, computeLegacyScore(player, summary) || 0),
+      config: careerConfigOf(player),
+      cheated: !!player.cheated,
       updatedAt: Date.now(),
     };
     localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(all));
@@ -83,8 +88,12 @@ export const RECORD_DEFS = [
   { key: "seasons", label: "Saisons jouées", icon: "calendar", fmt: v => v },
 ];
 
-export function computeRecords() {
-  const careers = Object.values(loadCareerSummaries());
+// mode : "classic" (carrières sans triche) ou "cheat".
+export function careersOf(mode) {
+  return Object.values(loadCareerSummaries()).filter(c => (mode === "cheat") === !!c.cheated);
+}
+export function computeRecords(mode = "classic") {
+  const careers = careersOf(mode);
   return RECORD_DEFS.map(def => {
     let best = null;
     for (const c of careers) {

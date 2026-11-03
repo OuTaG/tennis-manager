@@ -1,7 +1,8 @@
 // Écran Records.
 import { useState } from "react";
 import { CHALLENGES, MEDAL_INFO, loadChallengeResults } from "../../engine/challenges.js";
-import { computeRecords, loadCareerSummaries } from "../../engine/records.js";
+import { careersOf, computeRecords } from "../../engine/records.js";
+import { describeConfig } from "../../engine/careerConfig.js";
 import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
@@ -13,8 +14,11 @@ const iconBox = (bg) => ({ width: 34, height: 34, background: bg, border: "2.5px
 const label = { color: "#141414", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3 };
 
 export function RecordsScreen({ onBack }) {
-  const careers = Object.values(loadCareerSummaries());
-  const records = computeRecords();
+  // Deux palmarès : carrières sans triche, et carrières « triche ».
+  const [mode, setMode] = useState("classic");
+  const [openRec, setOpenRec] = useState(null);
+  const careers = careersOf(mode);
+  const records = computeRecords(mode);
   const chResults = loadChallengeResults();
   const [openCh, setOpenCh] = useState(null);
   return (
@@ -28,16 +32,27 @@ export function RecordsScreen({ onBack }) {
           <div className="tm-lettering" style={{ color: "#141414", fontSize: 15, lineHeight: 1.3, marginBottom: 16 }}>
             Meilleures performances sur l'ensemble de vos carrières · {careers.length} carrière{careers.length > 1 ? "s" : ""}
           </div>
+          <div style={{ display: "flex", border: "3px solid " + INK, boxShadow: "3px 3px 0 " + INK, marginBottom: 14 }}>
+            {[["classic", "Classique"], ["cheat", "Triche"]].map(([m, l], i) => (
+              <button key={m} onClick={() => { setMode(m); setOpenRec(null); }} className="tm-display" style={{
+                flex: 1, padding: "9px 6px", fontSize: 14, cursor: "pointer", border: "none", borderLeft: i ? "3px solid " + INK : "none",
+                background: mode === m ? (m === "cheat" ? "#c4302b" : INK) : "#ffffff", color: mode === m ? "#ffffff" : INK, textTransform: "uppercase",
+              }}>{l}</button>
+            ))}
+          </div>
           {careers.length === 0 ? (
             <div className="tm-lettering" style={{ ...panel, textAlign: "center", fontSize: 16, lineHeight: 1.35, padding: 24 }}>
-              Aucun record pour l'instant. Lancez une carrière : vos meilleures performances s'afficheront ici.
+              {mode === "cheat" ? "Aucune carrière avec triche pour l'instant." : "Aucun record pour l'instant. Lancez une carrière : vos meilleures performances s'afficheront ici."}
             </div>
           ) : (
             <div style={{ ...panel, padding: "4px 14px" }}>
               {records.map(({ def, career }, i) => {
                 const when = career && def.when ? def.when(career) : null;
+                const cfg = career && career.config ? describeConfig(career.config) : null;
+                const open = openRec === def.key && cfg;
                 return (
-                  <div key={def.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: i < records.length - 1 ? "2px dashed " + INK : "none" }}>
+                  <div key={def.key} style={{ borderBottom: i < records.length - 1 ? "2px dashed " + INK : "none" }}>
+                  <div onClick={() => cfg && setOpenRec(open ? null : def.key)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", cursor: cfg ? "pointer" : "default" }}>
                     <div style={iconBox(career ? "#d6ef3c" : "#ffffff")}>
                       <Icon name={def.icon} size={16} color="#141414" />
                     </div>
@@ -52,6 +67,7 @@ export function RecordsScreen({ onBack }) {
                           <div style={{ color: "#141414", fontSize: 11, fontWeight: 600, marginTop: 1 }}>
                             {when || (career.startYear === career.lastYear ? career.startYear : career.startYear + "–" + career.lastYear)}
                           </div>
+                          {cfg && <div style={{ color: "#5b2d8e", fontSize: 10.5, fontWeight: 800, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cfg.short}{open ? "" : " ›"}</div>}
                         </>
                       ) : (
                         <div className="tm-lettering" style={{ color: "#141414", fontSize: 13.5, marginTop: 2, opacity: 0.7 }}>Pas encore réalisé</div>
@@ -60,6 +76,16 @@ export function RecordsScreen({ onBack }) {
                     <div className="tm-display" style={{ color: "#141414", fontSize: 17, flexShrink: 0 }}>
                       {career ? def.fmt(career[def.key]) : "—"}
                     </div>
+                  </div>
+                  {open && (
+                    <div className="tm-halftone-yellow" style={{ border: "2px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "6px 10px", marginBottom: 12 }}>
+                      {cfg.rows.map(([l, v], k) => (
+                        <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, fontWeight: 700, padding: "3px 0", color: "#141414", borderTop: k ? "1.5px dashed " + INK : 0 }}>
+                          <span>{l}</span><span style={{ fontWeight: 800, textAlign: "right" }}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   </div>
                 );
               })}

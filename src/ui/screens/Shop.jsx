@@ -145,6 +145,7 @@ export function ShopScreen({ onPurchasesChanged, focusId, onUse }) {
                       ))}
                     </div>
                   )}
+                  {item.note && <div className="tm-lettering" style={{ marginTop: 10, fontSize: 14, lineHeight: 1.3, background: "#ffffff", border: "2px dashed " + INK, padding: "5px 8px" }}>{item.note}</div>}
                   {!native && isOwned && item.type === "subscription" && (
                     <button
                       style={{ background: "#ffffff", border: "2px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "3px 9px", marginTop: 10, color: "#c4302b", fontFamily: T.body, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3, cursor: "pointer" }}

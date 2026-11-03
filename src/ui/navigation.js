@@ -64,7 +64,7 @@ export const PAGE_HELP = {
     ["Objectifs", "Chaque contrat fixe un objectif (classement, titres, victoires…) à atteindre avant la fin : prime si réussi, pénalité sinon. Facile, moyen ou ambitieux : plus c'est exigeant, mieux c'est payé."],
   ] },
   shop: { title: "Boutique", items: [
-    ["Gratuit", "Le jeu complet est gratuit, sans publicité. Aucun achat ne donne d'avantage en match."],
+    ["Gratuit", "Le jeu complet est gratuit, sans publicité."],
     ["Extensions", "Défis scénarisés, Personnalisation et Carrières multiples se paient une seule fois et restent acquis, même si vous recommencez une carrière."],
   ] },
   social: { title: "Social", items: [

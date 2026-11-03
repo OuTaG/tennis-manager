@@ -31,6 +31,25 @@ export const SHOP_ITEMS = [
   },
   { id: "multi_careers", category: "Options", type: "once", icon: "history", name: "Carrières multiples", price: "1,99\u00a0€", status: "available",
     desc: "Deux emplacements de sauvegarde en plus, pour mener jusqu'à 3 carrières en parallèle." },
+  {
+    id: "cheat_pack", category: "Options", type: "once", icon: "rocket",
+    name: "CHEAT à vie", price: "4,99\u00a0€", status: "available",
+    desc: "Payé une fois, pour toutes vos carrières. Les triches s'activent dans Réglages, quand vous le voulez.",
+    perks: [
+      { label: "+100 000 € d'un coup", ready: true },
+      { label: "Énergie toujours au maximum", ready: true },
+      { label: "+10 dans toutes les stats", ready: true },
+      { label: "Tous les tournois ouverts, quel que soit le classement", ready: true },
+      { label: "Plus aucune blessure", ready: true },
+    ],
+    note: "Une carrière qui triche a ses propres records et sort du classement en ligne.",
+  },
+];
+// Relances après faillite : consommables vendus seulement sur l'écran de
+// faillite (deux au plus par carrière, la seconde plus chère).
+export const CONTINUE_OFFERS = [
+  { id: "continue_1", price: "0,99\u00a0€", money: 5000 },
+  { id: "continue_2", price: "1,99\u00a0€", money: 10000 },
 ];
 // Modes annoncés dans le menu principal, pas encore en vente (absents de la
 // boutique tant qu'ils ne sont pas prêts).

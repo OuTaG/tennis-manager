@@ -77,7 +77,12 @@ export function getTournamentFormat(tournament) {
 // TennisManager : l'accès au Masters de fin d'année en dépend.
 export let PLAYER_RACE_RANK = 9999;
 export function setPlayerRaceRank(v) { PLAYER_RACE_RANK = v; }
+// Triche « tous les tournois » : inscription directe partout (hors Masters,
+// réservé au top 8 de la Race).
+let CHEAT_ALL_ENTRIES = false;
+export function setCheatAllEntries(v) { CHEAT_ALL_ENTRIES = !!v; }
 export function getEntryStatus(tournament, ranking, raw) {
+  if (CHEAT_ALL_ENTRIES && !raw && tournament.tier !== "Finals") return { status: "direct", reason: "Triche : tous les tournois ouverts" };
   if (tournament.tier === "Finals") {
     return PLAYER_RACE_RANK <= 8
       ? { status: "direct", reason: "Qualifié via la Race (" + PLAYER_RACE_RANK + "e)" }
