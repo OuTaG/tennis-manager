@@ -3,7 +3,8 @@
 //   l'autre, sur les écrans hors match.
 // - Ambiance de match : une boucle de public sans coupure (lecture Web Audio
 //   en boucle exacte, pas de trou entre deux tours).
-// - Effets ponctuels (décollage, atterrissage…).
+// - Effets ponctuels : le vol (calé sur la durée de l'animation), la
+//   clameur du public à la fin d'un match.
 // Tout passe par Web Audio : sur iPhone, le volume d'un élément <audio> ne
 // se règle pas, seul un nœud de gain le permet. Les fichiers sont servis à
 // côté de index.html (dossier audio/) ; un fichier absent est ignoré.
@@ -12,7 +13,7 @@
 const KEY = "tm-audio";
 const MUSIC = [1, 2, 3, 4, 5].map(n => "audio/music-" + n + ".mp3");
 const AMBIENCE = "audio/match-ambience.mp3";
-const SFX = { takeoff: "audio/takeoff.mp3", landing: "audio/landing.mp3" };
+const SFX = { flight: "audio/flight.mp3", matchEnd: "audio/match-end.mp3" };
 
 const DEFAULTS = { music: 0.6, sfx: 0.8, muted: false };
 let settings = load();

@@ -48,7 +48,7 @@ import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
 import { SponsorNegotiationOverlay } from "./ui/overlays/Negotiation.jsx";
 import { TutorialOverlay } from "./ui/overlays/Tutorial.jsx";
-import { getAudioSettings, onAudioSettings, setAudioScene, setAudioSettings, unlockAudio } from "./engine/audio.js";
+import { getAudioSettings, onAudioSettings, playSfx, setAudioScene, setAudioSettings, unlockAudio } from "./engine/audio.js";
 import { Volume2, VolumeX } from "lucide-react";
 import { RallyOverlay } from "./ui/overlays/Rally.jsx";
 import { CalendarScreen } from "./ui/screens/Calendar.jsx";
@@ -287,8 +287,12 @@ export default function TennisManager() {
     window.addEventListener("pointerdown", unlock);
     return () => window.removeEventListener("pointerdown", unlock);
   }, []);
-  // Musique hors match, ambiance de public pendant les matchs.
-  useEffect(() => { setAudioScene(screen === "match" ? "match" : "menu"); }, [screen]);
+  // Ambiance de public pendant qu'un match se joue ; la musique reprend
+  // avant le match, entre deux matchs et après. Clameur à la balle de match.
+  const matchLive = screen === "match" && !!matchState && matchState.phase === "live" && !matchState.finalResult && !matchState.matchData?.matchComplete;
+  const matchOver = screen === "match" && !!matchState && !!matchState.matchData?.matchComplete;
+  useEffect(() => { setAudioScene(matchLive ? "match" : "menu"); }, [matchLive]);
+  useEffect(() => { if (matchOver) playSfx("matchEnd"); }, [matchOver]);
   // Bouton haut-parleur : couper / rétablir le son.
   const muteButton = (extra = {}) => (
     <button
