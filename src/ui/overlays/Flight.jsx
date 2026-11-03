@@ -148,16 +148,38 @@ export function FlightOverlay({ from, to, onDone }) {
         {/* Hublot : la carte vue de la cabine */}
         <div style={{ alignSelf: "center", width: "82%", padding: 14, background: "#ebe5d3", border: "3px solid " + INK, borderRadius: 120, boxShadow: "6px 6px 0 " + INK + ", inset 0 0 0 6px #f7f2e3" }}>
           <div style={{ position: "relative", border: "3px solid " + INK, borderRadius: 104, overflow: "hidden", background: "#c9b6ea", aspectRatio: "0.82", boxShadow: "inset 0 0 0 5px rgba(20,20,20,0.15)" }}>
+            {/* Carte fixe (dessinée une fois) : océan tramé, terres en relief et grain */}
             <svg viewBox={viewBox} preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}>
               <defs>
                 <pattern id="tm-flight-dots" width={s(2.4)} height={s(2.4)} patternUnits="userSpaceOnUse">
                   <circle cx={s(1.2)} cy={s(1.2)} r={s(0.55)} fill="#5b2d8e" opacity="0.28" />
                 </pattern>
+                {/* Grain d'impression : bruit fractal réduit à des points d'encre */}
+                <filter id="tm-land-grain" filterUnits="userSpaceOnUse" x={vbX} y={vbY} width={vbW} height={vbH}>
+                  <feTurbulence type="fractalNoise" baseFrequency={(150 / vbW).toFixed(3)} numOctaves="2" seed="7" result="n" />
+                  <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.36  0 0 0 0 0.27  0 0 0 0 0.12  3.2 0 0 0 -1.75" result="specks" />
+                  <feComposite in="specks" in2="SourceAlpha" operator="in" />
+                </filter>
+                {/* Lumière en haut à gauche, ombre en bas à droite */}
+                <linearGradient id="tm-land-light" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#ffffff" stopOpacity="0.55" />
+                  <stop offset="1" stopColor="#c9b98f" stopOpacity="0.35" />
+                </linearGradient>
               </defs>
               {/* Océan tramé */}
               <rect x={vbX} y={vbY} width={vbW} height={vbH} fill="url(#tm-flight-dots)" />
+              {/* Épaisseur des terres : couches décalées, la plus basse à l'encre */}
+              {[5, 4, 3, 2, 1].map(k => (
+                <path key={k} d={WORLD_PATH} transform={"translate(" + s(0.5 * k) + "," + s(0.68 * k) + ")"}
+                  fill={k === 5 ? INK : k >= 3 ? "#8f7f55" : "#b7a77a"} stroke={k === 5 ? INK : "none"} strokeWidth={s(0.7)} strokeLinejoin="round" />
+              ))}
               {/* Terres : papier, contour d'encre */}
-              <path d={WORLD_PATH} fill="#fffdf6" stroke={INK} strokeWidth={s(0.7)} strokeLinejoin="round" />
+              <path d={WORLD_PATH} fill="#fbf3dc" stroke={INK} strokeWidth={s(0.7)} strokeLinejoin="round" />
+              <path d={WORLD_PATH} fill="url(#tm-land-light)" />
+              <path d={WORLD_PATH} fill="#000" filter="url(#tm-land-grain)" opacity="0.55" />
+            </svg>
+            {/* Couche animée : trajet, épingles, avion */}
+            <svg viewBox={viewBox} preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}>
               {/* Itinéraire complet en pointillés d'encre */}
               <polyline points={fullTrail.join(" ")} fill="none" stroke={INK} strokeWidth={s(0.8)} strokeDasharray={s(2.2) + " " + s(1.8)} />
               {/* Trajet parcouru */}
