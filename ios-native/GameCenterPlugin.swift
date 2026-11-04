@@ -2,6 +2,8 @@
 // À ajouter au projet Xcode (dossier App/App), avec MainViewController.swift.
 // Méthodes appelées depuis le jeu (src/engine/gamecenter.js) :
 //   authenticate()                                   → { authenticated, displayName }
+//   signIn()       bouton « Se connecter » du jeu (fenêtre Game Center)
+//   évènement « authChanged » quand le joueur se connecte ou se déconnecte
 //   submitScore({ leaderboardId, score, context })   → envoi du score + configuration
 //   loadEntries({ leaderboardId, scope, start, length })
 //        → { entries: [{ rank, score, context, name, local }], local, total }
@@ -10,17 +12,19 @@ import Capacitor
 import GameKit
 
 @objc(GameCenterPlugin)
-public class GameCenterPlugin: CAPPlugin, CAPBridgedPlugin {
+public class GameCenterPlugin: CAPPlugin, CAPBridgedPlugin, GKGameCenterControllerDelegate {
     public let identifier = "GameCenterPlugin"
     public let jsName = "GameCenter"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "authenticate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "signIn", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "submitScore", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "loadEntries", returnType: CAPPluginReturnPromise),
     ]
 
     private var pendingAuth: [CAPPluginCall] = []
     private var handlerInstalled = false
+    private var signInController: UIViewController? // fenêtre de connexion fournie par GameKit
 
     private func authResult(_ error: Error? = nil) -> [String: Any] {
         let local = GKLocalPlayer.local
@@ -42,6 +46,8 @@ public class GameCenterPlugin: CAPPlugin, CAPBridgedPlugin {
             local.authenticateHandler = { [weak self] viewController, error in
                 guard let self = self else { return }
                 if let vc = viewController {
+                    // Gardée pour le bouton « Se connecter » du jeu.
+                    self.signInController = vc
                     self.bridge?.viewController?.present(vc, animated: true)
                     return
                 }
@@ -49,7 +55,32 @@ public class GameCenterPlugin: CAPPlugin, CAPBridgedPlugin {
                 let calls = self.pendingAuth
                 self.pendingAuth = []
                 calls.forEach { $0.resolve(result) }
+                self.notifyListeners("authChanged", data: result)
             }
+        }
+    }
+
+    // Bouton « Se connecter à Game Center » : rouvre la fenêtre de connexion
+    // de GameKit si elle existe, sinon le tableau de bord Game Center.
+    @objc func signIn(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            let local = GKLocalPlayer.local
+            if local.isAuthenticated { call.resolve(self.authResult()); return }
+            guard let host = self.bridge?.viewController else { call.resolve(self.authResult()); return }
+            if let vc = self.signInController, vc.presentingViewController == nil {
+                host.present(vc, animated: true)
+            } else {
+                let gc = GKGameCenterViewController(state: .dashboard)
+                gc.gameCenterDelegate = self
+                host.present(gc, animated: true)
+            }
+            call.resolve(self.authResult())
+        }
+    }
+
+    public func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
+        gameCenterViewController.dismiss(animated: true) {
+            self.notifyListeners("authChanged", data: self.authResult())
         }
     }
 

@@ -286,6 +286,8 @@ export default function TennisManager() {
   const [audioSet, setAudioSet] = useState(getAudioSettings());
   useEffect(() => onAudioSettings(setAudioSet), []);
   useEffect(() => {
+    // App iPhone : le son natif démarre dès le lancement (sans effet sur le web).
+    if (isNativeStore()) unlockAudio();
     const unlock = () => { unlockAudio(); window.removeEventListener("pointerdown", unlock); };
     window.addEventListener("pointerdown", unlock);
     return () => window.removeEventListener("pointerdown", unlock);

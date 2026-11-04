@@ -12,10 +12,14 @@
 // pendant les matchs et les vols) et la session audio est en « lecture »,
 // sans quoi le bouton silencieux coupe le Web Audio.
 // Réglages (volume musique, volume effets, son coupé) gardés sur l'appareil.
+// Dans l'app iPhone, la lecture passe par le module natif « GameAudio »
+// (ios-native/GameAudioPlugin.swift, AVAudioPlayer), plus fiable que le son
+// du WebView ; sans ce module (web), par Web Audio comme ci-dessous.
+import { Capacitor, registerPlugin } from "@capacitor/core";
 
 const KEY = "tm-audio";
 const MUSIC = [1, 2, 3, 4, 5].map(n => "audio/music-" + n + ".mp3");
-const AMBIENCE = "audio/match-ambience.mp3";
+const AMBIENCE = "audio/match-ambience.m4a"; // AAC : boucle sans trou
 const SFX = { flight: "audio/flight.mp3", matchEnd: "audio/match-end.mp3" };
 
 const DEFAULTS = { music: 0.6, sfx: 0.8, muted: false };
@@ -133,9 +137,47 @@ function stopAmbience() {
   setTimeout(() => { try { s.stop(); } catch (e) { /* déjà arrêtée */ } }, 900);
 }
 
+// ─── LECTURE NATIVE (iPhone) ──────────────────────────────────────────────
+let nat = null;       // module GameAudio, une fois les sons chargés
+let natStarting = false;
+let natAmbOn = false;
+function nativeAvailable() {
+  try { return Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("GameAudio"); } catch (e) { return false; }
+}
+const musicVolume = () => (settings.muted || scene !== "menu" ? 0 : settings.music);
+async function startNative() {
+  if (nat || natStarting) return !!nat;
+  natStarting = true;
+  const p = registerPlugin("GameAudio");
+  const load = (id, file, loop = false) => p.preload({ id, file, loop }).then(() => true).catch(e => { console.warn("[son]", file, e); return false; });
+  const ok = await Promise.all([
+    ...MUSIC.map((f, i) => load("m" + i, f)),
+    load("amb", AMBIENCE, true),
+    ...Object.entries(SFX).map(([id, f]) => load(id, f)),
+  ]);
+  natStarting = false;
+  if (!ok.some(Boolean)) return false;
+  nat = p;
+  nat.addListener("ended", ({ id }) => {
+    if (id && id[0] === "m") { musicIndex = (musicIndex + 1) % MUSIC.length; natMusic(); }
+  });
+  natMusic();
+  natApply();
+  return true;
+}
+function natMusic() { nat.play({ id: "m" + musicIndex, volume: musicVolume(), fade: 1, restart: true }).catch(() => {}); }
+function natApply(fade = 0.6) {
+  nat.setVolume({ id: "m" + musicIndex, volume: musicVolume(), fade }).catch(() => {});
+  const amb = scene === "match" && !settings.muted;
+  if (amb && !natAmbOn) { natAmbOn = true; nat.play({ id: "amb", volume: settings.sfx * 0.7, fade: 0.6, restart: true }).catch(() => {}); }
+  else if (amb) nat.setVolume({ id: "amb", volume: settings.sfx * 0.7, fade }).catch(() => {});
+  else if (natAmbOn) { natAmbOn = false; nat.stop({ id: "amb", fade: 0.4 }).catch(() => {}); }
+}
+
 // À appeler au premier toucher : les navigateurs n'autorisent le son
-// qu'après un geste du joueur.
+// qu'après un geste du joueur. Dans l'app iPhone, dès le lancement.
 export function unlockAudio() {
+  if (nativeAvailable()) { startNative(); return; }
   if (!ensureContext()) return;
   // iOS 17+ : session « lecture », le bouton silencieux ne coupe plus le jeu.
   try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) { /* non pris en charge */ }
@@ -147,6 +189,7 @@ export function unlockAudio() {
 // « menu » : musique ; « match » : ambiance de public ; « vol » : son de
 // l'avion seul. La musique continue en silence hors menu (voir plus haut).
 export function setAudioScene(next) {
+  if (nat) { if (next !== scene) { scene = next; natApply(); } return; }
   if (next === scene && ctx) return;
   scene = next;
   if (!ctx) return;
@@ -157,6 +200,7 @@ export function setAudioScene(next) {
 
 // Effets ponctuels : par élément <audio> (fiable sur iPhone).
 export function playSfx(name) {
+  if (nat) { if (!settings.muted && SFX[name]) nat.play({ id: name, volume: settings.sfx, restart: true }).catch(() => {}); return; }
   if (!ctx || settings.muted || !SFX[name]) return;
   if (ctx.state === "suspended") ctx.resume();
   playElement(SFX[name], sfxGain);
@@ -166,6 +210,7 @@ export function getAudioSettings() { return settings; }
 export function setAudioSettings(patch) {
   settings = { ...settings, ...patch };
   try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* stockage plein */ }
+  if (nat) natApply(0.3);
   applyVolumes();
   if (musicEl) { if (settings.muted) musicEl.pause(); else musicEl.play().catch(() => {}); }
   listeners.forEach(fn => fn(settings));

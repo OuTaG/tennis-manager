@@ -36,6 +36,25 @@ export function authenticateGameCenter() {
 }
 export function gameCenterAuth() { return auth; }
 
+// Connexion ou déconnexion signalée par GameKit (bouton « Se connecter »,
+// connexion faite depuis la fenêtre Game Center…).
+const authListeners = new Set();
+let listening = false;
+export function onGameCenterAuth(fn) {
+  authListeners.add(fn);
+  if (!listening && gameCenterSupported() && gc().addListener) {
+    listening = true;
+    gc().addListener("authChanged", r => { auth = r; if (r && r.authenticated) authPromise = Promise.resolve(r); authListeners.forEach(f => f(r)); });
+  }
+  return () => authListeners.delete(fn);
+}
+
+// Bouton « Se connecter à Game Center » : ouvre la fenêtre de connexion.
+export async function signInGameCenter() {
+  if (!gameCenterSupported()) return null;
+  try { return await gc().signIn(); } catch (e) { return null; }
+}
+
 // Envoi du score d'héritage : seulement s'il a progressé depuis le dernier
 // envoi de cette carrière, et au plus une fois toutes les 5 secondes.
 const SENT_KEY = "tm-gc-sent";

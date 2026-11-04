@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { DIFFICULTY_LEVELS } from "../../engine/difficulty.js";
 import { decodeConfig, describeConfig, careerConfigOf } from "../../engine/careerConfig.js";
-import { gameCenterSupported, loadLeaderboard } from "../../engine/gamecenter.js";
+import { gameCenterSupported, loadLeaderboard, onGameCenterAuth, signInGameCenter } from "../../engine/gamecenter.js";
 import { Icon } from "../icons.jsx";
 import { styles } from "../styles.js";
 import { T } from "../theme.js";
@@ -25,6 +25,9 @@ export function OnlineRankingScreen({ player, onBack }) {
   const [error, setError] = useState(null);
   const [open, setOpen] = useState(null);
   const supported = gameCenterSupported();
+  const [authTick, setAuthTick] = useState(0);
+  // Connexion à Game Center depuis le jeu : on recharge le classement.
+  useEffect(() => onGameCenterAuth(() => setAuthTick(t => t + 1)), []);
 
   useEffect(() => {
     if (!supported) return;
@@ -34,7 +37,7 @@ export function OnlineRankingScreen({ player, onBack }) {
       .then(r => { if (alive) setData(r); })
       .catch(e => { if (alive) setError(String((e && e.message) || e)); });
     return () => { alive = false; };
-  }, [scope, supported]);
+  }, [scope, supported, authTick]);
 
   const rows = ((data && data.entries) || []).map(e => ({ ...e, cfg: decodeConfig(e.context) }))
     .filter(e => (level === "all" || (e.cfg && e.cfg.difficulty === level)) && (circuit === "all" || (e.cfg && e.cfg.circuit === circuit)));
@@ -60,7 +63,13 @@ export function OnlineRankingScreen({ player, onBack }) {
       {!supported ? message("Le classement mondial est disponible dans l'app iPhone, avec Game Center.")
         : error ? message("Classement indisponible pour le moment. Vérifiez votre connexion.")
         : !data ? message("Chargement du classement…")
-        : data.unavailable ? message("Connectez-vous à Game Center (Réglages de l'iPhone › Game Center) pour voir le classement et y apparaître.")
+        : data.unavailable ? (
+          <div style={{ ...panel, padding: 18, textAlign: "center" }}>
+            <div className="tm-lettering" style={{ fontSize: 16, lineHeight: 1.35, marginBottom: 12 }}>Connectez-vous à Game Center pour voir le classement et y apparaître.</div>
+            <button className="tm-bd-press" style={{ ...styles.btnPrimary, marginBottom: 8, background: "#1f7a45" }} onClick={async () => { await signInGameCenter(); setAuthTick(t => t + 1); }}>Se connecter à Game Center</button>
+            <div style={{ fontSize: 11, fontWeight: 700 }}>Rien ne s'ouvre ? Réglages de l'iPhone › Game Center.</div>
+          </div>
+        )
         : (
           <>
             {/* Votre place */}
