@@ -1,10 +1,12 @@
 // Musique et sons du jeu.
 // - Musique : les morceaux de MUSIC s'enchaînent en boucle, l'un après
 //   l'autre, sur les écrans hors match.
-// - Ambiance de match : une boucle de public sans coupure (lecture Web Audio
-//   en boucle exacte, pas de trou entre deux tours).
-// - Effets ponctuels : le vol (calé sur la durée de l'animation), la
-//   clameur du public à la fin d'un match.
+// - Ambiance de match : une boucle des seuls sons des points (frappes de
+//   balle, réactions du public), jamais la voix de l'arbitre. Elle se tait
+//   quand le match est en pause, pendant un mini-jeu et à la fin du match.
+// - Effets ponctuels : le vol (calé sur la durée de l'animation), les
+//   applaudissements d'un mini-jeu réussi, la clameur du public dès la fin
+//   d'un match. Tout son de match s'arrête en quittant le match en direct.
 // Tout passe par Web Audio : sur iPhone, le volume d'un élément <audio> ne
 // se règle pas, seul un nœud de gain le permet. Les fichiers sont servis à
 // côté de index.html (dossier audio/) ; un fichier absent est ignoré.
@@ -20,7 +22,10 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 const KEY = "tm-audio";
 const MUSIC = [1, 2, 3, 4, 5].map(n => "audio/music-" + n + ".mp3");
 const AMBIENCE = "audio/match-ambience.m4a"; // AAC : boucle sans trou
-const SFX = { flight: "audio/flight.mp3", matchEnd: "audio/match-end.mp3" };
+const SFX = { flight: "audio/flight.mp3", matchEnd: "audio/match-end.mp3", cheer: "audio/cheer.mp3" };
+// Sons propres au match, coupés dès qu'on quitte le match en direct.
+const MATCH_SFX = ["matchEnd", "cheer"];
+const inMatch = (sc) => sc === "match" || sc === "matchQuiet";
 
 const DEFAULTS = { music: 0.6, sfx: 0.8, muted: false };
 let settings = load();
@@ -167,6 +172,9 @@ async function startNative() {
 }
 function natMusic() { nat.play({ id: "m" + musicIndex, volume: musicVolume(), fade: 1, restart: true }).catch(() => {}); }
 function natApply(fade = 0.6) {
+  // Son coupé : tout se tait ; hors match : plus aucun son de match.
+  const silence = settings.muted ? Object.keys(SFX) : inMatch(scene) ? [] : MATCH_SFX;
+  silence.forEach(id => nat.stop({ id, fade: 0.3 }).catch(() => {}));
   nat.setVolume({ id: "m" + musicIndex, volume: musicVolume(), fade }).catch(() => {});
   const amb = scene === "match" && !settings.muted;
   if (amb && !natAmbOn) { natAmbOn = true; nat.play({ id: "amb", volume: settings.sfx * 0.7, fade: 0.6, restart: true }).catch(() => {}); }
@@ -186,8 +194,9 @@ export function unlockAudio() {
   setAudioScene(scene);
 }
 
-// « menu » : musique ; « match » : ambiance de public ; « vol » : son de
-// l'avion seul. La musique continue en silence hors menu (voir plus haut).
+// « menu » : musique ; « match » : sons des points ; « matchQuiet » : match
+// en pause, mini-jeu ou match terminé (ni musique ni ambiance) ; « flight » :
+// son de l'avion seul. La musique continue en silence hors menu.
 export function setAudioScene(next) {
   if (nat) { if (next !== scene) { scene = next; natApply(); } return; }
   if (next === scene && ctx) return;
@@ -195,15 +204,22 @@ export function setAudioScene(next) {
   if (!ctx) return;
   applyVolumes(0.6);
   if (scene === "match") startAmbience(); else stopAmbience();
+  if (!inMatch(scene)) stopMatchSfx();
   if (musicEl && musicEl.paused && !settings.muted && document.visibilityState !== "hidden") musicEl.play().catch(() => {});
 }
 
 // Effets ponctuels : par élément <audio> (fiable sur iPhone).
+const sfxEls = {};
 export function playSfx(name) {
+  if (MATCH_SFX.includes(name) && !inMatch(scene)) return;
   if (nat) { if (!settings.muted && SFX[name]) nat.play({ id: name, volume: settings.sfx, restart: true }).catch(() => {}); return; }
   if (!ctx || settings.muted || !SFX[name]) return;
   if (ctx.state === "suspended") ctx.resume();
-  playElement(SFX[name], sfxGain);
+  if (sfxEls[name]) sfxEls[name].pause();
+  sfxEls[name] = playElement(SFX[name], sfxGain);
+}
+function stopMatchSfx() {
+  MATCH_SFX.forEach(n => { if (sfxEls[n]) { sfxEls[n].pause(); sfxEls[n] = null; } });
 }
 
 export function getAudioSettings() { return settings; }

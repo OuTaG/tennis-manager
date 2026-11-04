@@ -382,13 +382,14 @@ export default function TennisManager() {
   const [helpTab, setHelpTab] = useState(null); // tab id whose help is open
   const lastScreenByGroup = useRef({}); // dernier sous-écran ouvert par groupe de navigation
   const [flightAnim, setFlightAnim] = useState(null); // { from, to } during travel animation
-  // Ambiance de public pendant qu'un match se joue ; la musique reprend
-  // avant le match, entre deux matchs et après. Clameur à la balle de match.
-  // Le public reste jusqu'au bouton « Continuer » de fin de match ; pendant
-  // un vol, seul le son de l'avion.
-  const matchLive = screen === "match" && !!matchState && (matchState.phase === "live" || !!matchState.finalResult) && !matchState.pendingNextMatch;
-  const matchOver = screen === "match" && !!matchState && !!matchState.matchData?.matchComplete;
-  const audioScene = flightAnim ? "flight" : matchLive ? "match" : "menu";
+  // Son du match en direct : les sons des points pendant le jeu, coupés en
+  // pause, pendant un mini-jeu et à la fin (clameur du public aussitôt).
+  // En quittant l'écran du match (« Voir le résultat »), plus aucun son de
+  // match : la musique reprend. Pendant un vol, seul le son de l'avion.
+  const inLiveMatch = screen === "match" && !!matchState && matchState.phase === "live" && !matchState.pendingNextMatch;
+  const matchOver = inLiveMatch && !!matchState.matchData?.matchComplete;
+  const pointsPlaying = inLiveMatch && !matchOver && !matchPaused && !(matchState.pendingDilemma && matchState.pendingDilemma.minigame);
+  const audioScene = flightAnim ? "flight" : pointsPlaying ? "match" : inLiveMatch ? "matchQuiet" : "menu";
   useEffect(() => { setAudioScene(audioScene); }, [audioScene]);
   useEffect(() => { if (matchOver) playSfx("matchEnd"); }, [matchOver]);
   const [sponsorNegotiation, setSponsorNegotiation] = useState(null); // { phase, year, results, objMoney }
@@ -2210,6 +2211,7 @@ export default function TennisManager() {
 
   // Fin d'un mini-jeu de match : l'élan bouge, le résultat entre dans le fil.
   const resolveMiniGame = (kind, win, text, zone, label) => {
+    if (win) playSfx("cheer"); // mini-jeu réussi : le public applaudit
     setMatchState(ms => {
       if (!ms) return ms;
       const m = { ...ms.matchData };
@@ -3929,31 +3931,6 @@ export default function TennisManager() {
               </div>
             </div>
 
-            {/* Pages d'aide : case tramée lilas, récitatif, gros bouton vert */}
-            <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
-              <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px", display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#d6ef3c", color: "#141414", border: "2px solid #ffffff", fontSize: 13, textTransform: "none", transform: "rotate(-6deg)" }}>i</span>
-                Pages d'aide
-              </div>
-              <div className="tm-halftone-lilac" style={{ padding: "12px 12px 14px" }}>
-                <div className="tm-lettering" style={{ background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "8px 10px", fontSize: 15, lineHeight: 1.25, marginBottom: 14, transform: "rotate(-0.5deg)" }}>
-                  L'aide de chaque page s'ouvre à votre première visite, puis reste disponible via le bouton « i » en haut à droite. Vous pouvez la faire réapparaître automatiquement sur toutes les pages.
-                </div>
-                <button
-                  className="tm-bd-press tm-halftone-cyan"
-                  style={setBtn("#1f7a45", "#ffffff", { transform: "rotate(-1deg)", textShadow: "1px 1px 0 " + T.ink, textTransform: "uppercase" })}
-                  onClick={() => {
-                    setPlayer(p => ({ ...p, seenHelp: [] }));
-                    setActiveTab("hub");
-                    setScreen("hub");
-                  }}
-                >
-                  <span style={iconCase("#ffffff")}><Icon name="lightbulb" size={22} /></span>
-                  <span style={{ flex: 1, minWidth: 0 }}>Réafficher les pages d'aide</span>
-                </button>
-              </div>
-            </div>
-
             {/* Séparateur encré */}
             <div aria-hidden="true" style={{ borderTop: "2px dashed " + T.ink, margin: "2px 0" }} />
 
@@ -4657,6 +4634,7 @@ export default function TennisManager() {
                 <div className="tm-display" style={{ fontSize: 21, lineHeight: 1.05, marginTop: 5, textShadow: "2px 2px 0 " + T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tourn.name}</div>
                 <span className="tm-lettering" style={{ display: "inline-block", marginTop: 4, background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, padding: "0 7px", fontSize: 13 }}>{roundName}</span>
               </div>
+              {muteButton({ flexShrink: 0 })}
             </div>
             <style>{"@keyframes tm-live-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }"}</style>
 
