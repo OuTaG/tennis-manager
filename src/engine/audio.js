@@ -81,15 +81,28 @@ async function loadBuffer(url) {
   return buffers[url];
 }
 
+// Début et fin (en secondes) de la partie audible d'un tampon.
+function audibleRange(buf) {
+  const d = buf.getChannelData(0), n = d.length, eps = 1e-4;
+  let i = 0, j = n - 1;
+  while (i < n && Math.abs(d[i]) < eps) i++;
+  while (j > i && Math.abs(d[j]) < eps) j--;
+  return [i / buf.sampleRate, (j + 1) / buf.sampleRate];
+}
+
 async function startAmbience() {
   if (!ctx || ambSource) return;
   ambBuffer = ambBuffer || await loadBuffer(AMBIENCE);
   if (!ambBuffer || scene !== "match" || ambSource) return;
   ambSource = ctx.createBufferSource();
   ambSource.buffer = ambBuffer; ambSource.loop = true;
+  // Le MP3 ajoute un court silence au début et à la fin : la boucle les
+  // saute, pour tourner sans le moindre trou.
+  const [from, to] = audibleRange(ambBuffer);
+  ambSource.loopStart = from; ambSource.loopEnd = to;
   const g = ctx.createGain(); g.gain.value = 0; g.connect(sfxGain);
   g.gain.setTargetAtTime(0.7, ctx.currentTime, 0.4);
-  ambSource.connect(g); ambSource.start();
+  ambSource.connect(g); ambSource.start(0, from);
   ambSource._gain = g;
 }
 
