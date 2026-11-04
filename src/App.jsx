@@ -60,6 +60,8 @@ import { LifeScreen } from "./ui/screens/Life.jsx";
 import { PrepScreen } from "./ui/screens/Prep.jsx";
 import { RankingScreen } from "./ui/screens/Ranking.jsx";
 import { RecordsScreen } from "./ui/screens/Records.jsx";
+import { OnlineRankingScreen } from "./ui/screens/OnlineRanking.jsx";
+import { authenticateGameCenter, submitLegacyScore } from "./engine/gamecenter.js";
 import { ShopScreen } from "./ui/screens/Shop.jsx";
 import { SOCIAL_HISTORY_WEEKS, SocialScreen } from "./ui/screens/Social.jsx";
 import { StatsScreen } from "./ui/screens/Stats.jsx";
@@ -288,6 +290,15 @@ export default function TennisManager() {
     window.addEventListener("pointerdown", unlock);
     return () => window.removeEventListener("pointerdown", unlock);
   }, []);
+  // ── CLASSEMENT EN LIGNE (Game Center) ──────────────────────────────────
+  // Connexion au lancement ; score d'héritage envoyé chaque semaine s'il a
+  // progressé (carrières triche et défis exclus).
+  useEffect(() => { authenticateGameCenter(); }, []);
+  useEffect(() => {
+    if (player && !player.cheated && !player.challenge) submitLegacyScore(player, computeLegacyScore(player));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player?.week, player?.year]);
+
   // ── TRICHES ET RELANCE APRÈS FAILLITE ──────────────────────────────────
   // Une carrière où une triche a servi (ou relancée après faillite) est
   // marquée « triche » : records à part, hors classement en ligne.
@@ -3060,6 +3071,11 @@ export default function TennisManager() {
   );
 
   if (screen === "records") return <RecordsScreen onBack={() => setScreen("menu")} />;
+  if (screen === "online") return (
+    <div style={styles.root}><div style={{ ...styles.menuBg, alignItems: "flex-start", padding: 0 }}><div style={{ width: "100%", maxWidth: 440 }}>
+      <OnlineRankingScreen onBack={() => setScreen("menu")} />
+    </div></div></div>
+  );
   if (screen === "customize") return <CustomizeScreen onBack={() => setScreen("menu")} />;
 
   const multiOwned = hasPurchased("multi_careers");
@@ -3201,6 +3217,9 @@ export default function TennisManager() {
             </button>
             <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setScreen("records")}>
               <Icon name="trophy" size={16} color={T.amber} /> Records
+            </button>
+            <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setScreen("online")}>
+              <Icon name="users" size={16} color={T.blue} /> Classement mondial
             </button>
             <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => (hasPurchased("custom_mode") ? setScreen("customize") : openMenuShop("custom_mode"))}>
               <Icon name="edit" size={16} color={T.amber} /> Personnalisation
@@ -5335,6 +5354,7 @@ export default function TennisManager() {
           {activeTab === "prep" && <PrepScreen player={player} doTraining={doTraining} hireStaff={hireStaff} fireStaff={fireStaff} />}
           {activeTab === "life" && <LifeScreen player={player} doLifeActivity={doLifeActivity} />}
           {activeTab === "stats" && <StatsScreen player={player} rating={rating} ranking={ranking} totalPts={totalPts} setTournamentDetail={setTournamentDetail} />}
+          {activeTab === "online" && <OnlineRankingScreen player={player} />}
           {activeTab === "atp" && <RankingScreen raceRank={raceRank} atpDb={atpDb} player={player} ranking={ranking} totalPts={totalPts} atpPage={atpPage} setAtpPage={setAtpPage} setAtpPlayerDetail={(pid) => {
             setAtpPlayerDetail(pid);
             if (pid) {

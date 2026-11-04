@@ -8,7 +8,7 @@ export const NAV_GROUPS = [
   { id: "home",    label: "Accueil",  icon: "home",   screens: [{ id: "hub", label: "Accueil", icon: "home" }] },
   { id: "circuit", label: "Circuit",  icon: "court",  screens: [{ id: "calendar", label: "Tournois", icon: "calendar" }, { id: "travel", label: "Voyages", icon: "plane" }] },
   { id: "player",  label: "Joueur",   icon: "racquet", screens: [{ id: "prep", label: "Préparation", icon: "dumbbell" }, { id: "life", label: "Vie", icon: "heart" }] },
-  { id: "career",  label: "Carrière", icon: "chart",  screens: [{ id: "stats", label: "Stats", icon: "chart" }, { id: "atp", label: "Classement", icon: "trophy" }] },
+  { id: "career",  label: "Carrière", icon: "chart",  screens: [{ id: "stats", label: "Stats", icon: "chart" }, { id: "atp", label: "Classement", icon: "trophy" }, { id: "online", label: "En ligne", icon: "users" }] },
   { id: "office",  label: "Bureau",   icon: "office", screens: [{ id: "finance", label: "Finances", icon: "money" }, { id: "social", label: "Social", icon: "chat" }, { id: "shop", label: "Boutique", icon: "bag" }] },
 ];
 export function navGroupOf(screenId) {
@@ -70,6 +70,10 @@ export const PAGE_HELP = {
   social: { title: "Social", items: [
     ["Pour vous", "Messages des fans et de la presse. Vos réponses font bouger votre bonheur, votre popularité et votre image."],
     ["Monde", "L'actualité du circuit : résultats, rumeurs, annonces (5 dernières semaines)."],
+  ] },
+  online: { title: "Classement mondial", items: [
+    ["Score d'héritage", "Votre meilleur score de carrière face à tous les joueurs de Courtside, mis à jour chaque semaine."],
+    ["À conditions égales", "Sous chaque joueur, sa configuration de départ ; touchez-la pour le détail. Filtrez par niveau ou par circuit."],
   ] },
   match: { title: "Votre premier match", items: [
     ["Le match se joue tout seul", "Les points défilent avec les commentaires. Le bouton ▶ / ❚❚ lance le match ou le met en pause."],
