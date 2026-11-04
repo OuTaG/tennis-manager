@@ -16,6 +16,10 @@ const DETAILS = {
     unlocked: ["Nom, nationalité et portrait des 1 200 joueurs de chaque circuit", "3 configurations enregistrées, en plus de la base Standard", "Choix de la base au lancement de chaque carrière"],
     cta: "Personnaliser les joueurs",
   },
+  cheat_pack: {
+    unlocked: ["Argent, énergie, stats, tournois, blessures : 5 triches", "Valables dans toutes vos carrières", "À activer dans Réglages, quand vous le voulez"],
+    cta: "Ouvrir les triches",
+  },
   multi_careers: {
     unlocked: ["Emplacements de carrière 2 et 3 débloqués", "Jusqu'à 3 carrières menées en parallèle"],
     cta: "Lancer une nouvelle carrière",

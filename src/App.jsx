@@ -9,7 +9,7 @@ import { CITIES, SURFACES } from "./data/geo.js";
 import { INVESTMENT_PLANS, LIFE_EVENTS } from "./data/life.js";
 import { PLAYER_STYLES } from "./data/staff.js";
 import { CHALLENGE_SLOT, MEDAL_INFO, challengeActive, challengeTallyWeek, evaluateChallenge, getChallengeDef, getEventById, pickChallengeEvent, saveChallengeResult, setActiveChallenge } from "./engine/challenges.js";
-import { ALL_TOURNAMENTS, getEntryStatus, getPointSplits, getSeedCount, getTournamentFormat, getTournamentLore, isBestOfFiveMatch, isWTA, playerHasBye, setCircuit, setPlayerRaceRank, tierColor, tierLabel, tournamentAbsWeek } from "./engine/circuit.js";
+import { ALL_TOURNAMENTS, setCheatAllEntries, getEntryStatus, getPointSplits, getSeedCount, getTournamentFormat, getTournamentLore, isBestOfFiveMatch, isWTA, playerHasBye, setCircuit, setPlayerRaceRank, tierColor, tierLabel, tournamentAbsWeek } from "./engine/circuit.js";
 import { pickComment, pickDebrief, setCloseHow, formRemarks } from "./engine/commentary.js";
 import { generateAtpDatabase, getPlayerProfile, getRating, pickOpponentForMatch } from "./engine/database.js";
 import { MATCH_FIX_DILEMMA, resolveDilemmaOption } from "./engine/dilemmas.js";
@@ -28,7 +28,7 @@ import { FINALS_PRIZE, FINALS_PTS, RR_SCHEDULE, buildFinalsDraw, finalizeHumanTo
 import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, limitPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
 import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor, sponsorObjectiveCounters } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
-import { COMING_SOON, hasPurchased, liveKeyFor, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
+import { COMING_SOON, CONTINUE_OFFERS, hasPurchased, liveKeyFor, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
 import { distanceKm, travelCostBetween, travelEnergyCost } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
@@ -48,6 +48,9 @@ import { NAV_GROUPS, PAGE_HELP, navGroupOf } from "./ui/navigation.js";
 import { FlightOverlay } from "./ui/overlays/Flight.jsx";
 import { SponsorNegotiationOverlay } from "./ui/overlays/Negotiation.jsx";
 import { TutorialOverlay } from "./ui/overlays/Tutorial.jsx";
+import { getAudioSettings, onAudioSettings, playSfx, setAudioScene, setAudioSettings, unlockAudio } from "./engine/audio.js";
+import { buyConsumable, loadConsumablePrices } from "./engine/iap.js";
+import { Volume2, VolumeX } from "lucide-react";
 import { RallyOverlay } from "./ui/overlays/Rally.jsx";
 import { CalendarScreen } from "./ui/screens/Calendar.jsx";
 import { ChallengePanel, ChallengesScreen } from "./ui/screens/Challenges.jsx";
@@ -277,6 +280,73 @@ export default function TennisManager() {
   const refreshSlots = () => { setSlotMetas(loadSlotMetas()); setChallengeMeta(loadChallengeMeta()); };
   const [menuShop, setMenuShop] = useState(false); // boutique ouverte depuis le menu
   const [menuCareers, setMenuCareers] = useState(false); // emplacements de carrière ouverts depuis le menu
+  // Son : réglages partagés avec le moteur audio ; le son démarre au premier toucher.
+  const [audioSet, setAudioSet] = useState(getAudioSettings());
+  useEffect(() => onAudioSettings(setAudioSet), []);
+  useEffect(() => {
+    const unlock = () => { unlockAudio(); window.removeEventListener("pointerdown", unlock); };
+    window.addEventListener("pointerdown", unlock);
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, []);
+  // ── TRICHES ET RELANCE APRÈS FAILLITE ──────────────────────────────────
+  // Une carrière où une triche a servi (ou relancée après faillite) est
+  // marquée « triche » : records à part, hors classement en ligne.
+  const [cheatConfirm, setCheatConfirm] = useState(null); // action en attente de confirmation
+  const [continueBusy, setContinueBusy] = useState(false);
+  const [continuePrices, setContinuePrices] = useState({});
+  useEffect(() => { setCheatAllEntries(!!player?.cheats?.allEntries); }, [player?.cheats?.allEntries]);
+  useEffect(() => {
+    if (!player?.cheats) return;
+    if (player.cheats.energy && player.energy < 100) setPlayer(p => ({ ...p, energy: 100 }));
+    if (player.cheats.noInjury && player.injury) setPlayer(p => ({ ...p, injury: null, injuryNoticePending: false }));
+  }, [player?.energy, player?.injury, player?.cheats]);
+  useEffect(() => {
+    if (screen === "gameover") loadConsumablePrices(CONTINUE_OFFERS.map(o => o.id)).then(setContinuePrices).catch(() => {});
+  }, [screen]);
+  const CHEATS = {
+    money: { label: "+100 000 €", apply: p => ({ ...p, money: p.money + 100000 }) },
+    stats: { label: "+10 dans toutes les stats", apply: p => ({ ...p, stats: Object.fromEntries(Object.entries(p.stats).map(([k, v]) => [k, Math.min(99, v + 10)])) }) },
+    energy: { label: "Énergie toujours au maximum", toggle: true },
+    allEntries: { label: "Tous les tournois ouverts", toggle: true },
+    noInjury: { label: "Plus aucune blessure", toggle: true },
+  };
+  const applyCheat = (id) => setPlayer(p => {
+    const c = CHEATS[id];
+    const q = { ...p, cheated: true };
+    if (c.toggle) return { ...q, cheats: { ...(p.cheats || {}), [id]: !(p.cheats || {})[id] } };
+    return c.apply(q);
+  });
+  // Première triche d'une carrière propre : confirmation courte.
+  const triggerCheat = (id) => { if (player && !player.cheated) setCheatConfirm(id); else applyCheat(id); };
+  const continueCareer = async (offer, idx) => {
+    setContinueBusy(true);
+    const res = await buyConsumable(offer.id);
+    setContinueBusy(false);
+    if (!res.ok) return;
+    setPlayer(p => ({
+      ...p, money: offer.money, staff: [], continues: idx + 1, cheated: true,
+      pendingNotice: { title: "Nouveau départ", text: "Pour faire des économies, tout votre staff a été remercié. Vous repartez avec " + fmtMoney(offer.money) + "." },
+    }));
+    setActiveTab("hub");
+    setScreen("hub");
+  };
+
+  // Ambiance de public pendant qu'un match se joue ; la musique reprend
+  // avant le match, entre deux matchs et après. Clameur à la balle de match.
+  const matchLive = screen === "match" && !!matchState && matchState.phase === "live" && !matchState.finalResult && !matchState.matchData?.matchComplete;
+  const matchOver = screen === "match" && !!matchState && !!matchState.matchData?.matchComplete;
+  useEffect(() => { setAudioScene(matchLive ? "match" : "menu"); }, [matchLive]);
+  useEffect(() => { if (matchOver) playSfx("matchEnd"); }, [matchOver]);
+  // Bouton haut-parleur : couper / rétablir le son.
+  const muteButton = (extra = {}) => (
+    <button
+      aria-label={audioSet.muted ? "Activer le son" : "Couper le son"}
+      onClick={() => setAudioSettings({ muted: !audioSet.muted })}
+      style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", background: audioSet.muted ? "#ffffff" : "#d6ef3c", border: "3px solid " + T.ink, boxShadow: "3px 3px 0 " + T.ink, cursor: "pointer", transform: "rotate(-4deg)", ...extra }}
+    >
+      {audioSet.muted ? <VolumeX size={22} color="#141414" strokeWidth={2.4} /> : <Volume2 size={22} color="#141414" strokeWidth={2.4} />}
+    </button>
+  );
   const [shopFocus, setShopFocus] = useState(null); // article mis en avant à l'ouverture de la boutique
   const openMenuShop = (focus = null) => { setShopFocus(focus); setMenuShop(true); };
   const openShopTab = (focus = null) => { setShopFocus(focus); setActiveTab("shop"); };
@@ -2100,6 +2170,7 @@ export default function TennisManager() {
   // Blessure en plein match (m est modifié) : le staff médical peut l'éviter,
   // l'option « Corps fragile » double le risque en amont. Renvoie le message.
   const inflictMatchInjury = (m) => {
+    if (player.cheats && player.cheats.noInjury) return "Petite alerte physique, sans conséquence.";
     const protect = Math.max(0, sumStaffEffect(player.staff, "injuryProtect"));
     if (protect > 0 && random() < protect) {
       m.persistEnergyDrainGames = 20;
@@ -3023,6 +3094,7 @@ export default function TennisManager() {
         refreshSlots();
         if (id === "dlc_challenges") setScreen("challenges");
         else if (id === "custom_mode") setScreen("customize");
+        else if (id === "cheat_pack") setMenuCareers(true);
       }} />
     </div>
   );
@@ -3095,7 +3167,8 @@ export default function TennisManager() {
       {deleteSaveDialog}
       <div style={styles.menuBg} className="tm-grain">
         <WindowShades />
-        <div style={styles.menuCard}>
+        <div style={{ ...styles.menuCard, position: "relative" }}>
+          <div style={{ position: "absolute", top: 12, right: 12, zIndex: 3 }}>{muteButton()}</div>
           <div style={{ position: "relative", zIndex: 2, width: "100%", textAlign: "center" }}>
             {/* Balle de tennis dessinée à l'encre */}
             <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true" style={{ display: "block", margin: "4px auto 14px", transform: "rotate(-12deg)" }}>
@@ -3617,6 +3690,22 @@ export default function TennisManager() {
               </span>
             </div>
 
+            {/* Faillite : relance payante (deux fois au plus par carrière) */}
+            {!isRetirement && !player.challenge && (player.continues || 0) < CONTINUE_OFFERS.length && (() => {
+              const idx = player.continues || 0;
+              const offer = CONTINUE_OFFERS[idx];
+              return (
+                <div className="tm-halftone-yellow" style={{ border: "3px solid " + T.ink, boxShadow: "5px 5px 0 " + T.ink, padding: "12px 12px 10px", marginBottom: 12, transform: "rotate(-0.6deg)", color: "#141414" }}>
+                  <div className="tm-display" style={{ fontSize: 22, lineHeight: 1 }}>Pas encore fini !</div>
+                  <div className="tm-lettering" style={{ fontSize: 16, margin: "6px 0 10px" }}>Repartez avec {fmtMoney(offer.money)} et reprenez votre carrière là où elle s'est arrêtée.</div>
+                  <button className="tm-bd-press" disabled={continueBusy} onClick={() => continueCareer(offer, idx)} style={{ ...styles.btnPrimary, marginBottom: 6, background: "#1f7a45", opacity: continueBusy ? 0.6 : 1 }}>
+                    {continueBusy ? "Paiement…" : "Continuer · " + (continuePrices[offer.id] || offer.price)}
+                  </button>
+                  <div style={{ fontSize: 11, fontWeight: 700, textAlign: "center" }}>Carrière classée « Triche » · {idx === 0 ? "1 relance possible ensuite" : "dernière relance"}</div>
+                </div>
+              );
+            })()}
+
             {/* Score de légende */}
             <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink, marginBottom: 12, textAlign: "center", overflow: "hidden" }}>
               <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px" }}>Score de légende</div>
@@ -3731,6 +3820,16 @@ export default function TennisManager() {
       <div style={styles.root}>
         <style>{BD_PRESS_CSS}</style>
         {deleteSaveDialog}
+        {cheatConfirm && (
+          <div style={{ ...styles.dilemmaOverlay, zIndex: 400 }} onClick={() => setCheatConfirm(null)}>
+            <div style={{ ...styles.dilemmaCard, maxWidth: 340 }} onClick={e => e.stopPropagation()}>
+              <div className="tm-display" style={{ color: "#141414", fontSize: 20 }}>Activer la triche ?</div>
+              <div className="tm-lettering" style={{ color: "#141414", fontSize: 16, margin: "8px 0 14px", lineHeight: 1.3 }}>Cette carrière passe en mode Triche : records à part, hors classement en ligne.</div>
+              <button style={{ ...styles.btnPrimary, background: "#c4302b", marginBottom: 8 }} onClick={() => { applyCheat(cheatConfirm); setCheatConfirm(null); }}>Activer</button>
+              <button style={styles.btnSecondary} onClick={() => setCheatConfirm(null)}>Annuler</button>
+            </div>
+          </div>
+        )}
         <div style={{ ...styles.menuBg, padding: "40px 20px 28px", flexDirection: "column", alignItems: "center", justifyContent: "flex-start" }}>
           <WindowShades />
           <div style={{ ...styles.menuCard, maxWidth: 380, alignItems: "stretch", gap: 16, padding: "28px 20px 22px" }}>
@@ -3742,6 +3841,67 @@ export default function TennisManager() {
               <div style={{ minWidth: 0 }}>
                 <h1 className="tm-display" style={{ color: "#d6ef3c", fontSize: 32, lineHeight: 1, margin: 0, WebkitTextStroke: "1.5px " + T.ink, textShadow: "3px 3px 0 " + T.ink, transform: "rotate(-2deg)", transformOrigin: "left center" }}>Réglages</h1>
                 <p className="tm-lettering" style={{ display: "inline-block", margin: "8px 0 0", background: "#ffffff", color: "#141414", border: "2px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "1px 8px", fontSize: 14, transform: "rotate(-1deg)" }}>Paramètres de la partie en cours</p>
+              </div>
+            </div>
+
+            {/* Triches (pack CHEAT à vie) */}
+            {player && !player.challenge && (
+              <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
+                <div className="tm-display" style={{ background: "#c4302b", color: "#ffffff", fontSize: 14, padding: "5px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Icon name="rocket" size={15} color="#ffffff" /> Triches</span>
+                  {player.cheated && <span style={{ fontSize: 10.5, background: "#ffffff", color: "#c4302b", padding: "0 6px", border: "2px solid " + T.ink }}>CARRIÈRE TRICHE</span>}
+                </div>
+                {hasPurchased("cheat_pack") ? (
+                  <div style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {Object.entries(CHEATS).map(([id, c]) => {
+                      const on = c.toggle && !!(player.cheats || {})[id];
+                      return (
+                        <button key={id} className="tm-bd-press" onClick={() => triggerCheat(id)} style={setBtn(on ? "#d6ef3c" : "#ffffff", "#141414", { minHeight: 46, fontSize: 13.5 })}>
+                          <span style={{ flex: 1, minWidth: 0, textTransform: "uppercase" }}>{c.label}</span>
+                          <span className="tm-display" style={{ fontSize: 11.5, background: c.toggle ? (on ? "#1f7a45" : "#ffffff") : T.ink, color: c.toggle && !on ? "#141414" : "#ffffff", border: "2px solid " + T.ink, padding: "1px 7px" }}>{c.toggle ? (on ? "ON" : "OFF") : "GO"}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="tm-halftone-lilac" style={{ padding: "10px 12px 12px" }}>
+                    <div className="tm-lettering" style={{ fontSize: 15, lineHeight: 1.25, marginBottom: 10 }}>Argent, énergie, stats, tournois, blessures : jouez sans limites.</div>
+                    <button className="tm-bd-press" onClick={() => { setScreen("hub"); setActiveTab("shop"); setShopFocus("cheat_pack"); }} style={setBtn("#1f7a45", "#ffffff", { justifyContent: "center", textTransform: "uppercase" })}>Débloquer · CHEAT à vie</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Son : couper, volume de la musique et des effets */}
+            <div style={{ background: "#ffffff", color: "#141414", border: "3px solid " + T.ink, boxShadow: "4px 4px 0 " + T.ink }}>
+              <div className="tm-display" style={{ background: T.ink, color: "#ffffff", fontSize: 14, padding: "5px 10px", display: "flex", alignItems: "center", gap: 8 }}>
+                <Volume2 size={16} color="#d6ef3c" strokeWidth={2.6} /> Son
+              </div>
+              <div className="tm-halftone-yellow" style={{ padding: "12px 12px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
+                <button
+                  className="tm-bd-press"
+                  style={setBtn(audioSet.muted ? "#ffffff" : "#1f7a45", audioSet.muted ? "#141414" : "#ffffff", { transform: "rotate(-0.6deg)" })}
+                  onClick={() => setAudioSettings({ muted: !audioSet.muted })}
+                >
+                  <span style={iconCase(audioSet.muted ? "#ffffff" : "#d6ef3c")}>{audioSet.muted ? <VolumeX size={20} color="#141414" /> : <Volume2 size={20} color="#141414" />}</span>
+                  <span style={{ flex: 1, minWidth: 0, textTransform: "uppercase" }}>{audioSet.muted ? "Son coupé" : "Son activé"}</span>
+                  <span className="tm-display" style={{ fontSize: 12, background: audioSet.muted ? T.ink : "#ffffff", color: audioSet.muted ? "#ffffff" : "#141414", border: "2px solid " + T.ink, padding: "1px 7px" }}>{audioSet.muted ? "OFF" : "ON"}</span>
+                </button>
+                {[["music", "Musique"], ["sfx", "Effets et public"]].map(([k, label]) => (
+                  <label key={k} style={{ display: "block", background: "#ffffff", border: "2.5px solid " + T.ink, boxShadow: "2px 2px 0 " + T.ink, padding: "8px 10px", opacity: audioSet.muted ? 0.5 : 1 }}>
+                    <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <span className="tm-display" style={{ fontSize: 14, textTransform: "uppercase" }}>{label}</span>
+                      <span className="tm-num" style={{ fontSize: 12, fontWeight: 800, background: "#d6ef3c", border: "2px solid " + T.ink, padding: "0 6px" }}>{Math.round(audioSet[k] * 100)} %</span>
+                    </span>
+                    <input
+                      type="range" min="0" max="100" step="5" value={Math.round(audioSet[k] * 100)}
+                      disabled={audioSet.muted}
+                      onChange={e => setAudioSettings({ [k]: Number(e.target.value) / 100 })}
+                      aria-label={"Volume : " + label}
+                      style={{ width: "100%", accentColor: "#5b2d8e", height: 28, margin: 0, cursor: "pointer" }}
+                    />
+                  </label>
+                ))}
               </div>
             </div>
 
@@ -4975,6 +5135,15 @@ export default function TennisManager() {
         const st = steps[tutoStep];
         return st ? <TutorialOverlay step={st} index={tutoStep} total={steps.length} onNext={nextTutorialStep} onSkip={() => setPlayer(endTutorial)} /> : null;
       })()}
+      {player.pendingNotice && (
+        <div style={{ ...styles.dilemmaOverlay, zIndex: 400 }}>
+          <div style={{ ...styles.dilemmaCard, maxWidth: 340 }}>
+            <div className="tm-display" style={{ color: "#141414", fontSize: 20 }}>{player.pendingNotice.title}</div>
+            <div className="tm-lettering" style={{ color: "#141414", fontSize: 16, margin: "8px 0 14px", lineHeight: 1.3 }}>{player.pendingNotice.text}</div>
+            <button style={styles.btnPrimary} onClick={() => setPlayer(p => ({ ...p, pendingNotice: null }))}>Compris</button>
+          </div>
+        </div>
+      )}
       {sponsorNegotiation && (
         <SponsorNegotiationOverlay
           data={{ ...sponsorNegotiation, onWalkAway: (offerId) => {
@@ -5177,7 +5346,7 @@ export default function TennisManager() {
             }
           }} />}
           {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} markSponsorOfferSeen={markSponsorOfferSeen} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} negotiateIntro={() => setSponsorNegotiation({ phase: "intro", year: player.year || 2026, ranking: 1100, results: [], objMoney: 0 })} />}
-          {activeTab === "shop" && <ShopScreen onPurchasesChanged={refreshPurchases} focusId={shopFocus} />}
+          {activeTab === "shop" && <ShopScreen onPurchasesChanged={refreshPurchases} focusId={shopFocus} onUse={(id) => { if (id === "cheat_pack") setScreen("settings"); }} />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>
         {!flightAnim && !sponsorNegotiation && (

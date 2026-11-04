@@ -48,6 +48,30 @@ export async function buyItem(item) {
   }
 }
 
+// Achat consommable (relance après faillite) : rien n'est mémorisé comme
+// « possédé ». Sur le web, l'achat est simulé.
+export async function buyConsumable(id) {
+  if (!isNativeStore()) return { ok: true };
+  try {
+    await store().purchaseProduct({ productIdentifier: productIdOf(id), productType: "inapp", quantity: 1, isConsumable: true });
+    return { ok: true };
+  } catch (e) {
+    const msg = String((e && (e.message || e.code)) || e || "");
+    if (/cancel/i.test(msg)) return { cancelled: true };
+    return { error: msg || "Achat impossible pour le moment." };
+  }
+}
+// Prix localisés des consommables : { id: "0,99 €" }.
+export async function loadConsumablePrices(ids) {
+  if (!isNativeStore()) return {};
+  try {
+    const { products } = await store().getProducts({ productIdentifiers: ids.map(productIdOf) });
+    const out = {};
+    (products || []).forEach(p => { const id = itemIdOf(p.identifier); if (id) out[id] = p.priceString; });
+    return out;
+  } catch (e) { return {}; }
+}
+
 // Droits actuels du compte App Store → liste des articles acquis sur
 // l'appareil. `restore` relance d'abord la restauration (bouton « Restaurer
 // les achats »). En cas d'échec (hors ligne…), les achats connus sont gardés.

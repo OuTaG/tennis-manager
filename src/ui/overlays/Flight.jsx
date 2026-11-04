@@ -9,6 +9,7 @@ import { FlagFromEmoji } from "../icons.jsx";
 import { T } from "../theme.js";
 import { fmtKm } from "../format.js";
 import { deCity } from "../../engine/text.js";
+import { playSfx } from "../../engine/audio.js";
 
 // ─── FLIGHT ANIMATION OVERLAY ───────────────────────────────────────────────
 // Le voyage vu de la cabine, en trois cases de BD : le tableau des départs
@@ -30,6 +31,7 @@ export function FlightOverlay({ from, to, onDone }) {
 
   useEffect(() => {
     if (!a || !b) { onDone(); return; }
+    playSfx("flight"); // son calé sur la durée du vol (3 s + 0,9 s à l'arrivée)
     const DURATION = 3000; // ms
     let start = null;
     const ease = (p) => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
