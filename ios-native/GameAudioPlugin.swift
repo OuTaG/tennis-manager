@@ -5,6 +5,9 @@
 // arrière-plan. Méthodes appelées depuis src/engine/audio.js :
 //   preload({ id, file, loop }), play({ id, volume, fade, restart }),
 //   stop({ id, fade }), setVolume({ id, volume, fade }) ; évènement « ended ».
+// Changement de sortie (AirPods, Bluetooth, haut-parleur) ou interruption
+// (appel, Siri) : la session est réactivée et les sons en cours reprennent.
+// Messages « [GameAudio] » dans la console Xcode pour le diagnostic.
 import Foundation
 import Capacitor
 import AVFoundation
@@ -23,13 +26,41 @@ public class GameAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
     private var players: [String: AVAudioPlayer] = [:]
     private var stopTokens: [String: Int] = [:]
     private var pausedInBackground: [String] = []
+    private var wanted: Set<String> = [] // sons censés jouer (play sans stop)
 
     override public func load() {
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .default, options: [])
-        try? session.setActive(true)
+        activateSession()
+        NotificationCenter.default.addObserver(self, selector: #selector(sessionChanged), name: AVAudioSession.routeChangeNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(sessionChanged), name: AVAudioSession.interruptionNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(sessionChanged), name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+    }
+
+    private func activateSession() {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            if session.category != .playback { try session.setCategory(.playback, mode: .default, options: []) }
+            try session.setActive(true)
+        } catch {
+            print("[GameAudio] session audio : \(error)")
+        }
+    }
+
+    // Sortie audio changée ou interruption terminée : on relance ce qui
+    // devait jouer (iOS met parfois les lecteurs en pause).
+    @objc private func sessionChanged(_ note: Notification) {
+        if let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+           AVAudioSession.InterruptionType(rawValue: raw) == .began { return }
+        if let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+           AVAudioSession.RouteChangeReason(rawValue: raw) == .categoryChange { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            guard UIApplication.shared.applicationState != .background else { return }
+            self.activateSession()
+            let route = AVAudioSession.sharedInstance().currentRoute.outputs.map { $0.portName }.joined(separator: ", ")
+            print("[GameAudio] sortie : \(route)")
+            for id in self.wanted { if let p = self.players[id], !p.isPlaying { p.play() } }
+        }
     }
 
     @objc private func didEnterBackground() {
@@ -38,7 +69,7 @@ public class GameAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
     }
 
     @objc private func willEnterForeground() {
-        try? AVAudioSession.sharedInstance().setActive(true)
+        activateSession()
         pausedInBackground.forEach { players[$0]?.play() }
         pausedInBackground = []
     }
@@ -51,14 +82,15 @@ public class GameAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
 
     @objc func preload(_ call: CAPPluginCall) {
         guard let id = call.getString("id"), let file = call.getString("file") else { call.reject("Paramètres manquants"); return }
-        guard let url = fileURL(file) else { call.reject("Fichier introuvable : " + file); return }
+        guard let url = fileURL(file) else { print("[GameAudio] fichier introuvable : " + file); call.reject("Fichier introuvable : " + file); return }
         do {
             let player = try AVAudioPlayer(contentsOf: url)
             player.numberOfLoops = call.getBool("loop", false) ? -1 : 0
             player.delegate = self
             player.prepareToPlay()
-            DispatchQueue.main.async { self.players[id] = player; call.resolve() }
+            DispatchQueue.main.async { self.players[id] = player; print("[GameAudio] prêt : " + file); call.resolve() }
         } catch {
+            print("[GameAudio] lecture impossible : \(file) \(error)")
             call.reject("Lecture impossible : " + file)
         }
     }
@@ -71,14 +103,16 @@ public class GameAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
         DispatchQueue.main.async {
             guard let p = self.players[id] else { call.reject("Son inconnu : " + id); return }
             self.stopTokens[id, default: 0] += 1 // annule un arrêt différé en cours
+            self.wanted.insert(id)
+            self.activateSession()
             if restart { p.currentTime = 0 }
             if fade > 0 {
                 if !p.isPlaying { p.volume = 0 }
-                p.play()
+                if !p.play() { print("[GameAudio] lecture refusée : " + id) }
                 p.setVolume(volume, fadeDuration: fade)
             } else {
                 p.volume = volume
-                p.play()
+                if !p.play() { print("[GameAudio] lecture refusée : " + id) }
             }
             call.resolve()
         }
@@ -90,6 +124,7 @@ public class GameAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
         DispatchQueue.main.async {
             guard let p = self.players[id] else { call.resolve(); return }
             self.stopTokens[id, default: 0] += 1
+            self.wanted.remove(id)
             let token = self.stopTokens[id]!
             if fade > 0 && p.isPlaying {
                 p.setVolume(0, fadeDuration: fade)
@@ -116,6 +151,7 @@ public class GameAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
 
     public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         if let id = players.first(where: { $0.value === player })?.key {
+            wanted.remove(id)
             notifyListeners("ended", data: ["id": id])
         }
     }
