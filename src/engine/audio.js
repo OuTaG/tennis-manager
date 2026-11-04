@@ -8,6 +8,9 @@
 // Tout passe par Web Audio : sur iPhone, le volume d'un élément <audio> ne
 // se règle pas, seul un nœud de gain le permet. Les fichiers sont servis à
 // côté de index.html (dossier audio/) ; un fichier absent est ignoré.
+// iPhone : la musique n'est jamais mise en pause (seulement réduite à zéro
+// pendant les matchs et les vols) et la session audio est en « lecture »,
+// sans quoi le bouton silencieux coupe le Web Audio.
 // Réglages (volume musique, volume effets, son coupé) gardés sur l'appareil.
 
 const KEY = "tm-audio";
@@ -42,7 +45,7 @@ function ensureContext() {
   document.addEventListener("visibilitychange", () => {
     if (!ctx) return;
     if (document.visibilityState === "hidden") { ctx.suspend(); if (musicEl) musicEl.pause(); }
-    else { ctx.resume(); if (scene === "menu" && musicEl && !settings.muted) musicEl.play().catch(() => {}); }
+    else { ctx.resume(); if (musicEl && !settings.muted) musicEl.play().catch(() => {}); }
   });
   return ctx;
 }
@@ -52,7 +55,7 @@ function applyVolumes(fade = 0.25) {
   const now = ctx.currentTime;
   const set = (g, v) => { g.gain.cancelScheduledValues(now); g.gain.setTargetAtTime(v, now, Math.max(0.01, fade / 3)); };
   set(master, settings.muted ? 0 : 1);
-  set(musicGain, scene === "menu" ? settings.music : 0);
+  set(musicGain, scene === "menu" ? settings.music : 0); // match, vol : musique à zéro
   set(sfxGain, settings.sfx);
 }
 
@@ -75,10 +78,19 @@ async function loadBuffer(url) {
   buffers[url] = null;
   try {
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) { console.warn("[son] fichier introuvable", url, res.status); return null; }
     buffers[url] = await ctx.decodeAudioData(await res.arrayBuffer());
-  } catch (e) { buffers[url] = null; }
+  } catch (e) { console.warn("[son] lecture impossible", url, e); buffers[url] = null; }
   return buffers[url];
+}
+
+// Lecture par un élément <audio> relié au graphe (même chemin que la musique).
+function playElement(url, gainNode, loop = false) {
+  const el = new Audio(url);
+  el.loop = loop; el.preload = "auto";
+  try { ctx.createMediaElementSource(el).connect(gainNode); } catch (e) { console.warn("[son] liaison impossible", url, e); }
+  el.play().catch(e => console.warn("[son] lecture refusée", url, e));
+  return el;
 }
 
 // Début et fin (en secondes) de la partie audible d'un tampon.
@@ -90,10 +102,17 @@ function audibleRange(buf) {
   return [i / buf.sampleRate, (j + 1) / buf.sampleRate];
 }
 
+let ambEl = null, ambElGain = null;
 async function startAmbience() {
-  if (!ctx || ambSource) return;
+  if (!ctx || ambSource || ambEl) return;
   ambBuffer = ambBuffer || await loadBuffer(AMBIENCE);
-  if (!ambBuffer || scene !== "match" || ambSource) return;
+  if (scene !== "match" || ambSource || ambEl) return;
+  if (!ambBuffer) {
+    // Secours : boucle par élément <audio>.
+    ambElGain = ctx.createGain(); ambElGain.gain.value = 0.7; ambElGain.connect(sfxGain);
+    ambEl = playElement(AMBIENCE, ambElGain, true);
+    return;
+  }
   ambSource = ctx.createBufferSource();
   ambSource.buffer = ambBuffer; ambSource.loop = true;
   // Le MP3 ajoute un court silence au début et à la fin : la boucle les
@@ -107,6 +126,7 @@ async function startAmbience() {
 }
 
 function stopAmbience() {
+  if (ambEl) { const el = ambEl; ambEl = null; ambElGain.gain.setTargetAtTime(0, ctx.currentTime, 0.2); setTimeout(() => el.pause(), 900); }
   if (!ambSource) return;
   const s = ambSource; ambSource = null;
   s._gain.gain.setTargetAtTime(0, ctx.currentTime, 0.2);
@@ -117,25 +137,29 @@ function stopAmbience() {
 // qu'après un geste du joueur.
 export function unlockAudio() {
   if (!ensureContext()) return;
+  // iOS 17+ : session « lecture », le bouton silencieux ne coupe plus le jeu.
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) { /* non pris en charge */ }
   if (ctx.state === "suspended") ctx.resume();
   startMusic();
   setAudioScene(scene);
 }
 
-// « menu » : musique ; « match » : ambiance de public, musique coupée.
+// « menu » : musique ; « match » : ambiance de public ; « vol » : son de
+// l'avion seul. La musique continue en silence hors menu (voir plus haut).
 export function setAudioScene(next) {
+  if (next === scene && ctx) return;
   scene = next;
   if (!ctx) return;
   applyVolumes(0.6);
-  if (scene === "match") { if (musicEl) musicEl.pause(); startAmbience(); }
-  else { stopAmbience(); if (musicEl && !settings.muted && document.visibilityState !== "hidden") musicEl.play().catch(() => {}); }
+  if (scene === "match") startAmbience(); else stopAmbience();
+  if (musicEl && musicEl.paused && !settings.muted && document.visibilityState !== "hidden") musicEl.play().catch(() => {});
 }
 
-export async function playSfx(name) {
+// Effets ponctuels : par élément <audio> (fiable sur iPhone).
+export function playSfx(name) {
   if (!ctx || settings.muted || !SFX[name]) return;
-  const buf = await loadBuffer(SFX[name]);
-  if (!buf) return;
-  const src = ctx.createBufferSource(); src.buffer = buf; src.connect(sfxGain); src.start();
+  if (ctx.state === "suspended") ctx.resume();
+  playElement(SFX[name], sfxGain);
 }
 
 export function getAudioSettings() { return settings; }
@@ -143,7 +167,7 @@ export function setAudioSettings(patch) {
   settings = { ...settings, ...patch };
   try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* stockage plein */ }
   applyVolumes();
-  if (musicEl) { if (settings.muted) musicEl.pause(); else if (scene === "menu") musicEl.play().catch(() => {}); }
+  if (musicEl) { if (settings.muted) musicEl.pause(); else musicEl.play().catch(() => {}); }
   listeners.forEach(fn => fn(settings));
 }
 export function onAudioSettings(fn) { listeners.add(fn); return () => listeners.delete(fn); }

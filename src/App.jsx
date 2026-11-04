@@ -342,12 +342,6 @@ export default function TennisManager() {
     setScreen("hub");
   };
 
-  // Ambiance de public pendant qu'un match se joue ; la musique reprend
-  // avant le match, entre deux matchs et après. Clameur à la balle de match.
-  const matchLive = screen === "match" && !!matchState && matchState.phase === "live" && !matchState.finalResult && !matchState.matchData?.matchComplete;
-  const matchOver = screen === "match" && !!matchState && !!matchState.matchData?.matchComplete;
-  useEffect(() => { setAudioScene(matchLive ? "match" : "menu"); }, [matchLive]);
-  useEffect(() => { if (matchOver) playSfx("matchEnd"); }, [matchOver]);
   // Bouton haut-parleur : couper / rétablir le son.
   const muteButton = (extra = {}) => (
     <button
@@ -386,6 +380,15 @@ export default function TennisManager() {
   const [helpTab, setHelpTab] = useState(null); // tab id whose help is open
   const lastScreenByGroup = useRef({}); // dernier sous-écran ouvert par groupe de navigation
   const [flightAnim, setFlightAnim] = useState(null); // { from, to } during travel animation
+  // Ambiance de public pendant qu'un match se joue ; la musique reprend
+  // avant le match, entre deux matchs et après. Clameur à la balle de match.
+  // Le public reste jusqu'au bouton « Continuer » de fin de match ; pendant
+  // un vol, seul le son de l'avion.
+  const matchLive = screen === "match" && !!matchState && (matchState.phase === "live" || !!matchState.finalResult) && !matchState.pendingNextMatch;
+  const matchOver = screen === "match" && !!matchState && !!matchState.matchData?.matchComplete;
+  const audioScene = flightAnim ? "flight" : matchLive ? "match" : "menu";
+  useEffect(() => { setAudioScene(audioScene); }, [audioScene]);
+  useEffect(() => { if (matchOver) playSfx("matchEnd"); }, [matchOver]);
   const [sponsorNegotiation, setSponsorNegotiation] = useState(null); // { phase, year, results, objMoney }
 
   // ── ATP DB COMPACTION FOR SAVE (Opt A+B) ──────────────────────────────────
