@@ -101,6 +101,24 @@ export function SponsorNegotiationOverlay({ data, player, ranking, onSign, onClo
     );
   }
 
+  // ── Offre reçue en cours de saison : négociation de cette seule offre ──
+  const single = data.offerId ? offers.find(o => o.id === data.offerId) : null;
+  if (data.offerId) {
+    if (!single) return null;
+    return (
+      <NegotiationRoom
+        offer={single}
+        slotWarning={sponsorSlotWarning(player, single, ranking)}
+        catLabel={catLabel} tierLabel={tierLabel}
+        initialState={null}
+        isFirstNegotiation={false}
+        onCancel={onClose}
+        onWalkAway={() => { if (data.onWalkAway) data.onWalkAway(single.id); onClose(); }}
+        onDeal={(terms) => { onSign(single, terms); onClose(); }}
+      />
+    );
+  }
+
   // ── Negotiation room for one offer ──
   if (view === "nego" && activeOffer) {
     return (

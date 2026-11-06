@@ -7,7 +7,7 @@ import { T } from "../theme.js";
 import { fmtMoney } from "../format.js";
 import { SponsorObjectives } from "./Hub.jsx";
 
-export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSponsorOffer, declineSponsorOffer, requestCancelSponsor, sponsorCancelCost, setTournamentDetail, negotiateIntro }) {
+export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSponsorOffer, declineSponsorOffer, requestCancelSponsor, sponsorCancelCost, setTournamentDetail, negotiateIntro, negotiateOffer }) {
   const balance = player.money;
   const earned = player.totalEarnings || 0;
   const spent = player.totalSpent || 0;
@@ -147,6 +147,7 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       <span style={o.cat === "equipment" ? chip("#2c6fd1", "#ffffff") : chip("#ffffff", "#141414")}>{o.cat === "equipment" ? "Équipementier" : "Sponsor"}</span>
                       <span style={chip("#ffffff", "#141414")}>{tierLabels[o.tier]}</span>
+                      {o.nonNegotiable && <span style={chip("#c4302b", "#ffffff")}>Non négociable</span>}
                     </div>
                     <div className="tm-display" style={{ fontSize: 17, marginTop: 5 }}>{o.brand}</div>
                   </div>
@@ -156,13 +157,33 @@ export function FinanceScreen({ player, ranking, markSponsorOfferSeen, acceptSpo
                   </div>
                 </div>
                 <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 6, lineHeight: 1.45 }}>
-                  Bonus titre : {fmtMoney(o.titleBonus, { sign: true })}
-                  {med && <><br />Objectif : {med.label} ({fmtMoney((o.baseReward || 0) * (med.rewardMul || 1), { sign: true })} / {fmtMoney(-(o.basePenalty || 0) * (med.penaltyMul || 1), { sign: true })})</>}
+                  Bonus titre : {fmtMoney(o.titleBonus, { sign: true })} · Contrat de {o.durationWeeks || 26} semaines
                 </div>
+                {/* Objectifs du contrat : imposé (non négociable) ou au choix */}
+                {(() => {
+                  const lv = o.nonNegotiable ? (med ? [med] : []) : (o.objectiveLevels || []);
+                  if (!lv.length) return null;
+                  const lab = { easy: "Facile", medium: "Moyen", hard: "Ambitieux" };
+                  return (
+                    <div style={{ marginTop: 7, background: "#ffffff", border: "2px solid " + INK, padding: "5px 8px" }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 }}>{o.nonNegotiable ? "Objectif imposé" : "Objectifs · au choix en négociation"}</div>
+                      {lv.map((l, i) => (
+                        <div key={l.level} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, fontWeight: 700, lineHeight: 1.35, padding: "3px 0", borderTop: i ? "1.5px dashed " + INK : 0 }}>
+                          <span style={{ minWidth: 0 }}>{o.nonNegotiable ? "" : <b>{lab[l.level] || l.level} : </b>}{l.label}</span>
+                          <span style={{ flexShrink: 0, textAlign: "right" }}>
+                            <span style={{ color: "#1f7a45" }}>{fmtMoney((o.baseReward || 0) * (l.rewardMul || 1), { sign: true })}</span>
+                            {" / "}
+                            <span style={{ color: "#c4302b" }}>{fmtMoney(-(o.basePenalty || 0) * (l.penaltyMul || 1), { sign: true })}</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
                 {warn && <div style={{ marginTop: 6, background: "#ffffff", border: "2px solid " + INK, padding: "4px 7px", fontSize: 11.5, fontWeight: 700, lineHeight: 1.4 }}>{warn.short}</div>}
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <button className="tm-display" style={{ flex: 1, background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "7px 8px", fontSize: 13, cursor: "pointer" }} onClick={() => acceptSponsorOffer(o)}>
-                    {warn ? "Remplacer un contrat" : "Signer"}
+                  <button className="tm-display" style={{ flex: 1, background: o.nonNegotiable ? "#1f7a45" : "#5b2d8e", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "7px 8px", fontSize: 13, cursor: "pointer" }} onClick={() => (o.nonNegotiable || !negotiateOffer ? acceptSponsorOffer(o) : negotiateOffer(o))}>
+                    {!o.nonNegotiable && negotiateOffer ? "Négocier" : warn ? "Remplacer un contrat" : "Signer"}
                   </button>
                   <button style={{ ...styles.btnSmall, background: "#ffffff", color: INK, border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontWeight: 800 }} onClick={() => declineSponsorOffer(o)}>Refuser</button>
                 </div>

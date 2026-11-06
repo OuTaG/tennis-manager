@@ -5160,7 +5160,8 @@ export default function TennisManager() {
           ranking={ranking}
           onSign={acceptSponsorOffer}
           onClose={() => {
-            setPlayer(p => ({ ...p, sponsorOffers: [], introSponsorPending: false }));
+            // Offre de mi-saison : on ne touche pas aux autres offres.
+            if (!sponsorNegotiation.offerId) setPlayer(p => ({ ...p, sponsorOffers: [], introSponsorPending: false }));
             setSponsorNegotiation(null);
           }}
         />
@@ -5352,7 +5353,7 @@ export default function TennisManager() {
               });
             }
           }} />}
-          {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} markSponsorOfferSeen={markSponsorOfferSeen} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} negotiateIntro={() => setSponsorNegotiation({ phase: "intro", year: player.year || 2026, ranking: 1100, results: [], objMoney: 0 })} />}
+          {activeTab === "finance" && <FinanceScreen player={player} ranking={ranking} markSponsorOfferSeen={markSponsorOfferSeen} acceptSponsorOffer={acceptSponsorOffer} declineSponsorOffer={declineSponsorOffer} requestCancelSponsor={setConfirmCancelSponsor} sponsorCancelCost={sponsorCancelCost} setTournamentDetail={setTournamentDetail} negotiateIntro={() => setSponsorNegotiation({ phase: "intro", year: player.year || 2026, ranking: 1100, results: [], objMoney: 0 })} negotiateOffer={(o) => setSponsorNegotiation({ phase: "offer", offerId: o.id, year: player.year, results: [], objMoney: 0 })} />}
           {activeTab === "shop" && <ShopScreen onPurchasesChanged={refreshPurchases} focusId={shopFocus} onUse={(id) => { if (id === "cheat_pack") setScreen("settings"); }} />}
           {activeTab === "social" && <SocialScreen player={player} posts={news} setNews={setNews} setPlayer={setPlayer} adjustLife={adjustLife} />}
         </div>
