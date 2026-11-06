@@ -941,6 +941,8 @@ export default function TennisManager() {
     // Weekly stat decline from age (compensable via training/tournaments)
     p.stats = applyWeeklyAgeDecline(p.stats, p.age);
 
+    // Blessure en cours : la saison n'est plus « sans blessure » (trophée).
+    if (p.injury && p.injury.severity !== "suspension") p.seasonInjured = true;
     // Injury recovery: decrement weeksRemaining; heal when reaches 0
     if (p.injury) {
       const inj = { ...p.injury, weeksRemaining: p.injury.weeksRemaining - 1 };
@@ -1273,7 +1275,9 @@ export default function TennisManager() {
         endOfYearRanking: endRanking,
         endOfYearPoints: totalAtpPoints(p.atpPointsLog),
         legacyScore: computeLegacyScore(p), // career legacy score at this point in time
+        hadInjury: !!p.seasonInjured,
       };
+      p.seasonInjured = false;
       p.careerSeasons = [...(p.careerSeasons || []), recap];
       p.pendingSeasonRecap = recap;
       p.seasonStats = { wins: 0, losses: 0, titles: 0, earnings: 0, year: newYear };
@@ -2200,7 +2204,7 @@ export default function TennisManager() {
     setPlayer(p => {
       if (p.injury && p.injury.weeksRemaining > inj.weeksRemaining) return p;
       // Le diagnostic (durée d'indisponibilité) tombe après le tournoi.
-      return { ...p, injury: inj, injuryNoticePending: true };
+      return { ...p, injury: inj, injuryNoticePending: true, seasonInjured: true };
     });
     return inj.label + " ! " + rankingName(player.name) + " est gêné pour la suite du match.";
   };
@@ -2339,7 +2343,7 @@ export default function TennisManager() {
             // Don't overwrite an existing more-severe injury
             if (p.injury && p.injury.weeksRemaining > inj.weeksRemaining) return p;
             // The diagnosis (length of unavailability) is revealed after the tournament.
-            return { ...p, injury: inj, injuryNoticePending: true };
+            return { ...p, injury: inj, injuryNoticePending: true, seasonInjured: true };
           });
           result.msg = inj.label + " ! Vous êtes gêné pour la suite du match.";
         }

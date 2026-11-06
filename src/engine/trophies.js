@@ -404,7 +404,9 @@ export const TROPHIES = [
 
   // Misc
   { id: "no_injury_season", name: "Inoxydable", desc: "Terminer une saison sans blessure", cat: "career", rarity: "silver",
-    check: (p) => ({ unlocked: (p.careerSeasons || []).some(s => !s.hadInjury) }) },
+    // hadInjury === false : saison suivie et sans blessure (les saisons
+    // enregistrées avant ce suivi ne comptent pas).
+    check: (p) => ({ unlocked: (p.careerSeasons || []).some(s => s.hadInjury === false) }) },
   { id: "title_home", name: "Devant son public", desc: "Gagner un titre dans un tournoi de votre pays", cat: "titles", rarity: "silver",
     check: (p) => ({ unlocked: countMatches(p, m => m.won && m.round === "Vainqueur" && m.city && CITIES[m.city]?.country === p.nationality) >= 1 }) },
 ];
