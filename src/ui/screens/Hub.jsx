@@ -328,8 +328,9 @@ export function HubScreen({ player, news, advanceWeek, rating, ranking, totalPts
       </section>
 
       {/* « Semaine suivante » : toujours à portée de pouce, juste au-dessus du
-          dock, sans défiler avec la page (place réservée en bas). */}
-      <div style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(59px + env(safe-area-inset-bottom, 0px) * 0.6)", width: "100%", maxWidth: 440, padding: "8px 16px", boxSizing: "border-box", zIndex: 90, pointerEvents: "none" }}>
+          dock, sans défiler avec la page (place réservée en bas). Sous les
+          fenêtres plein écran (négociation, bilans : zIndex 60).  */}
+      <div style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(59px + env(safe-area-inset-bottom, 0px) * 0.6)", width: "100%", maxWidth: 440, padding: "8px 16px", boxSizing: "border-box", zIndex: 55, pointerEvents: "none" }}>
         <button data-tuto="next-week" style={{ ...styles.btnPrimary, marginBottom: 0, pointerEvents: "auto", opacity: isAdvancingWeek ? 0.5 : 1 }} disabled={isAdvancingWeek} onClick={advanceWeek}>
           {isAdvancingWeek ? "Simulation en cours…" : "Semaine suivante →"}
         </button>
