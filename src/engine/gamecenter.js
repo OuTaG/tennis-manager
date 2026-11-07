@@ -52,7 +52,11 @@ export function onGameCenterAuth(fn) {
 // Bouton « Se connecter à Game Center » : ouvre la fenêtre de connexion.
 export async function signInGameCenter() {
   if (!gameCenterSupported()) return null;
-  try { return await gc().signIn(); } catch (e) { return null; }
+  try {
+    const r = await gc().signIn();
+    if (r) { auth = r; if (r.authenticated) authPromise = Promise.resolve(r); }
+    return r;
+  } catch (e) { return { authenticated: false, error: String((e && e.message) || e) }; }
 }
 
 // Envoi du score d'héritage : seulement s'il a progressé depuis le dernier
@@ -79,6 +83,6 @@ export async function submitLegacyScore(player, score) {
 // scope : "global" ou "friends" ; start : premier rang (1 = n°1).
 export async function loadLeaderboard({ scope = "global", start = 1, length = 100 } = {}) {
   const a = await authenticateGameCenter();
-  if (!a || !a.authenticated) return { unavailable: true, reason: a && a.unsupported ? "unsupported" : "signedOut" };
+  if (!a || !a.authenticated) return { unavailable: true, reason: a && a.unsupported ? "unsupported" : "signedOut", error: (a && a.error) || "" };
   return gc().loadEntries({ leaderboardId: LEADERBOARD_ID, scope, start, length });
 }

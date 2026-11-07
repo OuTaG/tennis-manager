@@ -167,6 +167,8 @@ export default function TennisManager() {
   const [startCityInput, setStartCityInput] = useState("Paris");
   const [difficultyInput, setDifficultyInput] = useState(3);
   const [gameOptionsInput, setGameOptionsInput] = useState([]);
+  const [cheatsInput, setCheatsInput] = useState([]); // triches choisies à la création
+  const [createShop, setCreateShop] = useState(false); // boutique ouverte depuis la création
   const [surfaceInput, setSurfaceInput] = useState("Dur");
   const [nationalityInput, setNationalityInput] = useState(""); // chosen at step 1
   const [createStep, setCreateStep] = useState(-1); // -2 = base de joueurs, -1 = circuit, 0 = identité, 1 = profil (style, surface), 2 = départ (ville, difficulté, options)
@@ -3263,6 +3265,16 @@ export default function TennisManager() {
 
   // ─── CREATE ────────────────────────────────────────────────────────────────
   // ─── CREATE ────────────────────────────────────────────────────────────────
+  if (screen === "create" && createShop) return (
+    <div style={styles.root}>
+      <div style={{ padding: "16px 16px 0" }}>
+        <button style={{ ...styles.btnSmall, display: "flex", alignItems: "center", gap: 6 }} onClick={() => { setCreateShop(false); setShopFocus(null); }}>
+          <Icon name="arrowLeft" size={14} /> Retour à la création
+        </button>
+      </div>
+      <ShopScreen onPurchasesChanged={refreshPurchases} focusId={shopFocus} onUse={() => { setCreateShop(false); setShopFocus(null); }} />
+    </div>
+  );
   if (screen === "create") {
     const selectedStyle = PLAYER_STYLES[styleInput];
     const goToProfileStep = () => setCreateStep(1);
@@ -3602,6 +3614,42 @@ export default function TennisManager() {
               </div>
             </div>
 
+            {/* Triches (pack CHEAT à vie) : visibles par tous, utilisables
+                avec le pack. Une carrière qui triche a ses propres records et
+                sort du classement en ligne. */}
+            {(() => {
+              const owned = hasPurchased("cheat_pack");
+              return (
+                <div>
+                  <label style={styles.label}>Triches</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {Object.entries(CHEATS).map(([id, c]) => {
+                      const on = owned && cheatsInput.includes(id);
+                      return (
+                        <label key={id} style={{
+                          display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", minHeight: 44, boxSizing: "border-box",
+                          background: on ? "#c4302b" : "#ffffff", color: on ? "#ffffff" : "#141414", borderRadius: 0, cursor: "pointer",
+                          border: "2.5px solid " + T.ink, boxShadow: on ? "3px 3px 0 " + T.ink : "none", opacity: owned ? 1 : 0.7,
+                        }}>
+                          {owned
+                            ? <input type="checkbox" checked={on} onChange={() => setCheatsInput(list => on ? list.filter(x => x !== id) : [...list, id])} />
+                            : <span onClick={(e) => { e.preventDefault(); setShopFocus("cheat_pack"); setCreateShop(true); }} style={{ display: "inline-flex" }}><Icon name="lock" size={14} color="#141414" /></span>}
+                          <span className="tm-display" style={{ flex: 1, minWidth: 0, fontSize: 13 }} onClick={owned ? undefined : (e) => { e.preventDefault(); setShopFocus("cheat_pack"); setCreateShop(true); }}>{c.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {owned ? (
+                    <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: T.fg, lineHeight: 1.35 }}>
+                      {cheatsInput.length ? "Carrière classée « Triche » : records à part, hors classement en ligne." : "Aussi activables en cours de partie, dans les Réglages."}
+                    </div>
+                  ) : (
+                    <button className="tm-bd-press" style={{ ...styles.btnPrimary, marginTop: 8, background: "#c4302b" }} onClick={() => { setShopFocus("cheat_pack"); setCreateShop(true); }}>Débloquer · CHEAT à vie</button>
+                  )}
+                </div>
+              );
+            })()}
+
             </>)}
 
             {createStep === 1 && (
@@ -3656,6 +3704,14 @@ export default function TennisManager() {
                 setCircuit(circuitInput);
                 const newPlayer = createInitialPlayer(nameInput, styleInput, startCityInput, nationalityInput || undefined, avatarInput, difficultyInput, gameOptionsInput, surfaceInput);
                 newPlayer.circuit = circuitInput;
+                // Triches choisies à la création (pack CHEAT à vie).
+                if (hasPurchased("cheat_pack") && cheatsInput.length) {
+                  Object.assign(newPlayer, cheatsInput.reduce((q, id) => {
+                    const c = CHEATS[id];
+                    if (!c) return q;
+                    return c.toggle ? { ...q, cheats: { ...(q.cheats || {}), [id]: true } } : c.apply(q);
+                  }, { ...newPlayer, cheated: true }));
+                }
                 // Base de joueurs choisie : Standard, ou configuration personnalisée.
                 const rosterCfg = rosterInput >= 0 && hasPurchased("custom_mode") ? loadRosterConfigs()[rosterInput] : null;
                 const newDb = generateAtpDatabase(rosterCfg ? rosterEntries(rosterCfg, circuitInput) : null);
@@ -3674,6 +3730,7 @@ export default function TennisManager() {
                 // tutoriel, depuis Bureau › Finances.
                 newPlayer.tutorial = { step: 0, base: { trainCount: 0, week: newPlayer.week, year: newPlayer.year } };
                 setPlayer(newPlayer);
+                setCheatsInput([]);
                 setAtpDb(newDb);
                 setNews([]);
                 setScreen("hub");

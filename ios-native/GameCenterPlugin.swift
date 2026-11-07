@@ -31,50 +31,73 @@ public class GameCenterPlugin: CAPPlugin, CAPBridgedPlugin, GKGameCenterControll
         return [
             "authenticated": local.isAuthenticated,
             "displayName": local.isAuthenticated ? local.displayName : "",
-            "error": error?.localizedDescription ?? "",
+            "error": error?.localizedDescription ?? lastError,
         ]
+    }
+
+    private var pendingSignIn: CAPPluginCall?
+    private var lastError: String = ""
+    private var signInShown = false
+
+    // Gestionnaire de connexion GameKit. Le réaffecter relance une tentative
+    // de connexion (bouton « Se connecter » du jeu). Les erreurs sont
+    // gardées et renvoyées au jeu, qui les affiche.
+    private func installHandler() {
+        handlerInstalled = true
+        GKLocalPlayer.local.authenticateHandler = { [weak self] viewController, error in
+            guard let self = self else { return }
+            if let error = error { self.lastError = error.localizedDescription; print("[GameCenter] \(error)") }
+            if let vc = viewController {
+                self.signInController = vc
+                self.signInShown = true
+                self.bridge?.viewController?.present(vc, animated: true)
+                // Le jeu affiche « Se connecter » en attendant ; la connexion
+                // faite, l'évènement « authChanged » recharge le classement.
+                let calls = self.pendingAuth
+                self.pendingAuth = []
+                calls.forEach { $0.resolve(self.authResult()) }
+                if let c = self.pendingSignIn { self.pendingSignIn = nil; c.resolve(self.authResult()) }
+                return
+            }
+            if GKLocalPlayer.local.isAuthenticated { self.lastError = "" }
+            let result = self.authResult()
+            let calls = self.pendingAuth
+            self.pendingAuth = []
+            calls.forEach { $0.resolve(result) }
+            if let c = self.pendingSignIn { self.pendingSignIn = nil; c.resolve(result) }
+            self.notifyListeners("authChanged", data: result)
+        }
     }
 
     @objc func authenticate(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            let local = GKLocalPlayer.local
-            if local.isAuthenticated { call.resolve(self.authResult()); return }
+            if GKLocalPlayer.local.isAuthenticated { call.resolve(self.authResult()); return }
             // Gestionnaire déjà en place et joueur non connecté : réponse immédiate.
-            if self.handlerInstalled { call.resolve(self.authResult()); return }
-            self.handlerInstalled = true
+            if self.handlerInstalled && self.pendingAuth.isEmpty { call.resolve(self.authResult()); return }
             self.pendingAuth.append(call)
-            local.authenticateHandler = { [weak self] viewController, error in
-                guard let self = self else { return }
-                if let vc = viewController {
-                    // Gardée pour le bouton « Se connecter » du jeu.
-                    self.signInController = vc
-                    self.bridge?.viewController?.present(vc, animated: true)
-                    return
-                }
-                let result = self.authResult(error)
-                let calls = self.pendingAuth
-                self.pendingAuth = []
-                calls.forEach { $0.resolve(result) }
-                self.notifyListeners("authChanged", data: result)
-            }
+            if !self.handlerInstalled { self.installHandler() }
         }
     }
 
-    // Bouton « Se connecter à Game Center » : rouvre la fenêtre de connexion
-    // de GameKit si elle existe, sinon le tableau de bord Game Center.
+    // Bouton « Se connecter à Game Center » : montre la fenêtre de connexion
+    // de GameKit si elle n'a pas encore été vue, sinon relance la connexion.
     @objc func signIn(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            let local = GKLocalPlayer.local
-            if local.isAuthenticated { call.resolve(self.authResult()); return }
-            guard let host = self.bridge?.viewController else { call.resolve(self.authResult()); return }
-            if let vc = self.signInController, vc.presentingViewController == nil {
+            if GKLocalPlayer.local.isAuthenticated { call.resolve(self.authResult()); return }
+            if let vc = self.signInController, vc.presentingViewController == nil, !self.signInShown,
+               let host = self.bridge?.viewController {
+                self.signInShown = true
                 host.present(vc, animated: true)
-            } else {
-                let gc = GKGameCenterViewController(state: .dashboard)
-                gc.gameCenterDelegate = self
-                host.present(gc, animated: true)
+                call.resolve(self.authResult())
+                return
             }
-            call.resolve(self.authResult())
+            self.pendingSignIn?.resolve(self.authResult())
+            self.pendingSignIn = call
+            self.installHandler()
+            // Sans réponse de GameKit : on rend la main avec la dernière erreur.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                if let c = self.pendingSignIn, c === call { self.pendingSignIn = nil; c.resolve(self.authResult()) }
+            }
         }
     }
 

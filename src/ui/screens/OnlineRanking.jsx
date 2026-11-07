@@ -26,6 +26,8 @@ export function OnlineRankingScreen({ player, onBack }) {
   const [open, setOpen] = useState(null);
   const supported = gameCenterSupported();
   const [authTick, setAuthTick] = useState(0);
+  const [signing, setSigning] = useState(false);
+  const [signError, setSignError] = useState("");
   // Connexion à Game Center depuis le jeu : on recharge le classement.
   useEffect(() => onGameCenterAuth(() => setAuthTick(t => t + 1)), []);
 
@@ -66,8 +68,15 @@ export function OnlineRankingScreen({ player, onBack }) {
         : data.unavailable ? (
           <div style={{ ...panel, padding: 18, textAlign: "center" }}>
             <div className="tm-lettering" style={{ fontSize: 16, lineHeight: 1.35, marginBottom: 12 }}>Connectez-vous à Game Center pour voir le classement et y apparaître.</div>
-            <button className="tm-bd-press" style={{ ...styles.btnPrimary, marginBottom: 8, background: "#1f7a45" }} onClick={async () => { await signInGameCenter(); setAuthTick(t => t + 1); }}>Se connecter à Game Center</button>
-            <div style={{ fontSize: 11, fontWeight: 700 }}>Rien ne s'ouvre ? Réglages de l'iPhone › Game Center.</div>
+            <button className="tm-bd-press" style={{ ...styles.btnPrimary, marginBottom: 8, background: "#1f7a45", opacity: signing ? 0.6 : 1 }} disabled={signing} onClick={async () => {
+              setSigning(true);
+              const r = await signInGameCenter();
+              setSigning(false);
+              if (r && r.error) setSignError(r.error);
+              setAuthTick(t => t + 1);
+            }}>{signing ? "Connexion…" : "Se connecter à Game Center"}</button>
+            {(signError || data.error) && <div style={{ fontSize: 11.5, fontWeight: 700, color: "#c4302b", marginBottom: 6 }}>Game Center : {signError || data.error}</div>}
+            <div style={{ fontSize: 11, fontWeight: 700 }}>Vérifiez que vous êtes connecté dans Réglages de l'iPhone › Game Center, puis réessayez.</div>
           </div>
         )
         : (
