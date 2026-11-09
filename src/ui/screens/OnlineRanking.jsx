@@ -11,6 +11,9 @@ import { T } from "../theme.js";
 import { fmtNum } from "../format.js";
 
 const INK = T.ink;
+const PAGE = 100;        // entrées par chargement (maximum de Game Center)
+const TOP = 100;         // taille du classement affiché, filtré ou non
+const MAX_LOADED = 2000; // au-delà, on arrête de chercher pour un filtre
 const panel = { background: "#ffffff", color: "#141414", border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, marginBottom: 14 };
 const chip = (on) => ({
   padding: "5px 10px", fontSize: 12, fontWeight: 800, textTransform: "uppercase", cursor: "pointer",
@@ -35,15 +38,35 @@ export function OnlineRankingScreen({ player, onBack }) {
     if (!supported) return;
     let alive = true;
     setData(null); setError(null);
-    loadLeaderboard({ scope, start: 1, length: 100 })
+    loadLeaderboard({ scope, start: 1, length: PAGE })
       .then(r => { if (alive) setData(r); })
       .catch(e => { if (alive) setError(String((e && e.message) || e)); });
     return () => { alive = false; };
   }, [scope, supported, authTick]);
 
-  const rows = ((data && data.entries) || []).map(e => ({ ...e, cfg: decodeConfig(e.context) }))
-    .filter(e => (level === "all" || (e.cfg && e.cfg.difficulty === level)) && (circuit === "all" || (e.cfg && e.cfg.circuit === circuit)));
+  const filtered = level !== "all" || circuit !== "all";
+  const all = ((data && data.entries) || []).map(e => ({ ...e, cfg: decodeConfig(e.context) }));
+  const matches = (e) => (level === "all" || (e.cfg && e.cfg.difficulty === level)) && (circuit === "all" || (e.cfg && e.cfg.circuit === circuit));
+  const rows = all.filter(matches).slice(0, TOP);
+
+  // Filtre actif : on charge les pages suivantes du classement (100 par
+  // 100) jusqu'à trouver le top 100 du filtre, dans la limite de MAX_LOADED.
+  const [loadingMore, setLoadingMore] = useState(false);
+  const canLoadMore = !!(data && data.entries && !data.unavailable) && all.length < Math.min(data.total || 0, MAX_LOADED) && all.length % PAGE === 0;
+  useEffect(() => {
+    if (!filtered || loadingMore || !canLoadMore || rows.length >= TOP) return;
+    let alive = true;
+    setLoadingMore(true);
+    loadLeaderboard({ scope, start: all.length + 1, length: PAGE })
+      .then(r => { if (alive && r && r.entries) setData(d => (d ? { ...d, entries: [...d.entries, ...r.entries] } : d)); })
+      .catch(() => { if (alive) setData(d => (d ? { ...d, total: d.entries.length } : d)); })
+      .finally(() => { if (alive) setLoadingMore(false); });
+    return () => { alive = false; };
+  }, [filtered, canLoadMore, rows.length, all.length, scope]);
+
   const me = data && data.local;
+  // Place dans le filtre (si votre ligne est parmi les entrées chargées).
+  const myPos = filtered ? all.filter(matches).findIndex(e => e.local) + 1 : 0;
   const message = (text) => <div className="tm-lettering" style={{ ...panel, textAlign: "center", fontSize: 16, lineHeight: 1.35, padding: 22 }}>{text}</div>;
 
   return (
@@ -83,9 +106,9 @@ export function OnlineRankingScreen({ player, onBack }) {
           <>
             {/* Votre place */}
             <div className="tm-halftone-yellow" style={{ border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: "10px 12px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
-              <span className="tm-display" style={{ background: INK, color: "#d6ef3c", fontSize: 22, padding: "2px 10px", transform: "rotate(-3deg)" }}>{me ? "#" + fmtNum(me.rank) : "—"}</span>
+              <span className="tm-display" style={{ background: INK, color: "#d6ef3c", fontSize: 22, padding: "2px 10px", transform: "rotate(-3deg)" }}>{!me ? "—" : filtered ? (myPos ? "#" + fmtNum(myPos) : "—") : "#" + fmtNum(me.rank)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>Votre place{data.total ? " sur " + fmtNum(data.total) : ""}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>{filtered ? "Votre place avec ces filtres" + (me ? " · #" + fmtNum(me.rank) + " mondial" : "") : "Votre place" + (data.total ? " sur " + fmtNum(data.total) : "")}</div>
                 <div className="tm-display" style={{ fontSize: 17 }}>{me ? fmtNum(me.score) + " pts" : "Pas encore classé"}</div>
                 {player && !player.cheated && !player.challenge && <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2 }}>Carrière en cours : {describeConfig(careerConfigOf(player)).short}</div>}
               </div>
@@ -103,7 +126,7 @@ export function OnlineRankingScreen({ player, onBack }) {
               {[["all", "Tous circuits"], ["atp", "Masculin"], ["wta", "Féminin"]].map(([v, l]) => <button key={v} style={chip(circuit === v)} onClick={() => setCircuit(v)}>{l}</button>)}
             </div>
 
-            {rows.length === 0 ? message(scope === "friends" ? "Aucun ami classé pour l'instant." : "Aucun joueur avec ces filtres dans le top 100.") : (
+            {rows.length === 0 ? message(scope === "friends" ? "Aucun ami classé pour l'instant." : "Aucun joueur classé avec ces filtres pour l'instant.") : (
               <div style={{ ...panel, padding: "2px 12px" }}>
                 {rows.map((e, i) => {
                   const desc = e.cfg ? describeConfig(e.cfg) : null;
@@ -111,12 +134,15 @@ export function OnlineRankingScreen({ player, onBack }) {
                   return (
                     <div key={e.rank + ":" + e.name} style={{ borderBottom: i < rows.length - 1 ? "2px dashed " + INK : "none", background: e.local ? "rgba(214,239,60,0.35)" : "transparent", margin: "0 -12px", padding: "0 12px" }}>
                       <div onClick={() => desc && setOpen(isOpen ? null : e.rank + ":" + e.name)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", cursor: desc ? "pointer" : "default" }}>
-                        <span className="tm-display" style={{ minWidth: 44, textAlign: "center", fontSize: 14, background: e.rank <= 3 ? "#d6ef3c" : "#ffffff", border: "2px solid " + INK, padding: "1px 4px" }}>#{e.rank}</span>
+                        <span className="tm-display" style={{ minWidth: 44, textAlign: "center", fontSize: 14, background: (filtered ? i + 1 : e.rank) <= 3 ? "#d6ef3c" : "#ffffff", border: "2px solid " + INK, padding: "1px 4px" }}>#{filtered ? i + 1 : e.rank}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div className="tm-display" style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.name}{e.local ? " (vous)" : ""}</div>
                           <div style={{ color: "#5b2d8e", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{desc ? desc.short + (isOpen ? "" : " ›") : "Configuration inconnue"}</div>
                         </div>
-                        <span className="tm-display" style={{ fontSize: 16, flexShrink: 0 }}>{fmtNum(e.score)}</span>
+                        <span style={{ flexShrink: 0, textAlign: "right" }}>
+                          <span className="tm-display" style={{ display: "block", fontSize: 16 }}>{fmtNum(e.score)}</span>
+                          {filtered && <span style={{ display: "block", fontSize: 10, fontWeight: 800 }}>#{fmtNum(e.rank)} mondial</span>}
+                        </span>
                       </div>
                       {isOpen && (
                         <div className="tm-halftone-yellow" style={{ border: "2px solid " + INK, boxShadow: "2px 2px 0 " + INK, padding: "6px 10px", marginBottom: 10 }}>
@@ -132,7 +158,7 @@ export function OnlineRankingScreen({ player, onBack }) {
                 })}
               </div>
             )}
-            <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 16 }}>Filtres appliqués au top 100. Les carrières en mode Triche n'apparaissent pas.</div>
+            <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 16 }}>{loadingMore ? "Recherche d'autres joueurs…" : filtered ? "Top 100 des joueurs avec ces filtres, selon la meilleure carrière de chacun." : "Top 100 mondial."} Les carrières en mode Triche n'apparaissent pas.</div>
           </>
         )}
     </div>
