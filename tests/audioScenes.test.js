@@ -3,12 +3,13 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 const calls = [];
+let endedHandler = null;
 const playing = new Set();
 vi.mock("@capacitor/core", () => ({
   Capacitor: { isNativePlatform: () => true, isPluginAvailable: () => true },
   registerPlugin: () => ({
     preload: async () => {},
-    addListener: () => {},
+    addListener: (ev, fn) => { if (ev === "ended") endedHandler = fn; },
     play: async ({ id }) => { calls.push("play " + id); playing.add(id); },
     stop: async ({ id }) => { calls.push("stop " + id); playing.delete(id); },
     setVolume: async () => {},
@@ -48,5 +49,16 @@ describe("son du match", () => {
     A.setAudioScene("match");
     expect(calls).toContain("play amb");
     expect(calls).not.toContain("play matchEnd");
+  });
+});
+
+describe("musique", () => {
+  it("la fin de la clameur ne lance pas un second morceau", () => {
+    A.setAudioScene("menu");
+    const before = [...playing].filter(id => /^m\d$/.test(id));
+    endedHandler && endedHandler({ id: "matchEnd" });
+    const after = [...playing].filter(id => /^m\d$/.test(id));
+    expect(after).toEqual(before);
+    expect(after.length).toBe(1);
   });
 });

@@ -163,14 +163,20 @@ async function startNative() {
   natStarting = false;
   if (!ok.some(Boolean)) return false;
   nat = p;
+  // Fin du morceau en cours seulement (et pas d'un son dont le nom commence
+  // aussi par « m », comme « matchEnd ») : morceau suivant.
   nat.addListener("ended", ({ id }) => {
-    if (id && id[0] === "m") { musicIndex = (musicIndex + 1) % MUSIC.length; natMusic(); }
+    if (id === "m" + musicIndex) { musicIndex = (musicIndex + 1) % MUSIC.length; natMusic(); }
   });
   natMusic();
   natApply();
   return true;
 }
-function natMusic() { nat.play({ id: "m" + musicIndex, volume: musicVolume(), fade: 1, restart: true }).catch(() => {}); }
+// Un seul morceau à la fois : les autres sont arrêtés avant de lancer celui-ci.
+function natMusic() {
+  MUSIC.forEach((_, i) => { if (i !== musicIndex) nat.stop({ id: "m" + i }).catch(() => {}); });
+  nat.play({ id: "m" + musicIndex, volume: musicVolume(), fade: 1, restart: true }).catch(() => {});
+}
 function natApply(fade = 0.6) {
   // Son coupé : tout se tait ; hors match : plus aucun son de match.
   const silence = settings.muted ? Object.keys(SFX) : inMatch(scene) ? [] : MATCH_SFX;
