@@ -391,7 +391,9 @@ export default function TennisManager() {
   const inLiveMatch = screen === "match" && !!matchState && matchState.phase === "live" && !matchState.pendingNextMatch;
   const matchOver = inLiveMatch && !!matchState.matchData?.matchComplete;
   const pointsPlaying = inLiveMatch && !matchOver && !matchPaused && !(matchState.pendingDilemma && matchState.pendingDilemma.minigame);
-  const audioScene = flightAnim ? "flight" : pointsPlaying ? "match" : inLiveMatch ? "matchQuiet" : "menu";
+  // Mini-jeu en cours : la musique du jeu, coupée dès la fin du mini-jeu.
+  const miniGameOn = inLiveMatch && !matchOver && !!(matchState.pendingDilemma && matchState.pendingDilemma.minigame);
+  const audioScene = flightAnim ? "flight" : miniGameOn ? "minigame" : pointsPlaying ? "match" : inLiveMatch ? "matchQuiet" : "menu";
   useEffect(() => { setAudioScene(audioScene); }, [audioScene]);
   useEffect(() => { if (matchOver) playSfx("matchEnd"); }, [matchOver]);
   const [sponsorNegotiation, setSponsorNegotiation] = useState(null); // { phase, year, results, objMoney }

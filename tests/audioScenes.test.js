@@ -4,15 +4,17 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 const calls = [];
 let endedHandler = null;
+const volumes = [];
+const lastMusicVolume = () => (volumes.filter(v => /^m\d$/.test(v.id)).pop() || {}).volume;
 const playing = new Set();
 vi.mock("@capacitor/core", () => ({
   Capacitor: { isNativePlatform: () => true, isPluginAvailable: () => true },
   registerPlugin: () => ({
     preload: async () => {},
     addListener: (ev, fn) => { if (ev === "ended") endedHandler = fn; },
-    play: async ({ id }) => { calls.push("play " + id); playing.add(id); },
+    play: async (o) => { calls.push("play " + o.id); playing.add(o.id); volumes.push(o); },
     stop: async ({ id }) => { calls.push("stop " + id); playing.delete(id); },
-    setVolume: async () => {},
+    setVolume: async (o) => { volumes.push(o); },
   }),
 }));
 
@@ -60,5 +62,17 @@ describe("musique", () => {
     const after = [...playing].filter(id => /^m\d$/.test(id));
     expect(after).toEqual(before);
     expect(after.length).toBe(1);
+  });
+});
+
+describe("mini-jeu", () => {
+  it("la musique joue pendant le mini-jeu et se coupe à la fin", () => {
+    A.setAudioScene("match");
+    A.setAudioScene("minigame");
+    expect(playing.has("amb")).toBe(false);
+    expect(lastMusicVolume()).toBeGreaterThan(0);
+    A.setAudioScene("match");
+    expect(lastMusicVolume()).toBe(0);
+    expect(playing.has("amb")).toBe(true);
   });
 });

@@ -25,7 +25,9 @@ const AMBIENCE = "audio/match-ambience.m4a"; // AAC : boucle sans trou
 const SFX = { flight: "audio/flight.mp3", matchEnd: "audio/match-end.mp3", cheer: "audio/cheer.mp3" };
 // Sons propres au match, coupés dès qu'on quitte le match en direct.
 const MATCH_SFX = ["matchEnd", "cheer"];
-const inMatch = (sc) => sc === "match" || sc === "matchQuiet";
+const inMatch = (sc) => sc === "match" || sc === "matchQuiet" || sc === "minigame";
+// Écrans où la musique du jeu joue : menus et mini-jeux de match.
+const musicOn = (sc) => sc === "menu" || sc === "minigame";
 
 const DEFAULTS = { music: 0.6, sfx: 0.8, muted: false };
 let settings = load();
@@ -64,7 +66,7 @@ function applyVolumes(fade = 0.25) {
   const now = ctx.currentTime;
   const set = (g, v) => { g.gain.cancelScheduledValues(now); g.gain.setTargetAtTime(v, now, Math.max(0.01, fade / 3)); };
   set(master, settings.muted ? 0 : 1);
-  set(musicGain, scene === "menu" ? settings.music : 0); // match, vol : musique à zéro
+  set(musicGain, musicOn(scene) ? settings.music : 0); // match, vol : musique à zéro
   set(sfxGain, settings.sfx);
 }
 
@@ -149,7 +151,7 @@ let natAmbOn = false;
 function nativeAvailable() {
   try { return Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("GameAudio"); } catch (e) { return false; }
 }
-const musicVolume = () => (settings.muted || scene !== "menu" ? 0 : settings.music);
+const musicVolume = () => (settings.muted || !musicOn(scene) ? 0 : settings.music);
 async function startNative() {
   if (nat || natStarting) return !!nat;
   natStarting = true;
@@ -200,15 +202,18 @@ export function unlockAudio() {
   setAudioScene(scene);
 }
 
-// « menu » : musique ; « match » : sons des points ; « matchQuiet » : match
-// en pause, mini-jeu ou match terminé (ni musique ni ambiance) ; « flight » :
+// « menu » : musique ; « match » : sons des points ; « minigame » : musique
+// du jeu pendant un mini-jeu de match ; « matchQuiet » : match en pause ou
+// terminé (ni musique ni ambiance) ; « flight » :
 // son de l'avion seul. La musique continue en silence hors menu.
 export function setAudioScene(next) {
-  if (nat) { if (next !== scene) { scene = next; natApply(); } return; }
+  // Fin d'un mini-jeu : la musique se coupe vite (0,3 s).
+  if (nat) { if (next !== scene) { const fast = scene === "minigame"; scene = next; natApply(fast ? 0.3 : 0.6); } return; }
   if (next === scene && ctx) return;
+  const prevScene = scene;
   scene = next;
   if (!ctx) return;
-  applyVolumes(0.6);
+  applyVolumes(prevScene === "minigame" ? 0.3 : 0.6);
   if (scene === "match") startAmbience(); else stopAmbience();
   if (!inMatch(scene)) stopMatchSfx();
   if (musicEl && musicEl.paused && !settings.muted && document.visibilityState !== "hidden") musicEl.play().catch(() => {});
