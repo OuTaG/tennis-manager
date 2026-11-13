@@ -3119,10 +3119,12 @@ export default function TennisManager() {
   if (screen === "customize") return <CustomizeScreen onBack={() => setScreen("menu")} />;
 
   const multiOwned = hasPurchased("multi_careers");
-  if (screen === "challenges") return (
+  if (screen === "challenges" || screen === "weekly") return (
     <>
       {deleteSaveDialog}
       <ChallengesScreen
+        key={screen}
+        weeklyOnly={screen === "weekly"}
         onBack={() => { refreshSlots(); setScreen("menu"); }}
         onStart={(def, form) => runHeavy("Préparation du défi…", () => startChallenge(def, form))}
         avatar={avatarInput}
@@ -3242,7 +3244,7 @@ export default function TennisManager() {
               <Icon name="player" size={17} color={T.onAccent} /> Carrière
               {slotMetas.some(Boolean) && <span style={{ fontSize: 12, fontWeight: 500 }}>· {slotMetas.filter(Boolean).length} en cours</span>}
             </button>
-            <button className="tm-bd-press" style={{ ...styles.btnSecondary, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setScreen("challenges")}>
+            <button className="tm-bd-press" style={{ ...styles.btnSecondary, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setScreen("weekly")}>
               <Icon name="trophy" size={16} color={T.amber} /> Défi de la semaine
               <span className="tm-lettering" style={{ background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 14, textTransform: "none", letterSpacing: 0, transform: "rotate(-2deg)" }}>gratuit</span>
             </button>
@@ -5663,7 +5665,7 @@ export default function TennisManager() {
                 <button style={{ ...styles.btnPrimary, marginBottom: 0 }} onClick={() => startChallenge(def, { name: player.name, nationality: player.nationality, circuit: player.circuit || "atp" })}>Réessayer</button>
               )}
               {!isWeekly && <button style={{ ...styles.btnSecondary, boxShadow: "2px 2px 0 " + T.ink }} onClick={() => setPlayer(seen)}>{ok ? "Continuer la partie" : "Continuer quand même"}</button>}
-              <button style={styles.btnSecondary} onClick={() => { returnToMenu(seen); if (isWeekly) setScreen("challenges"); }}>{isWeekly ? "Retour aux défis" : "Menu principal"}</button>
+              <button style={styles.btnSecondary} onClick={() => { returnToMenu(seen); if (isWeekly) setScreen("weekly"); }}>{isWeekly ? "Défi de la semaine" : "Menu principal"}</button>
               </div>
             </div>
           </div>

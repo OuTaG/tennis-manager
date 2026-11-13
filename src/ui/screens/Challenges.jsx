@@ -91,10 +91,11 @@ function WeeklyBoard() {
   );
 }
 
-export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current, owned, goShop, avatar, setAvatar, weeklyCurrent, onResumeWeekly, onAbandonWeekly }) {
+export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current, owned, goShop, avatar, setAvatar, weeklyCurrent, onResumeWeekly, onAbandonWeekly, weeklyOnly }) {
   const weekly = weeklyState();
   const attemptsLeft = weeklyAttemptsLeft();
-  const [selected, setSelectedRaw] = useState(null);
+  // weeklyOnly : écran du Défi de la semaine (ouvert depuis le menu principal).
+  const [selected, setSelectedRaw] = useState(weeklyOnly ? WEEKLY_ID : null);
   const [avatarStep, setAvatarStep] = useState(false);
   const [nat, setNat] = useState("France");
   const [name, setName] = useState("");
@@ -140,9 +141,19 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
     return (
       <div style={styles.root}>
         <div style={{ padding: "16px 16px 110px" }}>
-          <button style={backBtn} onClick={() => setSelected(null)}>
-            <Icon name="arrowLeft" size={14} /> Tous les défis
+          <button style={backBtn} onClick={() => (weeklyOnly ? onBack() : setSelected(null))}>
+            <Icon name="arrowLeft" size={14} /> {weeklyOnly ? "Menu principal" : "Tous les défis"}
           </button>
+          {weeklyOnly && weeklyCurrent && (
+            <div className="tm-halftone-lilac" style={{ ...panel, background: undefined, padding: 14 }}>
+              <span style={chip(INK, "#ffffff")}>Essai en cours</span>
+              <div style={{ color: "#141414", fontSize: 12, fontWeight: 700, marginTop: 4 }}>{weeklyCurrent.name} · Sem. {weeklyCurrent.week} · {weeklyCurrent.year}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button style={{ ...styles.btnPrimary, flex: 1, marginBottom: 3 }} onClick={onResumeWeekly}>Reprendre</button>
+                <button style={{ ...styles.btnSecondary, flex: 1, width: "auto" }} onClick={onAbandonWeekly}>Abandonner</button>
+              </div>
+            </div>
+          )}
           <div style={panel}>
             <div style={bandStyle}>
               <span className="tm-display" style={{ fontSize: 14 }}>Défi</span>
@@ -245,28 +256,6 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
             <button className="tm-display" style={{ ...styles.btnSmall, fontFamily: T.display, background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontWeight: 400, fontSize: 13 }} onClick={goShop}>Boutique</button>
           </div>
         )}
-        {/* Défi de la semaine : gratuit, le même pour tous */}
-        {(() => {
-          const wd = getChallengeDef(WEEKLY_ID);
-          return (
-            <div className="tm-halftone-yellow" style={{ border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: 14, marginBottom: 16, color: "#141414" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <span className="tm-display" style={{ fontSize: 18 }}>Défi de la semaine</span>
-                <Stamp free />
-              </div>
-              <div className="tm-lettering" style={{ fontSize: 15, marginTop: 4, lineHeight: 1.3 }}>{wd.tagline}</div>
-              <div style={{ fontSize: 12, fontWeight: 800, marginTop: 6 }}>
-                {attemptsLeft}/{WEEKLY_MAX_ATTEMPTS} essais restants{weekly.best != null ? " · meilleur score " + fmtNum(weekly.best) + " pts" : ""} · nouveau défi dans {formatResetIn(weeklyResetIn())}
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                {weeklyCurrent && <button style={{ ...styles.btnPrimary, flex: 1, marginBottom: 3 }} onClick={onResumeWeekly}>Reprendre</button>}
-                <button style={{ ...(weeklyCurrent ? styles.btnSecondary : styles.btnPrimary), flex: 1, width: "auto", marginBottom: 3 }} onClick={() => setSelected(WEEKLY_ID)}>{weeklyCurrent ? "Détails" : "Voir le défi"}</button>
-              </div>
-              {weeklyCurrent && <button style={{ ...styles.btnSmall, marginTop: 8, background: "#ffffff", color: "#141414", border: "2px solid " + INK }} onClick={onAbandonWeekly}>Abandonner l'essai en cours</button>}
-            </div>
-          );
-        })()}
-        <div style={styles.sectionTitle}>Défis scénarisés</div>
         {current && (
           <div className="tm-halftone-lilac" style={{ ...panel, background: undefined, padding: 14 }}>
             <span style={chip(INK, "#ffffff")}>Défi en cours</span>
