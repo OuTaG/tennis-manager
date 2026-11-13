@@ -66,13 +66,28 @@ describe("musique", () => {
 });
 
 describe("mini-jeu", () => {
-  it("la musique joue pendant le mini-jeu et se coupe à la fin", () => {
+  it("musique de suspense pendant le mini-jeu, coupée à la fin", () => {
     A.setAudioScene("match");
     A.setAudioScene("minigame");
     expect(playing.has("amb")).toBe(false);
-    expect(lastMusicVolume()).toBeGreaterThan(0);
-    A.setAudioScene("match");
+    expect(playing.has("sus")).toBe(true);
     expect(lastMusicVolume()).toBe(0);
+    A.setAudioScene("match");
+    expect(playing.has("sus")).toBe(false);
     expect(playing.has("amb")).toBe(true);
+  });
+  it("musique comique dans « Le mur », arrêtée en sortant", () => {
+    A.setAudioScene("menu");
+    A.setAudioScene("wall");
+    expect(playing.has("fun")).toBe(true);
+    A.setAudioScene("menu");
+    expect(playing.has("fun")).toBe(false);
+  });
+  it("la victoire se coupe en quittant le match", () => {
+    A.setAudioScene("matchQuiet");
+    A.playSfx("victory");
+    expect(playing.has("victory")).toBe(true);
+    A.setAudioScene("menu");
+    expect(playing.has("victory")).toBe(false);
   });
 });

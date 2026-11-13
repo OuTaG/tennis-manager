@@ -22,12 +22,16 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 const KEY = "tm-audio";
 const MUSIC = [1, 2, 3, 4, 5].map(n => "audio/music-" + n + ".mp3");
 const AMBIENCE = "audio/match-ambience.m4a"; // AAC : boucle sans trou
-const SFX = { flight: "audio/flight.mp3", matchEnd: "audio/match-end.mp3", cheer: "audio/cheer.mp3" };
+const SFX = { flight: "audio/flight.mp3", matchEnd: "audio/match-end.mp3", cheer: "audio/cheer.mp3", victory: "audio/victory.mp3" };
 // Sons propres au match, coupés dès qu'on quitte le match en direct.
-const MATCH_SFX = ["matchEnd", "cheer"];
+const MATCH_SFX = ["matchEnd", "cheer", "victory"];
 const inMatch = (sc) => sc === "match" || sc === "matchQuiet" || sc === "minigame";
-// Écrans où la musique du jeu joue : menus et mini-jeux de match.
-const musicOn = (sc) => sc === "menu" || sc === "minigame";
+// Boucles propres à un écran : suspense pendant les mini-jeux de match,
+// musique comique dans « Le mur » (secret des réglages).
+const LOOPS = { sus: "audio/suspense.m4a", fun: "audio/funny.m4a" };
+const loopFor = (sc) => (sc === "minigame" ? "sus" : sc === "wall" ? "fun" : null);
+// Écrans où la musique du jeu joue : les menus.
+const musicOn = (sc) => sc === "menu";
 
 const DEFAULTS = { music: 0.6, sfx: 0.8, muted: false };
 let settings = load();
@@ -148,6 +152,7 @@ function stopAmbience() {
 let nat = null;       // module GameAudio, une fois les sons chargés
 let natStarting = false;
 let natAmbOn = false;
+let natLoop = null;   // boucle d'écran en cours (« sus », « fun »)
 function nativeAvailable() {
   try { return Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("GameAudio"); } catch (e) { return false; }
 }
@@ -160,6 +165,7 @@ async function startNative() {
   const ok = await Promise.all([
     ...MUSIC.map((f, i) => load("m" + i, f)),
     load("amb", AMBIENCE, true),
+    ...Object.entries(LOOPS).map(([id, f]) => load(id, f, true)),
     ...Object.entries(SFX).map(([id, f]) => load(id, f)),
   ]);
   natStarting = false;
@@ -188,6 +194,11 @@ function natApply(fade = 0.6) {
   if (amb && !natAmbOn) { natAmbOn = true; nat.play({ id: "amb", volume: settings.sfx * 0.7, fade: 0.6, restart: true }).catch(() => {}); }
   else if (amb) nat.setVolume({ id: "amb", volume: settings.sfx * 0.7, fade }).catch(() => {});
   else if (natAmbOn) { natAmbOn = false; nat.stop({ id: "amb", fade: 0.4 }).catch(() => {}); }
+  // Boucle d'écran : démarre au début, s'arrête vite (0,3 s) en sortant.
+  const want = settings.muted ? null : loopFor(scene);
+  if (natLoop && natLoop !== want) { nat.stop({ id: natLoop, fade: 0.3 }).catch(() => {}); natLoop = null; }
+  if (want && natLoop !== want) { natLoop = want; nat.play({ id: want, volume: settings.music, fade: 0.3, restart: true }).catch(() => {}); }
+  else if (want) nat.setVolume({ id: want, volume: settings.music, fade }).catch(() => {});
 }
 
 // À appeler au premier toucher : les navigateurs n'autorisent le son
@@ -203,7 +214,7 @@ export function unlockAudio() {
 }
 
 // « menu » : musique ; « match » : sons des points ; « minigame » : musique
-// du jeu pendant un mini-jeu de match ; « matchQuiet » : match en pause ou
+// de suspense pendant un mini-jeu de match ; « wall » : musique comique ; « matchQuiet » : match en pause ou
 // terminé (ni musique ni ambiance) ; « flight » :
 // son de l'avion seul. La musique continue en silence hors menu.
 export function setAudioScene(next) {
@@ -216,6 +227,7 @@ export function setAudioScene(next) {
   applyVolumes(prevScene === "minigame" ? 0.3 : 0.6);
   if (scene === "match") startAmbience(); else stopAmbience();
   if (!inMatch(scene)) stopMatchSfx();
+  webLoop();
   if (musicEl && musicEl.paused && !settings.muted && document.visibilityState !== "hidden") musicEl.play().catch(() => {});
 }
 
@@ -229,6 +241,15 @@ export function playSfx(name) {
   if (sfxEls[name]) sfxEls[name].pause();
   sfxEls[name] = playElement(SFX[name], sfxGain);
 }
+// Boucle d'écran (web) : un élément <audio> en boucle, relié au volume général.
+let webLoopEl = null, webLoopId = null;
+function webLoop() {
+  const want = settings.muted ? null : loopFor(scene);
+  if (webLoopId === want) { if (webLoopEl) webLoopEl.volume = settings.music; return; }
+  if (webLoopEl) { webLoopEl.pause(); webLoopEl = null; }
+  webLoopId = want;
+  if (want && ctx) { webLoopEl = playElement(LOOPS[want], master, true); }
+}
 function stopMatchSfx() {
   MATCH_SFX.forEach(n => { if (sfxEls[n]) { sfxEls[n].pause(); sfxEls[n] = null; } });
 }
@@ -239,6 +260,7 @@ export function setAudioSettings(patch) {
   try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* stockage plein */ }
   if (nat) natApply(0.3);
   applyVolumes();
+  if (ctx) webLoop();
   if (musicEl) { if (settings.muted) musicEl.pause(); else musicEl.play().catch(() => {}); }
   listeners.forEach(fn => fn(settings));
 }

@@ -393,11 +393,16 @@ export default function TennisManager() {
   const inLiveMatch = screen === "match" && !!matchState && matchState.phase === "live" && !matchState.pendingNextMatch;
   const matchOver = inLiveMatch && !!matchState.matchData?.matchComplete;
   const pointsPlaying = inLiveMatch && !matchOver && !matchPaused && !(matchState.pendingDilemma && matchState.pendingDilemma.minigame);
-  // Mini-jeu en cours : la musique du jeu, coupée dès la fin du mini-jeu.
+  // Mini-jeu en cours : musique de suspense, coupée dès la fin du mini-jeu.
   const miniGameOn = inLiveMatch && !matchOver && !!(matchState.pendingDilemma && matchState.pendingDilemma.minigame);
-  const audioScene = flightAnim ? "flight" : miniGameOn ? "minigame" : pointsPlaying ? "match" : inLiveMatch ? "matchQuiet" : "menu";
+  // « Le mur » (secret des réglages) : musique comique.
+  const wallOn = screen === "settings" && wallTaps >= 3;
+  const audioScene = flightAnim ? "flight" : miniGameOn ? "minigame" : pointsPlaying ? "match" : inLiveMatch ? "matchQuiet" : wallOn ? "wall" : "menu";
+  // Finale gagnée : clameur de victoire au lieu de celle d'une fin de match.
+  const titleWon = matchOver && matchState.matchData.pSets > matchState.matchData.oSets && matchState.mode !== "qualifying"
+    && !!matchState.format && matchState.roundIdx === matchState.format.mainRounds.length - 1;
   useEffect(() => { setAudioScene(audioScene); }, [audioScene]);
-  useEffect(() => { if (matchOver) playSfx("matchEnd"); }, [matchOver]);
+  useEffect(() => { if (matchOver) playSfx(titleWon ? "victory" : "matchEnd"); }, [matchOver]);
   const [sponsorNegotiation, setSponsorNegotiation] = useState(null); // { phase, year, results, objMoney }
 
   // ── ATP DB COMPACTION FOR SAVE (Opt A+B) ──────────────────────────────────
