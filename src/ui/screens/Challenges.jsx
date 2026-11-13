@@ -36,6 +36,21 @@ export function MedalBadge({ medal, weeks }) {
   );
 }
 
+// Tampon encré, comme celui du mode « sans staff » : rouge pour les défis du
+// pack, vert pour le défi offert.
+function Stamp({ paid }) {
+  const c = paid ? "#c4302b" : "#1f7a45";
+  return (
+    <span className="tm-display" style={{
+      flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, background: "#fffdf6", color: c,
+      border: "3px solid " + c, outline: "1.5px solid " + c, outlineOffset: 2, boxShadow: "3px 3px 0 " + INK,
+      padding: "1px 8px", fontSize: 14, letterSpacing: 1, textTransform: "uppercase", transform: "rotate(-6deg)", margin: "2px 4px 2px 0",
+    }}>
+      {paid && <Icon name="lock" size={12} color={c} />}{paid ? "Payant" : "Offert"}
+    </span>
+  );
+}
+
 export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current, owned, goShop, avatar, setAvatar }) {
   const [selected, setSelectedRaw] = useState(null);
   const [avatarStep, setAvatarStep] = useState(false);
@@ -195,9 +210,6 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
               <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexWrap: "wrap" }}>
                 <span className="tm-display" style={{ color: "#141414", fontSize: 17, lineHeight: 1.1 }}>{c.name}</span>
                 <CircuitBadge c={c.circuit} />
-                {!owned && (c.id === FREE_CHALLENGE
-                  ? <span style={{ ...chip("#1f7a45", "#ffffff"), fontSize: 10, flexShrink: 0 }}>Offert</span>
-                  : <Icon name="lock" size={13} color="#141414" />)}
               </span>
               <DifficultyDots n={c.difficulty} />
             </div>
@@ -206,6 +218,9 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
               <span style={{ color: "#141414", fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 5 }}>
                 <Icon name="target" size={13} color="#1f7a45" /> {c.objectiveLabel}
               </span>
+              {/* Sans le pack : tampon « Payant » ou « Offert », dans la
+                  ligne du bas pour ne jamais couvrir la description. */}
+              {!owned && <Stamp paid={c.id !== FREE_CHALLENGE} />}
               {results[c.id] && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                   {results[c.id].medal && <MedalBadge medal={results[c.id].medal} />}
