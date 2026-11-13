@@ -86,6 +86,11 @@ export function challengeWonSince(p, startAbs, pred) {
 }
 export const tName = (id) => (ALL_TOURNAMENTS.find(t => t.id === id) || {}).name || id;
 
+// Défi offert à tous (premier de la liste) : il donne un avant-goût du pack
+// « Défis scénarisés », qui débloque les autres.
+export const FREE_CHALLENGE = "retour";
+export const challengeUnlocked = (id, owned) => owned || id === FREE_CHALLENGE;
+
 export const CHALLENGES = [
   {
     id: "retour", circuit: "atp", name: "Le Retour", difficulty: 2,

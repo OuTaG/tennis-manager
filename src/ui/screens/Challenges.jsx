@@ -1,7 +1,7 @@
 // Écrans des défis.
 import { useState, useMemo } from "react";
 import { CITIES } from "../../data/geo.js";
-import { CHALLENGES, MEDAL_INFO, challengeContext, getChallengeDef, loadChallengeResults } from "../../engine/challenges.js";
+import { CHALLENGES, MEDAL_INFO, challengeContext, getChallengeDef, loadChallengeResults, FREE_CHALLENGE, challengeUnlocked } from "../../engine/challenges.js";
 import { randomFullName } from "../../engine/names.js";
 import { FlagFromEmoji, Icon } from "../icons.jsx";
 import { AvatarBuilder } from "../avatar.jsx";
@@ -141,7 +141,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
                 <span style={{ padding: "6px 9px" }}>Lancer ce défi remplacera le défi en cours ({(getChallengeDef(current.challenge) || {}).name || "défi"}).</span>
               </div>
             )}
-            {owned ? (
+            {challengeUnlocked(def.id, owned) ? (
               <button style={styles.btnPrimary} disabled={name.trim().length < 2}
                 onClick={() => {
                   // Avatar accordé au circuit du défi.
@@ -172,7 +172,7 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
         {!owned && (
           <div className="tm-halftone-yellow" style={{ border: "3px solid " + INK, boxShadow: "4px 4px 0 " + INK, padding: 12, marginBottom: 14, color: "#141414", display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ width: 30, height: 30, flexShrink: 0, background: INK, border: "2px solid " + INK, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="lock" size={16} color="#d6ef3c" /></span>
-            <span style={{ flex: 1, fontSize: 13, fontWeight: 700, lineHeight: 1.4 }}>Les défis scénarisés se débloquent dans la boutique.</span>
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 700, lineHeight: 1.4 }}>« {(getChallengeDef(FREE_CHALLENGE) || {}).name} » est offert. Les autres défis se débloquent dans la boutique.</span>
             <button className="tm-display" style={{ ...styles.btnSmall, fontFamily: T.display, background: "#1f7a45", color: "#ffffff", border: "2.5px solid " + INK, boxShadow: "2px 2px 0 " + INK, fontWeight: 400, fontSize: 13 }} onClick={goShop}>Boutique</button>
           </div>
         )}
@@ -195,6 +195,9 @@ export function ChallengesScreen({ onBack, onStart, onResume, onAbandon, current
               <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexWrap: "wrap" }}>
                 <span className="tm-display" style={{ color: "#141414", fontSize: 17, lineHeight: 1.1 }}>{c.name}</span>
                 <CircuitBadge c={c.circuit} />
+                {!owned && (c.id === FREE_CHALLENGE
+                  ? <span style={{ ...chip("#1f7a45", "#ffffff"), fontSize: 10, flexShrink: 0 }}>Offert</span>
+                  : <Icon name="lock" size={13} color="#141414" />)}
               </span>
               <DifficultyDots n={c.difficulty} />
             </div>

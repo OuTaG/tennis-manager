@@ -3230,7 +3230,6 @@ export default function TennisManager() {
             }} onClick={() => setScreen("challenges")}>
               <Icon name="target" size={16} color={T.onAccent} /> Défis
               {challengeMeta && <span style={{ fontSize: 12, fontWeight: 500 }}>· en cours</span>}
-              {!hasPurchased("dlc_challenges") && <Icon name="lock" size={13} color={T.onAccent} />}
             </button>
             <button style={{ ...styles.btnSecondary, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setScreen("records")}>
               <Icon name="trophy" size={16} color={T.amber} /> Records
