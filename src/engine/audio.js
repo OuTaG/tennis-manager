@@ -26,10 +26,10 @@ const SFX = { flight: "audio/flight.mp3", matchEnd: "audio/match-end.mp3", cheer
 // Sons propres au match, coupés dès qu'on quitte le match en direct.
 const MATCH_SFX = ["matchEnd", "cheer", "victory"];
 const inMatch = (sc) => sc === "match" || sc === "matchQuiet" || sc === "minigame";
-// Boucles propres à un écran : suspense pendant les mini-jeux de match,
-// musique comique dans « Le mur » (secret des réglages).
+// Boucles propres à un écran : suspense pendant les mini-jeux de match et
+// avant une finale, musique comique dans « Le mur » (secret des réglages).
 const LOOPS = { sus: "audio/suspense.m4a", fun: "audio/funny.m4a" };
-const loopFor = (sc) => (sc === "minigame" ? "sus" : sc === "wall" ? "fun" : null);
+const loopFor = (sc) => (sc === "minigame" || sc === "finalPrematch" ? "sus" : sc === "wall" ? "fun" : null);
 // Écrans où la musique du jeu joue : les menus.
 const musicOn = (sc) => sc === "menu";
 

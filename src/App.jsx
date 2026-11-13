@@ -397,7 +397,10 @@ export default function TennisManager() {
   const miniGameOn = inLiveMatch && !matchOver && !!(matchState.pendingDilemma && matchState.pendingDilemma.minigame);
   // « Le mur » (secret des réglages) : musique comique.
   const wallOn = screen === "settings" && wallTaps >= 3;
-  const audioScene = flightAnim ? "flight" : miniGameOn ? "minigame" : pointsPlaying ? "match" : inLiveMatch ? "matchQuiet" : wallOn ? "wall" : "menu";
+  // Avant-match d'une finale : musique de suspense à la place de la musique.
+  const finalPrematch = screen === "match" && !!matchState && matchState.phase === "prematch" && matchState.mode !== "qualifying"
+    && !!matchState.format && matchState.roundIdx === matchState.format.mainRounds.length - 1;
+  const audioScene = flightAnim ? "flight" : miniGameOn ? "minigame" : pointsPlaying ? "match" : inLiveMatch ? "matchQuiet" : wallOn ? "wall" : finalPrematch ? "finalPrematch" : "menu";
   // Finale gagnée : clameur de victoire au lieu de celle d'une fin de match.
   const titleWon = matchOver && matchState.matchData.pSets > matchState.matchData.oSets && matchState.mode !== "qualifying"
     && !!matchState.format && matchState.roundIdx === matchState.format.mainRounds.length - 1;

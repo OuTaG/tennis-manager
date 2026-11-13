@@ -90,4 +90,12 @@ describe("mini-jeu", () => {
     A.setAudioScene("menu");
     expect(playing.has("victory")).toBe(false);
   });
+  it("suspense avant une finale, la musique revient ensuite", () => {
+    A.setAudioScene("menu");
+    A.setAudioScene("finalPrematch");
+    expect(playing.has("sus")).toBe(true);
+    expect(lastMusicVolume()).toBe(0);
+    A.setAudioScene("matchQuiet");
+    expect(playing.has("sus")).toBe(false);
+  });
 });
