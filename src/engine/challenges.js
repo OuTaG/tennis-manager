@@ -7,6 +7,8 @@ import { playerRaceRank, racePointsOf, raceStandings } from "./race.js";
 import { pickRandom } from "./social.js";
 import { random } from "./rng.js";
 import { fmtMoney, fmtNum } from "./text.js";
+import { scoreMultiplier, formatMultiplier } from "./difficulty.js";
+import { WEEKLY_ID, weeklyConfig, weeklyDef } from "./weekly.js";
 
 // ─── DÉFIS SCÉNARISÉS ────────────────────────────────────────────────────────
 // Chaque défi démarre une partie dans une situation imposée (âge, classement,
@@ -347,7 +349,12 @@ export const CHALLENGES = [
     },
   },
 ];
-export function getChallengeDef(id) { return CHALLENGES.find(c => c.id === id) || null; }
+export function getChallengeDef(id) {
+  // Défi de la semaine : configuration de la partie en cours, sinon celle
+  // de la semaine actuelle.
+  if (id === WEEKLY_ID) return weeklyDef((ACTIVE_CHALLENGE && ACTIVE_CHALLENGE.weekly) || weeklyConfig());
+  return CHALLENGES.find(c => c.id === id) || null;
+}
 
 // Contexte d'évaluation commun.
 export function challengeContext(p, db) {
@@ -372,6 +379,11 @@ export function evaluateChallenge(p, db) {
   const ctx = challengeContext(p, db);
   const finish = (res) => ({ ...res, ...computeChallengeScore(p, db, res.status, res.weeks) });
   if (c.failReason) return finish({ status: "fail", reason: c.failReason });
+  // Défi au score (défi de la semaine) : terminé à l'échéance, sans échec.
+  if (def.scoreOnly) {
+    if (ctx.abs > c.deadlineAbs) return finish({ status: "success", weeks: Math.max(0, ctx.abs - ctx.startAbs), medal: null });
+    return null;
+  }
   const obj = def.objective(p, ctx);
   if (obj.done) {
     const weeks = Math.max(0, ctx.abs - ctx.startAbs);
@@ -436,6 +448,7 @@ export function computeChallengeScore(p, db, status, weeksUsed) {
   if (c.id === "retour") rankProg(150, 10);
   else if (c.id === "prodige") rankProg(900, 100);
   else if (c.id === "seul") rankProg(1200, 100);
+  else if (c.id === WEEKLY_ID) rankProg(1200, 1);
   else if (c.id === "derniere_danse") { const d = tally.best.GrandSlam || 0; prog = d / 8; progDetail = "Meilleur Majeur : " + depthLabel(d); }
   else if (c.id === "pression") { const d = tally.best.Masters1000 || 0; prog = d / 8; progDetail = "Meilleur Grand 1000 : " + depthLabel(d); }
   else if (c.id === "terrien") { const d = tally.best.wimbledon || 0; prog = d / 8; progDetail = "Tournoi de Londres : " + depthLabel(d); }
@@ -459,6 +472,12 @@ export function computeChallengeScore(p, db, status, weeksUsed) {
   if (c.id === "derniere_danse") rows.push({ label: "Adieux au public", detail: "Popularité " + Math.round(p.popularity ?? 0), pts: Math.round((p.popularity ?? 0) * 5) });
   if (c.id === "retour") rows.push({ label: "Entrées protégées gardées", detail: (c.protectedUses || 0) + " × 50", pts: (c.protectedUses || 0) * 50 });
   if (c.id === "seul") rows.push({ label: "Autodidacte", detail: "Note " + getRating(p.stats), pts: Math.max(0, (getRating(p.stats) - 50) * 20) });
+  // Défi de la semaine : bonus de difficulté (niveau et options imposés).
+  if (c.id === WEEKLY_ID && c.weekly) {
+    const mul = scoreMultiplier(c.weekly.difficulty, c.weekly.options);
+    const sub = rows.reduce((a, r) => a + r.pts, 0);
+    rows.push({ label: "Difficulté", detail: "Multiplicateur " + formatMultiplier(mul), pts: Math.round(sub * (mul - 1)) });
+  }
   const score = rows.reduce((a, r) => a + r.pts, 0);
   return { score, rows };
 }

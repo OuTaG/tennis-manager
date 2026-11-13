@@ -28,7 +28,8 @@ import { FINALS_PRIZE, FINALS_PTS, RR_SCHEDULE, buildFinalsDraw, finalizeHumanTo
 import { SOCIAL_AUTHORS, generateAuxSocialPosts, generatePersonalSocialPost, generateWeeklyPersonalPosts, limitPersonalPosts, pickRandom, randomLikes } from "./engine/social.js";
 import { SPONSOR_BRANDS, SPONSOR_CAPS, WC_CRITERIA, evaluateSponsorObjective, generateSponsorOffer, getRecentPerfBonus, getSponsorTierForRanking, getWildcardPerfBonus, sponsorCancelBreakdownFor, sponsorObjectiveCounters } from "./engine/sponsors.js";
 import { staffTrainEnergyExtra, sumStaffEffect } from "./engine/staff.js";
-import { COMING_SOON, CONTINUE_OFFERS, hasPurchased, liveKeyFor, loadChallengeMeta, loadSlotMetas, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
+import { COMING_SOON, CONTINUE_OFFERS, WEEKLY_SLOT, hasPurchased, liveKeyFor, loadChallengeMeta, loadSlotMetas, loadWeeklyMeta, saveKeyFor, slotMetaKeyFor, writeSlotMeta } from "./engine/storage.js";
+import { WEEKLY_ID, WEEKLY_LEADERBOARD_ID, consumeWeeklyAttempt, recordWeeklyScore, weeklyKey } from "./engine/weekly.js";
 import { distanceKm, travelCostBetween, travelEnergyCost } from "./engine/travel.js";
 import { RARITY, RARITY_REWARD, TROPHIES, TROPHY_CATEGORIES, checkTrophies } from "./engine/trophies.js";
 import { BarShade, BoxShade, WindowShades, useScrollEdges } from "./ui/scrollShade.jsx";
@@ -61,7 +62,7 @@ import { PrepScreen } from "./ui/screens/Prep.jsx";
 import { RankingScreen } from "./ui/screens/Ranking.jsx";
 import { RecordsScreen } from "./ui/screens/Records.jsx";
 import { OnlineRankingScreen } from "./ui/screens/OnlineRanking.jsx";
-import { authenticateGameCenter, submitLegacyScore } from "./engine/gamecenter.js";
+import { authenticateGameCenter, submitLegacyScore, submitWeeklyScore } from "./engine/gamecenter.js";
 import { ShopScreen } from "./ui/screens/Shop.jsx";
 import { SOCIAL_HISTORY_WEEKS, SocialScreen } from "./ui/screens/Social.jsx";
 import { StatsScreen } from "./ui/screens/Stats.jsx";
@@ -281,7 +282,8 @@ export default function TennisManager() {
   useEffect(() => { slotRef.current = slot; }, [slot]);
   const [slotMetas, setSlotMetas] = useState(() => loadSlotMetas());
   const [challengeMeta, setChallengeMeta] = useState(() => loadChallengeMeta());
-  const refreshSlots = () => { setSlotMetas(loadSlotMetas()); setChallengeMeta(loadChallengeMeta()); };
+  const [weeklyMeta, setWeeklyMeta] = useState(() => loadWeeklyMeta());
+  const refreshSlots = () => { setSlotMetas(loadSlotMetas()); setChallengeMeta(loadChallengeMeta()); setWeeklyMeta(loadWeeklyMeta()); };
   const [menuShop, setMenuShop] = useState(false); // boutique ouverte depuis le menu
   const [menuCareers, setMenuCareers] = useState(false); // emplacements de carrière ouverts depuis le menu
   // Son : réglages partagés avec le moteur audio ; le son démarre au premier toucher.
@@ -626,7 +628,13 @@ export default function TennisManager() {
     if (screen !== "hub" || !player.challenge.introSeen) return;
     const res = evaluateChallenge(player, atpDb);
     if (!res) return;
-    saveChallengeResult(player.challenge.id, res, player);
+    if (player.challenge.id === WEEKLY_ID) {
+      // Défi de la semaine : meilleur score de la semaine, envoyé au
+      // classement hebdomadaire si la semaine n'est pas finie.
+      const key = player.challenge.weekly && player.challenge.weekly.key;
+      res.sameWeek = key === weeklyKey();
+      if (res.sameWeek) { recordWeeklyScore(key, res.score || 0); submitWeeklyScore(WEEKLY_LEADERBOARD_ID, res.score || 0); }
+    } else saveChallengeResult(player.challenge.id, res, player);
     setPlayer(p => ({ ...p, challenge: { ...p.challenge, status: res.status, result: res, resultSeen: false } }));
   }, [player, atpDb, screen]);
 
@@ -774,11 +782,17 @@ export default function TennisManager() {
   // Lance un défi : partie neuve dans l'emplacement des défis, base IA avancée
   // jusqu'à la semaine de départ, puis mise en situation (setup du défi).
   const startChallenge = (def, form) => {
-    setSeed(newSeed());
+    const weekly = def.id === WEEKLY_ID ? def : null;
+    const wcfg = weekly ? def.config : null;
+    // Défi de la semaine : 3 essais, et le même monde de départ pour tous.
+    if (weekly && !consumeWeeklyAttempt(wcfg.key)) return;
+    setSeed(weekly ? wcfg.seed : newSeed());
     setCircuit(form.circuit);
     const female = form.circuit === "wta";
     const avatar = form.avatar ? { ...form.avatar, female } : { ...avatarInput, female, hairStyle: female ? "queue" : "court" };
-    const p = createInitialPlayer(form.name, def.style, def.city, form.nationality, avatar, 3);
+    const p = weekly
+      ? createInitialPlayer(form.name, def.style, def.city, form.nationality, avatar, wcfg.difficulty, wcfg.options)
+      : createInitialPlayer(form.name, def.style, def.city, form.nationality, avatar, 3);
     p.circuit = form.circuit;
     let db = generateAtpDatabase();
     const enrollT = def.enroll ? ALL_TOURNAMENTS.find(t => t.id === def.enroll) : null;
@@ -816,9 +830,10 @@ export default function TennisManager() {
         p.challengeStartNegotiation = { phase: "start", year: 2026, ranking: rk, results: [], objMoney: 0 };
       }
     }
-    try { localStorage.removeItem(saveKeyFor(CHALLENGE_SLOT)); localStorage.removeItem(liveKeyFor(CHALLENGE_SLOT)); } catch (e) {}
-    setSlot(CHALLENGE_SLOT);
-    slotRef.current = CHALLENGE_SLOT;
+    const targetSlot = weekly ? WEEKLY_SLOT : CHALLENGE_SLOT;
+    try { localStorage.removeItem(saveKeyFor(targetSlot)); localStorage.removeItem(liveKeyFor(targetSlot)); } catch (e) {}
+    setSlot(targetSlot);
+    slotRef.current = targetSlot;
     setPlayer(p);
     setAtpDb(db);
     setNews([]);
@@ -3115,6 +3130,9 @@ export default function TennisManager() {
         onResume={() => runHeavy("Reprise du défi…", () => loadSave(CHALLENGE_SLOT))}
         onAbandon={() => deleteSave(CHALLENGE_SLOT)}
         current={challengeMeta}
+        weeklyCurrent={weeklyMeta}
+        onResumeWeekly={() => runHeavy("Reprise du défi…", () => loadSave(WEEKLY_SLOT))}
+        onAbandonWeekly={() => deleteSave(WEEKLY_SLOT)}
         owned={hasPurchased("dlc_challenges")}
         goShop={() => { openMenuShop("dlc_challenges"); setScreen("menu"); }}
       />
@@ -3223,6 +3241,10 @@ export default function TennisManager() {
             <button className="tm-bd-press" style={{ ...styles.btnPrimary, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setMenuCareers(true)}>
               <Icon name="player" size={17} color={T.onAccent} /> Carrière
               {slotMetas.some(Boolean) && <span style={{ fontSize: 12, fontWeight: 500 }}>· {slotMetas.filter(Boolean).length} en cours</span>}
+            </button>
+            <button className="tm-bd-press" style={{ ...styles.btnSecondary, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setScreen("challenges")}>
+              <Icon name="trophy" size={16} color={T.amber} /> Défi de la semaine
+              <span className="tm-lettering" style={{ background: "#d6ef3c", color: "#141414", border: "2px solid " + T.ink, padding: "0 7px", fontSize: 14, textTransform: "none", letterSpacing: 0, transform: "rotate(-2deg)" }}>gratuit</span>
             </button>
             {COMING_SOON.map(cs => (
               <div key={cs.id} aria-disabled="true" style={{ ...styles.btnSecondary, boxSizing: "border-box", cursor: "default", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, textAlign: "left", opacity: 0.85 }}>
@@ -5595,6 +5617,7 @@ export default function TennisManager() {
         const def = getChallengeDef(player.challenge.id);
         const res = player.challenge.result || {};
         const ok = player.challenge.status === "success";
+        const isWeekly = player.challenge.id === WEEKLY_ID;
         const seen = { ...player, challenge: { ...player.challenge, resultSeen: true } };
         return (
           <div style={{ position: "fixed", inset: 0, background: T.overlay, zIndex: 260, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
@@ -5606,11 +5629,15 @@ export default function TennisManager() {
                 </span>
                 <div style={{ minWidth: 0 }}>
                   <span style={{ display: "inline-block", background: T.ink, color: "#ffffff", fontSize: 10.5, fontWeight: 800, letterSpacing: 1, padding: "1px 7px", textTransform: "uppercase" }}>{def ? def.name : "Défi"}</span>
-                  <div className="tm-display" style={{ fontSize: 24, lineHeight: 1.05, marginTop: 4, color: ok ? "#141414" : "#ffffff", textShadow: ok ? "none" : "2px 2px 0 " + T.ink }}>{ok ? "Défi réussi !" : "Défi échoué"}</div>
+                  <div className="tm-display" style={{ fontSize: 24, lineHeight: 1.05, marginTop: 4, color: ok ? "#141414" : "#ffffff", textShadow: ok ? "none" : "2px 2px 0 " + T.ink }}>{isWeekly ? "Défi terminé !" : ok ? "Défi réussi !" : "Défi échoué"}</div>
                 </div>
               </div>
               <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-              {ok ? (
+              {isWeekly ? (
+                <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
+                  {res.sameWeek ? "Score enregistré pour le classement de la semaine." : "La semaine de ce défi est terminée : ce score n'est pas envoyé au classement."}
+                </div>
+              ) : ok ? (
                 <div className="tm-lettering" style={{ fontSize: 17, lineHeight: 1.25 }}>
                   Médaille <strong style={{ display: "inline-block", background: (MEDAL_INFO[res.medal] || {}).color, color: "#ffffff", border: "2px solid " + T.ink, padding: "0 6px", textShadow: "1px 1px 0 " + T.ink }}>{(MEDAL_INFO[res.medal] || {}).label}</strong> · {res.weeks} semaine{res.weeks > 1 ? "s" : ""}
                 </div>
@@ -5635,8 +5662,8 @@ export default function TennisManager() {
               {!ok && def && (
                 <button style={{ ...styles.btnPrimary, marginBottom: 0 }} onClick={() => startChallenge(def, { name: player.name, nationality: player.nationality, circuit: player.circuit || "atp" })}>Réessayer</button>
               )}
-              <button style={{ ...styles.btnSecondary, boxShadow: "2px 2px 0 " + T.ink }} onClick={() => setPlayer(seen)}>{ok ? "Continuer la partie" : "Continuer quand même"}</button>
-              <button style={styles.btnSecondary} onClick={() => returnToMenu(seen)}>Menu principal</button>
+              {!isWeekly && <button style={{ ...styles.btnSecondary, boxShadow: "2px 2px 0 " + T.ink }} onClick={() => setPlayer(seen)}>{ok ? "Continuer la partie" : "Continuer quand même"}</button>}
+              <button style={styles.btnSecondary} onClick={() => { returnToMenu(seen); if (isWeekly) setScreen("challenges"); }}>{isWeekly ? "Retour aux défis" : "Menu principal"}</button>
               </div>
             </div>
           </div>

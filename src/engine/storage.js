@@ -55,7 +55,6 @@ export const CONTINUE_OFFERS = [
 // boutique tant qu'ils ne sont pas prêts).
 export const COMING_SOON = [
   { id: "coop", icon: "users", name: "Carrière coop" },
-  { id: "weekly", icon: "trophy", name: "Défi hebdomadaire" },
 ];
 export const SHOP_STORAGE_KEY = "tm-purchases";
 
@@ -80,13 +79,17 @@ export function writeSlotMeta(i, player, atpDb) {
   } catch (e) {}
 }
 // Partie du défi en cours (emplacement à part).
-export function loadChallengeMeta() {
+export function loadChallengeMeta(slotIdx = CHALLENGE_SLOT) {
   try {
-    if (!localStorage.getItem(saveKeyFor(CHALLENGE_SLOT))) return null;
-    const m = localStorage.getItem(slotMetaKeyFor(CHALLENGE_SLOT));
+    if (!localStorage.getItem(saveKeyFor(slotIdx))) return null;
+    const m = localStorage.getItem(slotMetaKeyFor(slotIdx));
     return m ? JSON.parse(m) : null;
   } catch (e) { return null; }
 }
+// Défi de la semaine : son propre emplacement, pour ne pas écraser un défi
+// scénarisé en cours.
+export const WEEKLY_SLOT = 4;
+export function loadWeeklyMeta() { return loadChallengeMeta(WEEKLY_SLOT); }
 export function loadSlotMetas() {
   const out = [];
   for (let i = 0; i < SAVE_SLOTS; i++) {
