@@ -10,7 +10,7 @@ import { careerConfigOf } from "./careerConfig.js";
 // indépendamment de la sauvegarde : effacer ou écraser une partie ne fait pas
 // disparaître ses records. Mis à jour à chaque sauvegarde. Chaque résumé
 // garde la configuration de départ ; une carrière où une triche a servi
-// (ou relancée après faillite) a ses records à part, dans l'onglet Triche.
+// a ses records à part, dans l'onglet Triche.
 export const RECORDS_STORAGE_KEY = "tm-records";
 
 export function loadCareerSummaries() {

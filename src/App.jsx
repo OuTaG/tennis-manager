@@ -304,7 +304,7 @@ export default function TennisManager() {
   }, [player?.week, player?.year]);
 
   // ── TRICHES ET RELANCE APRÈS FAILLITE ──────────────────────────────────
-  // Une carrière où une triche a servi (ou relancée après faillite) est
+  // Une carrière où une triche a servi est
   // marquée « triche » : records à part, hors classement en ligne.
   const [cheatConfirm, setCheatConfirm] = useState(null); // action en attente de confirmation
   const [continueBusy, setContinueBusy] = useState(false);
@@ -339,7 +339,9 @@ export default function TennisManager() {
     setContinueBusy(false);
     if (!res.ok) return;
     setPlayer(p => ({
-      ...p, money: offer.money, staff: [], continues: idx + 1, cheated: true,
+      // Relance après faillite : la carrière reste classée (le temps perdu
+      // suffit à pénaliser), le nombre de relances figure dans sa configuration.
+      ...p, money: offer.money, staff: [], continues: idx + 1,
       pendingNotice: { title: "Nouveau départ", text: "Pour faire des économies, tout votre staff a été remercié. Vous repartez avec " + fmtMoney(offer.money) + "." },
     }));
     setActiveTab("hub");
@@ -3790,7 +3792,7 @@ export default function TennisManager() {
                   <button className="tm-bd-press" disabled={continueBusy} onClick={() => continueCareer(offer, idx)} style={{ ...styles.btnPrimary, marginBottom: 6, background: "#1f7a45", opacity: continueBusy ? 0.6 : 1 }}>
                     {continueBusy ? "Paiement…" : "Continuer · " + (continuePrices[offer.id] || offer.price)}
                   </button>
-                  <div style={{ fontSize: 11, fontWeight: 700, textAlign: "center" }}>Carrière classée « Triche » · {idx === 0 ? "1 relance possible ensuite" : "dernière relance"}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textAlign: "center" }}>{idx === 0 ? "1 relance possible ensuite" : "Dernière relance"}</div>
                 </div>
               );
             })()}
